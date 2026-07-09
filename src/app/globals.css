@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  /* theme-and-design-system.md Section 3 — light theme only, no dark mode in v1 */
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f7f8fa;
+  --color-border-subtle: #e3e5e8;
+  --color-text-primary: #1a1d23;
+  --color-text-secondary: #5b6270;
+  /* accent-primary is TBD pending Bluejay brand color, see design doc Section 3 */
+  --color-accent-primary: #1d4ed8;
+  --color-status-success: #2e7d32;
+  --color-status-warning: #b26a00;
+  --color-status-error: #b3261e;
+}
+
+@theme inline {
+  --color-background-primary: var(--color-background-primary);
+  --color-background-secondary: var(--color-background-secondary);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-accent-primary: var(--color-accent-primary);
+  --color-status-success: var(--color-status-success);
+  --color-status-warning: var(--color-status-warning);
+  --color-status-error: var(--color-status-error);
+  --font-sans: Arial, "Helvetica Neue", Helvetica, "Calibri", sans-serif;
+}
+
+body {
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
