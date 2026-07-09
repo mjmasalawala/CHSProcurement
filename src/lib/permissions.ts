@@ -1,0 +1,112 @@
+import type { RoleAssignment } from "@/generated/prisma/client";
+import { RoleName } from "@/generated/prisma/enums";
+
+/**
+ * Canonical permission strings. The same string is used on the API layer
+ * (to enforce) and the UI layer (to hide/show), per
+ * unified-platform-architecture.md Section 8 — never gate on role name alone.
+ */
+export const PERMISSIONS = {
+  // Vendor module
+  EDIT_COMPANY_PROFILE: "edit_company_profile",
+  MANAGE_STAFF: "manage_staff",
+  VIEW_REQUIREMENTS_INBOX: "view_requirements_inbox",
+  SUBMIT_BID: "submit_bid",
+  VIEW_OWN_BIDS: "view_own_bids",
+  VIEW_STAFF_ACTIVITY_LOG: "view_staff_activity_log",
+
+  // Society module
+  CREATE_REQUIREMENT: "create_requirement",
+  VIEW_BID_COMPARISON: "view_bid_comparison",
+  RECOMMEND_BID: "recommend_bid",
+  FINALIZE_BELOW_THRESHOLD: "finalize_below_threshold",
+  APPROVE_REJECT_QUOTATION: "approve_reject_quotation",
+  MANAGE_USERS: "manage_users",
+  PROPOSE_THRESHOLD_CHANGE: "propose_threshold_change",
+  VIEW_ARCHIVE: "view_archive",
+
+  // Admin module
+  VENDOR_QUEUE_ACCESS: "vendor_queue_access",
+  SOCIETY_QUEUE_ACCESS: "society_queue_access",
+  VENDOR_DIRECTORY_ACCESS: "vendor_directory_access",
+  SOCIETY_DIRECTORY_ACCESS: "society_directory_access",
+  TAXONOMY_MANAGEMENT: "taxonomy_management",
+  CITY_MANAGEMENT: "city_management",
+} as const;
+
+export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
+
+/**
+ * Default permission set granted at RoleAssignment creation time (invite
+ * acceptance / registration approval). Flattening role + special flags into
+ * one array here keeps the runtime check a single `.includes(x)` — see
+ * hasPermission below. Society/vendor "special permissions" (manage_staff,
+ * manage_users, propose_threshold_change) remain independently reassignable
+ * afterwards without a code change, per architecture doc Section 4.
+ *
+ * Note: "Approve Threshold Change" isn't in here — it's the same
+ * APPROVE_REJECT_QUOTATION-holding OB roles, excluding whoever proposed it,
+ * which is a per-request check, not a static flag (society spec Section 7.1).
+ */
+export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
+  [RoleName.VENDOR_OWNER]: [
+    PERMISSIONS.EDIT_COMPANY_PROFILE,
+    PERMISSIONS.MANAGE_STAFF,
+    PERMISSIONS.VIEW_REQUIREMENTS_INBOX,
+    PERMISSIONS.SUBMIT_BID,
+    PERMISSIONS.VIEW_OWN_BIDS,
+    PERMISSIONS.VIEW_STAFF_ACTIVITY_LOG,
+  ],
+  [RoleName.VENDOR_STAFF]: [
+    PERMISSIONS.VIEW_REQUIREMENTS_INBOX,
+    PERMISSIONS.SUBMIT_BID,
+    PERMISSIONS.VIEW_OWN_BIDS,
+  ],
+  [RoleName.MANAGER]: [
+    PERMISSIONS.CREATE_REQUIREMENT,
+    PERMISSIONS.VIEW_BID_COMPARISON,
+    PERMISSIONS.RECOMMEND_BID,
+    PERMISSIONS.FINALIZE_BELOW_THRESHOLD,
+    PERMISSIONS.VIEW_ARCHIVE,
+  ],
+  [RoleName.CHAIRMAN]: [PERMISSIONS.APPROVE_REJECT_QUOTATION, PERMISSIONS.VIEW_ARCHIVE],
+  [RoleName.SECRETARY]: [
+    PERMISSIONS.APPROVE_REJECT_QUOTATION,
+    PERMISSIONS.MANAGE_USERS,
+    PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.VIEW_ARCHIVE,
+  ],
+  [RoleName.TREASURER]: [
+    PERMISSIONS.APPROVE_REJECT_QUOTATION,
+    PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.VIEW_ARCHIVE,
+  ],
+  [RoleName.OPS_VENDOR_QUEUE]: [
+    PERMISSIONS.VENDOR_QUEUE_ACCESS,
+    PERMISSIONS.VENDOR_DIRECTORY_ACCESS,
+  ],
+  [RoleName.OPS_SOCIETY_QUEUE]: [
+    PERMISSIONS.SOCIETY_QUEUE_ACCESS,
+    PERMISSIONS.SOCIETY_DIRECTORY_ACCESS,
+  ],
+  [RoleName.SUPER_ADMIN]: [
+    PERMISSIONS.VENDOR_QUEUE_ACCESS,
+    PERMISSIONS.SOCIETY_QUEUE_ACCESS,
+    PERMISSIONS.VENDOR_DIRECTORY_ACCESS,
+    PERMISSIONS.SOCIETY_DIRECTORY_ACCESS,
+    PERMISSIONS.TAXONOMY_MANAGEMENT,
+    PERMISSIONS.CITY_MANAGEMENT,
+  ],
+};
+
+/**
+ * The one check every API route and every gated UI component calls, with the
+ * same permission string on both sides. Never gate an action in the frontend
+ * only — see unified-platform-architecture.md Section 8.
+ */
+export function hasPermission(
+  assignment: Pick<RoleAssignment, "status" | "permissions">,
+  permission: Permission,
+): boolean {
+  return assignment.status === "ACTIVE" && assignment.permissions.includes(permission);
+}

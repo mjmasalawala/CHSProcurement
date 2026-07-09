@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +8,67 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// A login identity. Separate from role — see unified-platform-architecture.md Section 3.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  // Null if the user only ever signs in via Google.
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  roleAssignments RoleAssignment[]
+}
+
+enum EntityType {
+  VENDOR_COMPANY
+  SOCIETY
+  PLATFORM
+}
+
+enum RoleName {
+  VENDOR_OWNER
+  VENDOR_STAFF
+  MANAGER
+  CHAIRMAN
+  SECRETARY
+  TREASURER
+  OPS_VENDOR_QUEUE
+  OPS_SOCIETY_QUEUE
+  SUPER_ADMIN
+}
+
+enum RoleAssignmentStatus {
+  // Created by an invite/registration approval, not yet accepted.
+  PENDING
+  ACTIVE
+}
+
+// Links a User to a specific entity (a Vendor Company or a Society) with a role
+// and permission set. A User can hold multiple RoleAssignments (e.g. a Manager
+// across several Societies). See unified-platform-architecture.md Section 3.
+//
+// entityId is a loose reference (VendorCompany/Society tables don't exist yet —
+// they land in M2); PLATFORM roles (Bluejay Ops/Super Admin) have no entity, so
+// entityId is null for those.
+model RoleAssignment {
+  id          String               @id @default(cuid())
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityType  EntityType
+  entityId    String?
+  role        RoleName
+  // Effective permission strings for this assignment, seeded from role
+  // defaults at creation time (see src/lib/permissions.ts) and independently
+  // reassignable later without a code change, per the architecture doc.
+  permissions String[]
+  status      RoleAssignmentStatus @default(ACTIVE)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([entityType, entityId])
 }
