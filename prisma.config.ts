@@ -9,6 +9,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Migrate/introspection need the direct (non-pooled) connection.
+    // The runtime client uses DATABASE_URL (pooled) via the Neon adapter instead — see src/lib/prisma.ts.
+    url: process.env["DIRECT_URL"],
   },
 });
