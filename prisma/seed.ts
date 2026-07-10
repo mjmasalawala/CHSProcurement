@@ -147,6 +147,24 @@ async function main() {
   });
 
   await prisma.user.upsert({
+    where: { email: "secretary1@example.com" },
+    update: {},
+    create: {
+      email: "secretary1@example.com",
+      name: "Seed Secretary",
+      passwordHash,
+      roleAssignments: {
+        create: {
+          entityType: "SOCIETY",
+          entityId: societyOne.id,
+          role: RoleName.SECRETARY,
+          permissions: ROLE_DEFAULT_PERMISSIONS[RoleName.SECRETARY],
+        },
+      },
+    },
+  });
+
+  await prisma.user.upsert({
     where: { email: "admin@example.com" },
     update: {},
     create: {

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { SessionRoleAssignment } from "@/types/next-auth";
 
-/** Vendor module has real screens now (M4); Society (M5) still doesn't. */
+/** Vendor (M4) and Society (M5) modules have real screens now. */
 function workspaceHref(ra: SessionRoleAssignment): string | null {
   if (ra.entityType === "VENDOR_COMPANY" && ra.entityId) return `/vendor/${ra.entityId}`;
+  if (ra.entityType === "SOCIETY" && ra.entityId) return `/society/${ra.entityId}`;
   return null;
 }
 

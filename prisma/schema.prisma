@@ -20,8 +20,9 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  roleAssignments RoleAssignment[]
-  bids            Bid[]
+  roleAssignments         RoleAssignment[]
+  bids                    Bid[]
+  recommendedRequirements Requirement[]
 }
 
 enum EntityType {
@@ -233,21 +234,35 @@ enum RequirementUrgency {
   URGENT
 }
 
-// society-portal-spec.md Section 5. Real Requirement Creation UI (matching
-// engine, Manager-only gate) lands in M5 — this model exists early so the
-// M4 vendor portal (Requirements Inbox, Bid Submission) has something real
-// to point at; rows for now come from prisma/seed.ts.
+// society-portal-spec.md Section 5. Requirement Creation (Manager-only,
+// matching engine invite) lands in M5; the model existed a milestone early
+// (M4) so the vendor portal had something real to point at.
 model Requirement {
-  id          String             @id @default(cuid())
-  societyId   String
-  society     Society            @relation(fields: [societyId], references: [id])
-  categoryId  String
-  category    Category           @relation(fields: [categoryId], references: [id])
-  description String
-  urgency     RequirementUrgency
+  id             String             @id @default(cuid())
+  societyId      String
+  society        Society            @relation(fields: [societyId], references: [id])
+  categoryId     String
+  category       Category           @relation(fields: [categoryId], references: [id])
+  description    String
+  urgency        RequirementUrgency
   // Free text (e.g. "₹10,000 - ₹25,000") — optional, no fixed band list yet.
-  budgetBand  String?
-  bidDeadline DateTime
+  budgetBand     String?
+  bidDeadline    DateTime
+  // File upload storage isn't built (same "schema now, UI later" pattern as
+  // KYC document fields elsewhere) — populated by nothing yet, v1 GUI has no
+  // upload control.
+  attachmentUrls String[]           @default([])
+
+  // Manager's recommendation (society-portal-spec.md Section 6). Approval
+  // workflow / finalization / Work Order generation is M6 — this only
+  // records the recommendation itself.
+  recommendedBidId    String?   @unique
+  recommendedBid      Bid?      @relation("RequirementRecommendedBid", fields: [recommendedBidId], references: [id])
+  // Mandatory if recommendedBid isn't the lowest submitted bid.
+  recommendationNote  String?
+  recommendedAt       DateTime?
+  recommendedByUserId String?
+  recommendedByUser   User?     @relation(fields: [recommendedByUserId], references: [id])
 
   invites RequirementInvite[]
   bids    Bid[]
@@ -294,7 +309,8 @@ model Bid {
   notes             String?
   status            BidStatus     @default(SUBMITTED)
 
-  lineItems BidLineItem[]
+  lineItems      BidLineItem[]
+  recommendedFor Requirement?  @relation("RequirementRecommendedBid")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
