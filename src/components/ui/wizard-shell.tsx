@@ -57,9 +57,11 @@ export function WizardShell({
         >
           Back
         </Button>
-        <Button type="button" onClick={onNext} disabled={nextDisabled}>
-          {nextLabel}
-        </Button>
+        {onNext && (
+          <Button type="button" onClick={onNext} disabled={nextDisabled}>
+            {nextLabel}
+          </Button>
+        )}
       </div>
     </div>
   );

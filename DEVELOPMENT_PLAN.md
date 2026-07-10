@@ -1,4 +1,4 @@
-# Development Plan — Bluejay (CHSProcurement)
+# Development Plan — ProSoc (CHSProcurement)
 
 Status: v1 kickoff. Source of truth for scope is [`Requirements/`](Requirements/) — this plan sequences the build, it doesn't restate every field/rule from the specs.
 
@@ -17,7 +17,7 @@ Flagged as open in the specs, resolved with the product owner on 2026-07-09:
 Still open (not blocking early milestones, revisit before the relevant feature ships):
 - Forgot-password flow detail (standard email-reset-link assumed)
 - Audio retention policy for voice notes (exact duration TBD)
-- Bluejay brand accent color (placeholder in design system)
+- ProSoc brand accent color (placeholder in design system)
 
 ---
 

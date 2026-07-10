@@ -51,8 +51,10 @@ enum RoleAssignmentStatus {
 // and permission set. A User can hold multiple RoleAssignments (e.g. a Manager
 // across several Societies). See unified-platform-architecture.md Section 3.
 //
-// entityId is a loose reference (VendorCompany/Society tables don't exist yet —
-// they land in M2); PLATFORM roles (Bluejay Ops/Super Admin) have no entity, so
+// entityId is a loose reference by design (entityType tells you which table —
+// VendorCompany or Society — it points into; Prisma can't express a single FK
+// that targets either table, so referential integrity here is app-level, not
+// DB-level). PLATFORM roles (ProSoc Ops/Super Admin) have no entity, so
 // entityId is null for those.
 model RoleAssignment {
   id          String               @id @default(cuid())
@@ -69,6 +71,149 @@ model RoleAssignment {
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
+  invite Invite?
+
   @@index([userId])
   @@index([entityType, entityId])
+}
+
+// Generic invite-acceptance mechanism (landing-page-and-auth-flow-spec.md
+// Section 4), reused for Secretary/Manager/Chairman/Treasurer/Vendor Staff
+// activation. Not used by Vendor Owner registration, which creates
+// credentials directly at signup time (product decision, 2026-07-09 — see
+// DEVELOPMENT_PLAN.md).
+model Invite {
+  id               String    @id @default(cuid())
+  token            String    @unique
+  email            String
+  roleAssignmentId String    @unique
+  roleAssignment   RoleAssignment @relation(fields: [roleAssignmentId], references: [id], onDelete: Cascade)
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  createdAt        DateTime  @default(now())
+}
+
+enum EntityStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum BusinessType {
+  PROPRIETORSHIP
+  PARTNERSHIP
+  PRIVATE_LIMITED
+  LLP
+  OTHER
+}
+
+// Admin-managed, shared across Vendor registration, Society registration, and
+// requirement creation — unified-platform-architecture.md Section 6.
+model Category {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  // Soft-disable only — deactivating must not delete historical data tied to
+  // it (admin-portal-spec.md Section 5).
+  active Boolean @default(true)
+
+  vendorCompanies VendorCompany[]
+}
+
+model City {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  active Boolean @default(true)
+
+  vendorCompanies VendorCompany[]
+  societies       Society[]
+}
+
+enum CategoryRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// A vendor's "this trade isn't on your list" request, submitted alongside
+// registration but never blocking it — vendor-registration-portal-spec.md
+// Section 5. Goes into an Admin approval queue (M3).
+model CategoryRequest {
+  id              String                @id @default(cuid())
+  name            String
+  status          CategoryRequestStatus @default(PENDING)
+  reason          String?
+  vendorCompanyId String?
+  vendorCompany   VendorCompany?        @relation(fields: [vendorCompanyId], references: [id], onDelete: SetNull)
+  createdAt       DateTime              @default(now())
+}
+
+// vendor-registration-portal-spec.md Section 4.
+model VendorCompany {
+  id                String       @id @default(cuid())
+  name              String
+  businessType      BusinessType
+  ownerName         String
+  ownerPhone        String
+  ownerEmail        String       @unique
+  registeredAddress String
+  gstNumber         String?
+  panNumber         String?
+  yearsInBusiness   Int?
+  description       String?
+  // Free-form, repeatable — supplementary metadata, not a matching input in
+  // v1 (Section 6).
+  societiesServiced String[]     @default([])
+  status            EntityStatus @default(PENDING_VERIFICATION)
+  rejectionReason   String?
+
+  // Standard tier (Section 4.2) — schema-only, no v1 GUI. Nullable so
+  // exposing them later needs no migration.
+  tradeLicenseNumber    String?
+  tradeLicenseExpiry    DateTime?
+  insurancePolicyNumber String?
+  insuranceCoverage     String?
+  insuranceExpiry       DateTime?
+  bankAccountNumber     String?
+  bankIfsc              String?
+  bankAccountHolderName String?
+
+  serviceCategories Category[]
+  citiesServed      City[]
+  categoryRequests  CategoryRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// society-portal-spec.md Section 4.
+model Society {
+  id                 String       @id @default(cuid())
+  name               String
+  address            String
+  cityId             String
+  city               City         @relation(fields: [cityId], references: [id])
+  unitsCount         Int
+  registrationNumber String?
+  registrantName     String
+  registrantRole     RoleName
+  registrantPhone    String
+  registrantEmail    String
+  secretaryName      String
+  secretaryPhone     String
+  secretaryEmail     String
+  status             EntityStatus @default(PENDING_VERIFICATION)
+  rejectionReason    String?
+  // Default ₹1,000, configurable per society (society spec Section 7).
+  approvalThreshold  Int          @default(1000)
+
+  // Standard tier (Section 4.2) — schema-only, no v1 GUI.
+  registrationCertificateUrl String?
+  panNumber                  String?
+  bankAccountNumber          String?
+  bankIfsc                   String?
+  bankAccountHolderName      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

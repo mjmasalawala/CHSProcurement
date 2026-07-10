@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bluejay",
+  title: "ProSoc",
   description: "Housing society R&M vendor marketplace",
 };
 

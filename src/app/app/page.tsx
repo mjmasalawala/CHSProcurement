@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
+import { getEntityName } from "@/lib/entities";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -14,6 +15,12 @@ export default async function AppHome() {
   if (!session) redirect("/login");
 
   const { roleAssignments, name, email } = session.user;
+  const withNames = await Promise.all(
+    roleAssignments.map(async (ra) => ({
+      ...ra,
+      entityName: await getEntityName(ra.entityType, ra.entityId),
+    })),
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-6 py-16">
@@ -36,38 +43,36 @@ export default async function AppHome() {
         </form>
       </div>
 
-      {roleAssignments.length === 0 && (
+      {withNames.length === 0 && (
         <Card>
           <p className="text-[15px] text-text-primary">
             No active role assignments yet.
           </p>
           <p className="mt-1 text-[13px] text-text-secondary">
             You&apos;ll land here once a Society/Vendor registration is approved or
-            you accept an invite (M2/M3).
+            you accept an invite (M3).
           </p>
         </Card>
       )}
 
-      {roleAssignments.length === 1 && (
+      {withNames.length === 1 && (
         <Card>
           <p className="mb-1 text-[13px] text-text-secondary">Routed straight into</p>
           <p className="text-[18px] font-semibold text-text-primary">
-            {roleAssignments[0].role} — {roleAssignments[0].entityType}
-            {roleAssignments[0].entityId ? ` (${roleAssignments[0].entityId})` : ""}
+            {withNames[0].role} — {withNames[0].entityName ?? withNames[0].entityType}
           </p>
         </Card>
       )}
 
-      {roleAssignments.length > 1 && (
+      {withNames.length > 1 && (
         <div className="flex flex-col gap-3">
           <p className="text-[13px] text-text-secondary">Select a context</p>
-          {roleAssignments.map((ra) => (
+          {withNames.map((ra) => (
             <Card key={ra.id} className="flex items-center justify-between">
               <div>
                 <p className="text-[15px] font-medium text-text-primary">{ra.role}</p>
                 <p className="text-[13px] text-text-secondary">
-                  {ra.entityType}
-                  {ra.entityId ? ` (${ra.entityId})` : ""}
+                  {ra.entityName ?? ra.entityType}
                 </p>
               </div>
               <Button variant="secondary">Switch</Button>
