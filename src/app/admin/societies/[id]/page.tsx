@@ -1,7 +1,8 @@
-import { notFound, redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { notFound } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
+import { requirePagePermission } from "@/lib/admin-auth";
 import { Card } from "@/components/ui/card";
 import { ApproveRejectPanel } from "./panel";
 
@@ -9,13 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSocietyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await auth();
-  if (!session) redirect(`/login?callbackUrl=${encodeURIComponent(`/admin/societies/${id}`)}`);
-
-  const canAccess = session.user.roleAssignments.some((ra) =>
-    ra.permissions.includes(PERMISSIONS.SOCIETY_QUEUE_ACCESS),
-  );
-  if (!canAccess) redirect("/app");
+  await requirePagePermission(PERMISSIONS.SOCIETY_QUEUE_ACCESS, `/admin/societies/${id}`);
 
   const society = await prisma.society.findUnique({
     where: { id },
@@ -24,7 +19,10 @@ export default async function AdminSocietyPage({ params }: { params: Promise<{ i
   if (!society) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-6 py-16">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
+      <Link href="/admin/societies" className="text-[13px] text-text-secondary underline hover:text-text-primary">
+        ← Back to Societies
+      </Link>
       <div>
         <h1 className="text-[24px] font-bold text-text-primary">{society.name}</h1>
         <p className="text-[13px] text-text-secondary">Status: {society.status}</p>
@@ -42,7 +40,7 @@ export default async function AdminSocietyPage({ params }: { params: Promise<{ i
       </Card>
 
       <ApproveRejectPanel societyId={society.id} status={society.status} />
-    </main>
+    </div>
   );
 }
 
