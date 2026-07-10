@@ -21,6 +21,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   roleAssignments RoleAssignment[]
+  bids            Bid[]
 }
 
 enum EntityType {
@@ -45,6 +46,10 @@ enum RoleAssignmentStatus {
   // Created by an invite/registration approval, not yet accepted.
   PENDING
   ACTIVE
+  // Owner-deactivated (Vendor Staff, v1) — past submissions stay attributed
+  // to this assignment's user even after deactivation
+  // (vendor-registration-portal-spec.md Section 2).
+  DEACTIVATED
 }
 
 // Links a User to a specific entity (a Vendor Company or a Society) with a role
@@ -83,14 +88,14 @@ model RoleAssignment {
 // credentials directly at signup time (product decision, 2026-07-09 — see
 // DEVELOPMENT_PLAN.md).
 model Invite {
-  id               String    @id @default(cuid())
-  token            String    @unique
+  id               String         @id @default(cuid())
+  token            String         @unique
   email            String
-  roleAssignmentId String    @unique
+  roleAssignmentId String         @unique
   roleAssignment   RoleAssignment @relation(fields: [roleAssignmentId], references: [id], onDelete: Cascade)
   expiresAt        DateTime
   acceptedAt       DateTime?
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime       @default(now())
 }
 
 enum EntityStatus {
@@ -118,6 +123,7 @@ model Category {
   active Boolean @default(true)
 
   vendorCompanies VendorCompany[]
+  requirements    Requirement[]
 }
 
 model City {
@@ -178,9 +184,11 @@ model VendorCompany {
   bankIfsc              String?
   bankAccountHolderName String?
 
-  serviceCategories Category[]
-  citiesServed      City[]
-  categoryRequests  CategoryRequest[]
+  serviceCategories  Category[]
+  citiesServed       City[]
+  categoryRequests   CategoryRequest[]
+  requirementInvites RequirementInvite[]
+  bids               Bid[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -214,6 +222,95 @@ model Society {
   bankIfsc                   String?
   bankAccountHolderName      String?
 
+  requirements Requirement[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum RequirementUrgency {
+  ROUTINE
+  URGENT
+}
+
+// society-portal-spec.md Section 5. Real Requirement Creation UI (matching
+// engine, Manager-only gate) lands in M5 — this model exists early so the
+// M4 vendor portal (Requirements Inbox, Bid Submission) has something real
+// to point at; rows for now come from prisma/seed.ts.
+model Requirement {
+  id          String             @id @default(cuid())
+  societyId   String
+  society     Society            @relation(fields: [societyId], references: [id])
+  categoryId  String
+  category    Category           @relation(fields: [categoryId], references: [id])
+  description String
+  urgency     RequirementUrgency
+  // Free text (e.g. "₹10,000 - ₹25,000") — optional, no fixed band list yet.
+  budgetBand  String?
+  bidDeadline DateTime
+
+  invites RequirementInvite[]
+  bids    Bid[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// The matched/invited pool for a Requirement (category + city match against
+// Active vendors, per society-portal-spec.md Section 5). Only invited
+// vendors can see or bid on a Requirement — this is what "blind, matched
+// invite" means at the data layer.
+model RequirementInvite {
+  id              String        @id @default(cuid())
+  requirementId   String
+  requirement     Requirement   @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  vendorCompanyId String
+  vendorCompany   VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([requirementId, vendorCompanyId])
+}
+
+enum BidStatus {
+  SUBMITTED
+  // Set on finalization (M6) — schema-only for now.
+  WON
+  NOT_SELECTED
+}
+
+// vendor-registration-portal-spec.md Section 8. One Bid per vendor company
+// per Requirement (editable up to the deadline); line items are the
+// machine-comparable structure the Society side compares post-deadline.
+model Bid {
+  id                String        @id @default(cuid())
+  requirementId     String
+  requirement       Requirement   @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  vendorCompanyId   String
+  vendorCompany     VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  submittedByUserId String
+  submittedByUser   User          @relation(fields: [submittedByUserId], references: [id])
+  totalAmount       Decimal       @db.Decimal(12, 2)
+  bidValidity       DateTime
+  notes             String?
+  status            BidStatus     @default(SUBMITTED)
+
+  lineItems BidLineItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([requirementId, vendorCompanyId])
+}
+
+model BidLineItem {
+  id          String  @id @default(cuid())
+  bidId       String
+  bid         Bid     @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Decimal @db.Decimal(10, 2)
+  // Free text (sqft, nos, lump sum, etc.) — spec calls for a dropdown of
+  // common units, not a fixed taxonomy, so this stays a string.
+  unit        String
+  unitRate    Decimal @db.Decimal(12, 2)
+  amount      Decimal @db.Decimal(12, 2)
 }

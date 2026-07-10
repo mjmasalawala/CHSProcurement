@@ -1,8 +1,16 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { getEntityName } from "@/lib/entities";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import type { SessionRoleAssignment } from "@/types/next-auth";
+
+/** Vendor module has real screens now (M4); Society (M5) still doesn't. */
+function workspaceHref(ra: SessionRoleAssignment): string | null {
+  if (ra.entityType === "VENDOR_COMPANY" && ra.entityId) return `/vendor/${ra.entityId}`;
+  return null;
+}
 
 /**
  * Post-login routing skeleton — unified-platform-architecture.md Section 5.
@@ -61,23 +69,45 @@ export default async function AppHome() {
           <p className="text-[18px] font-semibold text-text-primary">
             {withNames[0].role} — {withNames[0].entityName ?? withNames[0].entityType}
           </p>
+          {workspaceHref(withNames[0]) && (
+            <Link
+              href={workspaceHref(withNames[0])!}
+              className="mt-3 inline-block text-[13px] text-accent-primary underline"
+            >
+              Open workspace →
+            </Link>
+          )}
         </Card>
       )}
 
       {withNames.length > 1 && (
         <div className="flex flex-col gap-3">
           <p className="text-[13px] text-text-secondary">Select a context</p>
-          {withNames.map((ra) => (
-            <Card key={ra.id} className="flex items-center justify-between">
-              <div>
-                <p className="text-[15px] font-medium text-text-primary">{ra.role}</p>
-                <p className="text-[13px] text-text-secondary">
-                  {ra.entityName ?? ra.entityType}
-                </p>
-              </div>
-              <Button variant="secondary">Switch</Button>
-            </Card>
-          ))}
+          {withNames.map((ra) => {
+            const href = workspaceHref(ra);
+            return (
+              <Card key={ra.id} className="flex items-center justify-between">
+                <div>
+                  <p className="text-[15px] font-medium text-text-primary">{ra.role}</p>
+                  <p className="text-[13px] text-text-secondary">
+                    {ra.entityName ?? ra.entityType}
+                  </p>
+                </div>
+                {href ? (
+                  <Link
+                    href={href}
+                    className="rounded-md border border-border-subtle bg-background-secondary px-4 py-2 text-[15px] font-semibold text-text-primary hover:bg-white"
+                  >
+                    Switch
+                  </Link>
+                ) : (
+                  <Button variant="secondary" disabled>
+                    Switch
+                  </Button>
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
     </main>

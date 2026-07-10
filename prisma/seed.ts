@@ -164,6 +164,76 @@ async function main() {
     },
   });
 
+  const vendorOwnerUser = await prisma.user.findUniqueOrThrow({ where: { email: "owner@example.com" } });
+
+  // M4 test fixtures: real Requirement Creation (matching engine, Manager
+  // gate) lands in M5, so these are hand-seeded to give the M4 vendor portal
+  // (Requirements Inbox, Bid Submission, My Bids) something real to show.
+  const openRequirement = await prisma.requirement.upsert({
+    where: { id: "seed-requirement-open" },
+    update: {},
+    create: {
+      id: "seed-requirement-open",
+      societyId: societyOne.id,
+      categoryId: plumbing.id,
+      description: "Fix recurring leak in the ground-floor common bathroom and replace worn-out fittings.",
+      urgency: "URGENT",
+      budgetBand: "₹10,000 - ₹25,000",
+      bidDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const closedRequirement = await prisma.requirement.upsert({
+    where: { id: "seed-requirement-closed" },
+    update: {},
+    create: {
+      id: "seed-requirement-closed",
+      societyId: societyOne.id,
+      categoryId: plumbing.id,
+      description: "Annual plumbing maintenance across all common-area bathrooms.",
+      urgency: "ROUTINE",
+      budgetBand: "₹25,000 - ₹50,000",
+      bidDeadline: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  for (const requirement of [openRequirement, closedRequirement]) {
+    await prisma.requirementInvite.upsert({
+      where: {
+        requirementId_vendorCompanyId: {
+          requirementId: requirement.id,
+          vendorCompanyId: vendorCompany.id,
+        },
+      },
+      update: {},
+      create: { requirementId: requirement.id, vendorCompanyId: vendorCompany.id },
+    });
+  }
+
+  await prisma.bid.upsert({
+    where: {
+      requirementId_vendorCompanyId: {
+        requirementId: closedRequirement.id,
+        vendorCompanyId: vendorCompany.id,
+      },
+    },
+    update: {},
+    create: {
+      requirementId: closedRequirement.id,
+      vendorCompanyId: vendorCompany.id,
+      submittedByUserId: vendorOwnerUser.id,
+      totalAmount: 32000,
+      bidValidity: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      notes: "Includes 6-month warranty on all fittings replaced.",
+      lineItems: {
+        create: [
+          { description: "Bathroom fitting replacement", quantity: 8, unit: "nos", unitRate: 3000, amount: 24000 },
+          { description: "Common area pipe inspection", quantity: 4, unit: "hour", unitRate: 2000, amount: 8000 },
+        ],
+      },
+    },
+  });
+
   console.log("Seeded: owner@example.com, manager@example.com, admin@example.com (password: password123)");
 }
 
