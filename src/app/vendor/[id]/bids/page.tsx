@@ -39,6 +39,7 @@ export default async function VendorBidsPage({
     include: {
       requirement: { include: { category: true, society: { select: { name: true } } } },
       submittedByUser: { select: { name: true, email: true } },
+      workOrder: { select: { id: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -68,12 +69,11 @@ export default async function VendorBidsPage({
       ) : (
         <div className="flex flex-col gap-2">
           {bids.map((bid) => (
-            <Link
+            <div
               key={bid.id}
-              href={`/vendor/${id}/requirements/${bid.requirementId}`}
               className="flex items-center justify-between rounded-lg border border-border-subtle p-4 hover:bg-background-secondary"
             >
-              <div>
+              <Link href={`/vendor/${id}/requirements/${bid.requirementId}`} className="flex-1">
                 <p className="text-[15px] font-medium text-text-primary">
                   {bid.requirement.category.name} — {bid.requirement.society.name}
                 </p>
@@ -81,9 +81,21 @@ export default async function VendorBidsPage({
                   ₹{bid.totalAmount.toString()} · submitted by {bid.submittedByUser.name ?? bid.submittedByUser.email}
                 </p>
                 <p className="text-[13px] text-text-secondary">{bid.createdAt.toLocaleString()}</p>
+              </Link>
+              <div className="text-right">
+                <p className="text-[13px] font-medium text-text-primary">{bid.status}</p>
+                {bid.workOrder && (
+                  <a
+                    href={`/api/work-orders/${bid.workOrder.id}/pdf`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[13px] text-accent-primary underline"
+                  >
+                    Work Order PDF
+                  </a>
+                )}
               </div>
-              <p className="text-[13px] font-medium text-text-primary">{bid.status}</p>
-            </Link>
+            </div>
           ))}
         </div>
       )}

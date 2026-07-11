@@ -67,6 +67,131 @@ This link expires in 1 hour. If you didn't request this, you can ignore this ema
   });
 }
 
+// M6 — society-portal-spec.md Section 9. Same Resend sandbox caveat as the
+// functions above throughout this file.
+
+export async function notifyApprovalRequested(params: {
+  recipients: string[];
+  societyName: string;
+  requirementDescription: string;
+  reviewUrl: string;
+}) {
+  await Promise.all(
+    params.recipients.map((to) =>
+      resend.emails.send({
+        from: FROM,
+        to,
+        subject: `Approval needed: ${params.societyName}`,
+        text: `Hi,
+
+A quotation for "${params.requirementDescription}" needs your approval (2 of 3 Office Bearers required) — it's at or above ${params.societyName}'s approval threshold.
+
+Review and vote: ${params.reviewUrl}`,
+      }),
+    ),
+  );
+}
+
+export async function notifyFinalized(params: {
+  recipients: string[];
+  societyName: string;
+  requirementDescription: string;
+  workOrderNumber: string;
+  reviewUrl: string;
+}) {
+  await Promise.all(
+    params.recipients.map((to) =>
+      resend.emails.send({
+        from: FROM,
+        to,
+        subject: `Quotation finalized: ${params.societyName}`,
+        text: `Hi,
+
+The quotation for "${params.requirementDescription}" has been finalized. Work Order ${params.workOrderNumber} has been generated.
+
+View it here: ${params.reviewUrl}`,
+      }),
+    ),
+  );
+}
+
+export async function notifyReturnedToManager(params: {
+  managerEmail: string;
+  societyName: string;
+  requirementDescription: string;
+  reviewUrl: string;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to: params.managerEmail,
+    subject: `Requirement sent back to you: ${params.societyName}`,
+    text: `Hi,
+
+The recommendation for "${params.requirementDescription}" was rejected by 2 of the 3 Office Bearers. It's been sent back to you to re-recommend or re-open bidding.
+
+Review it here: ${params.reviewUrl}`,
+  });
+}
+
+export async function notifyBidOutcome(params: {
+  vendorEmail: string;
+  requirementDescription: string;
+  won: boolean;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to: params.vendorEmail,
+    subject: params.won ? "You won a bid on ProSoc" : "Bid outcome on ProSoc",
+    text: params.won
+      ? `Congratulations — your bid for "${params.requirementDescription}" was selected. Check My Bids / History on ProSoc for the Work Order.`
+      : `Your bid for "${params.requirementDescription}" was not selected this time. Check My Bids / History on ProSoc for details.`,
+  });
+}
+
+export async function notifyThresholdChangeProposed(params: {
+  recipients: string[];
+  societyName: string;
+  oldValue: string;
+  newValue: string;
+  proposerName: string;
+  reviewUrl: string;
+}) {
+  await Promise.all(
+    params.recipients.map((to) =>
+      resend.emails.send({
+        from: FROM,
+        to,
+        subject: `Threshold change proposed: ${params.societyName}`,
+        text: `Hi,
+
+${params.proposerName} proposed changing ${params.societyName}'s approval threshold from ₹${params.oldValue} to ₹${params.newValue}. One other Office Bearer's approval is needed.
+
+Review it here: ${params.reviewUrl}`,
+      }),
+    ),
+  );
+}
+
+export async function notifyThresholdChangeDecided(params: {
+  proposerEmail: string;
+  societyName: string;
+  oldValue: string;
+  newValue: string;
+  approved: boolean;
+  deciderName: string;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to: params.proposerEmail,
+    subject: `Threshold change ${params.approved ? "approved" : "rejected"}: ${params.societyName}`,
+    text: `Hi,
+
+Your proposed threshold change (₹${params.oldValue} → ₹${params.newValue}) for ${params.societyName} was ${
+      params.approved ? "approved" : "rejected"
+    } by ${params.deciderName}.`,
+  });
+}
+
 // Note: while RESEND_API_KEY is sandboxed (no verified sending domain),
 // Resend only delivers to the account owner's own verified address — this
 // won't actually reach the applicant's inbox until a domain is verified.

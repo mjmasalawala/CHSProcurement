@@ -24,6 +24,9 @@ model User {
   bids                    Bid[]
   recommendedRequirements Requirement[]
   passwordResetTokens     PasswordResetToken[]
+  quotationApprovals      QuotationApproval[]
+  proposedChanges         ProposedChange[]     @relation("ProposedChangesProposer")
+  approvedChanges         ProposedChange[]     @relation("ProposedChangesApprover")
 }
 
 // Forgot-password flow (landing-page-and-auth-flow-spec.md) — same
@@ -238,15 +241,56 @@ model Society {
   bankIfsc                   String?
   bankAccountHolderName      String?
 
-  requirements Requirement[]
+  requirements    Requirement[]
+  proposedChanges ProposedChange[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+enum ProposedChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Generic "proposed change requires co-approval" mechanism (society-portal-
+// spec.md Section 7.1) — applied first to approvalThreshold, one proposer +
+// one different Office Bearer's approval, not the 2-of-3 quotation pattern.
+model ProposedChange {
+  id        String  @id @default(cuid())
+  societyId String
+  society   Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  // Field name being changed, e.g. "approvalThreshold" — generic by design
+  // so this isn't a one-off table for just the threshold.
+  field     String
+  oldValue  String
+  newValue  String
+
+  proposedByUserId String
+  proposedByUser   User    @relation("ProposedChangesProposer", fields: [proposedByUserId], references: [id])
+  approvedByUserId String?
+  approvedByUser   User?   @relation("ProposedChangesApprover", fields: [approvedByUserId], references: [id])
+
+  status    ProposedChangeStatus @default(PENDING)
+  createdAt DateTime             @default(now())
+  decidedAt DateTime?
+}
+
 enum RequirementUrgency {
   ROUTINE
   URGENT
+}
+
+// M6 — society-portal-spec.md Section 7. OPEN covers both "still bidding"
+// and "closed, not yet recommended" (distinguished at render time via
+// bidDeadline, not a separate stored state). The other three are explicit,
+// event-driven states.
+enum RequirementStatus {
+  OPEN
+  AWAITING_APPROVAL
+  RETURNED_TO_MANAGER
+  FINALIZED
 }
 
 // society-portal-spec.md Section 5. Requirement Creation (Manager-only,
@@ -268,9 +312,10 @@ model Requirement {
   // upload control.
   attachmentUrls String[]           @default([])
 
-  // Manager's recommendation (society-portal-spec.md Section 6). Approval
-  // workflow / finalization / Work Order generation is M6 — this only
-  // records the recommendation itself.
+  status      RequirementStatus @default(OPEN)
+  finalizedAt DateTime?
+
+  // Manager's recommendation (society-portal-spec.md Section 6).
   recommendedBidId    String?   @unique
   recommendedBid      Bid?      @relation("RequirementRecommendedBid", fields: [recommendedBidId], references: [id])
   // Mandatory if recommendedBid isn't the lowest submitted bid.
@@ -279,11 +324,68 @@ model Requirement {
   recommendedByUserId String?
   recommendedByUser   User?     @relation(fields: [recommendedByUserId], references: [id])
 
-  invites RequirementInvite[]
-  bids    Bid[]
+  invites            RequirementInvite[]
+  bids               Bid[]
+  quotationApprovals QuotationApproval[]
+  workOrder          WorkOrder?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+}
+
+// One Office Bearer's vote on the *current* recommendation (society-portal-
+// spec.md Section 7). Cleared and re-created fresh whenever the Manager
+// re-recommends after a RETURNED_TO_MANAGER — see recommendBid in
+// src/app/society/[id]/requirements/[reqId]/actions.ts — so stale votes
+// from a superseded recommendation never carry over.
+model QuotationApproval {
+  id                 String           @id @default(cuid())
+  requirementId      String
+  requirement        Requirement      @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  officeBearerUserId String
+  officeBearerUser   User             @relation(fields: [officeBearerUserId], references: [id])
+  decision           ApprovalDecision
+  decidedAt          DateTime         @default(now())
+
+  @@unique([requirementId, officeBearerUserId])
+}
+
+enum FinalizationMethod {
+  AUTO_BELOW_THRESHOLD
+  OB_APPROVAL
+}
+
+// work-order-pdf-spec.md. Society/vendor identity fields are snapshotted at
+// finalization time (not read live from Society/VendorCompany) so a
+// historical Work Order PDF stays exactly as issued even if those profiles
+// change later — see Section 5's storage requirement, done without needing
+// a separate blob store since the source rows are already immutable by
+// then.
+model WorkOrder {
+  id                String             @id @default(cuid())
+  requirementId     String             @unique
+  requirement       Requirement        @relation(fields: [requirementId], references: [id])
+  bidId             String             @unique
+  bid               Bid                @relation(fields: [bidId], references: [id])
+  workOrderNumber   String             @unique
+  finalizedVia      FinalizationMethod
+  // "Approved by Chairman X, Secretary Y on <date>" or "Finalized by
+  // Manager Z — below approval threshold".
+  approvalSummary   String
+  justificationNote String?
+
+  societyNameSnapshot    String
+  societyAddressSnapshot String
+  vendorNameSnapshot     String
+  vendorAddressSnapshot  String
+  vendorContactSnapshot  String
+
+  createdAt DateTime @default(now())
 }
 
 // The matched/invited pool for a Requirement (category + city match against
@@ -326,6 +428,7 @@ model Bid {
 
   lineItems      BidLineItem[]
   recommendedFor Requirement?  @relation("RequirementRecommendedBid")
+  workOrder      WorkOrder?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

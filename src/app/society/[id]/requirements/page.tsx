@@ -6,9 +6,17 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-function statusFor(deadline: Date, recommended: boolean): string {
-  if (deadline.getTime() > Date.now()) return "Open";
-  return recommended ? "Recommended" : "Awaiting review";
+function statusFor(status: string, deadline: Date): string {
+  switch (status) {
+    case "AWAITING_APPROVAL":
+      return "Awaiting Office Bearer approval";
+    case "RETURNED_TO_MANAGER":
+      return "Returned to you";
+    case "FINALIZED":
+      return "Finalized";
+    default:
+      return deadline.getTime() > Date.now() ? "Open" : "Awaiting review";
+  }
 }
 
 export default async function SocietyRequirementsPage({
@@ -56,7 +64,7 @@ export default async function SocietyRequirementsPage({
                 </p>
               </div>
               <p className="text-[13px] font-medium text-text-primary">
-                {statusFor(req.bidDeadline, !!req.recommendedBidId)}
+                {statusFor(req.status, req.bidDeadline)}
               </p>
             </Link>
           ))}

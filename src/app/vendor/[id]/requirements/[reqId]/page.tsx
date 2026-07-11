@@ -26,7 +26,7 @@ export default async function RequirementDetailPage({
         include: {
           category: true,
           society: { select: { name: true, address: true } },
-          bids: { where: { vendorCompanyId: id }, include: { lineItems: true } },
+          bids: { where: { vendorCompanyId: id }, include: { lineItems: true, workOrder: { select: { id: true } } } },
         },
       },
     },
@@ -61,6 +61,16 @@ export default async function RequirementDetailPage({
           <Card>
             <p className="text-[15px] font-medium text-text-primary">Your bid: ₹{myBid.totalAmount.toString()}</p>
             <p className="text-[13px] text-text-secondary">Status: {myBid.status}</p>
+            {myBid.workOrder && (
+              <a
+                href={`/api/work-orders/${myBid.workOrder.id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block text-[13px] text-accent-primary underline"
+              >
+                Download Work Order PDF
+              </a>
+            )}
           </Card>
         ) : (
           <p className="text-[13px] text-text-secondary">Bidding closed — you did not submit a bid.</p>

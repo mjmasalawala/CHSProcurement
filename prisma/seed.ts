@@ -165,6 +165,42 @@ async function main() {
   });
 
   await prisma.user.upsert({
+    where: { email: "chairman1@example.com" },
+    update: {},
+    create: {
+      email: "chairman1@example.com",
+      name: "Seed Chairman",
+      passwordHash,
+      roleAssignments: {
+        create: {
+          entityType: "SOCIETY",
+          entityId: societyOne.id,
+          role: RoleName.CHAIRMAN,
+          permissions: ROLE_DEFAULT_PERMISSIONS[RoleName.CHAIRMAN],
+        },
+      },
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "treasurer1@example.com" },
+    update: {},
+    create: {
+      email: "treasurer1@example.com",
+      name: "Seed Treasurer",
+      passwordHash,
+      roleAssignments: {
+        create: {
+          entityType: "SOCIETY",
+          entityId: societyOne.id,
+          role: RoleName.TREASURER,
+          permissions: ROLE_DEFAULT_PERMISSIONS[RoleName.TREASURER],
+        },
+      },
+    },
+  });
+
+  await prisma.user.upsert({
     where: { email: "admin@example.com" },
     update: {},
     create: {
@@ -215,7 +251,24 @@ async function main() {
     },
   });
 
-  for (const requirement of [openRequirement, closedRequirement]) {
+  // M6 test fixture: a closed requirement with a bid below societyOne's
+  // default ₹1,000 threshold, for exercising the auto-finalize path
+  // (society-portal-spec.md Section 7) without touching the OB-approval one
+  // that seed-requirement-closed's ₹32,000 bid already covers.
+  const belowThresholdRequirement = await prisma.requirement.upsert({
+    where: { id: "seed-requirement-below-threshold" },
+    update: {},
+    create: {
+      id: "seed-requirement-below-threshold",
+      societyId: societyOne.id,
+      categoryId: plumbing.id,
+      description: "Replace a single tap washer in the security cabin.",
+      urgency: "ROUTINE",
+      bidDeadline: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  for (const requirement of [openRequirement, closedRequirement, belowThresholdRequirement]) {
     await prisma.requirementInvite.upsert({
       where: {
         requirementId_vendorCompanyId: {
@@ -252,7 +305,29 @@ async function main() {
     },
   });
 
-  console.log("Seeded: owner@example.com, manager@example.com, admin@example.com (password: password123)");
+  await prisma.bid.upsert({
+    where: {
+      requirementId_vendorCompanyId: {
+        requirementId: belowThresholdRequirement.id,
+        vendorCompanyId: vendorCompany.id,
+      },
+    },
+    update: {},
+    create: {
+      requirementId: belowThresholdRequirement.id,
+      vendorCompanyId: vendorCompany.id,
+      submittedByUserId: vendorOwnerUser.id,
+      totalAmount: 800,
+      bidValidity: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      lineItems: {
+        create: [{ description: "Tap washer replacement", quantity: 1, unit: "nos", unitRate: 800, amount: 800 }],
+      },
+    },
+  });
+
+  console.log(
+    "Seeded: owner@example.com, manager@example.com, secretary1@example.com, chairman1@example.com, treasurer1@example.com, admin@example.com (password: password123)",
+  );
 }
 
 main()

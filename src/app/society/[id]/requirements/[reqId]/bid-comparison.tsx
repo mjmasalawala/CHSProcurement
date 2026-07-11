@@ -30,9 +30,17 @@ interface Props {
   bids: BidCardData[];
   recommendedBidId: string | null;
   recommendationNote: string | null;
+  canRecommend: boolean;
 }
 
-export function BidComparison({ societyId, requirementId, bids, recommendedBidId, recommendationNote }: Props) {
+export function BidComparison({
+  societyId,
+  requirementId,
+  bids,
+  recommendedBidId,
+  recommendationNote,
+  canRecommend,
+}: Props) {
   const lowestAmount = Math.min(...bids.map((b) => Number(b.totalAmount)));
   const [justifyingBidId, setJustifyingBidId] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
@@ -94,7 +102,7 @@ export function BidComparison({ societyId, requirementId, bids, recommendedBidId
                     <p className="mt-1 text-[13px] text-text-secondary">Justification: {recommendationNote}</p>
                   )}
                 </div>
-              ) : (
+              ) : canRecommend ? (
                 <div className="mt-4 flex flex-col gap-2">
                   {justifyingBidId === bid.id && (
                     <div>
@@ -117,7 +125,7 @@ export function BidComparison({ societyId, requirementId, bids, recommendedBidId
                     {justifyingBidId === bid.id ? "Confirm recommendation" : "Recommend"}
                   </Button>
                 </div>
-              )}
+              ) : null}
             </Card>
           );
         })}
