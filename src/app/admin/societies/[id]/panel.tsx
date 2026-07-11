@@ -13,6 +13,25 @@ export function ApproveRejectPanel({ societyId, status }: { societyId: string; s
   const [showReject, setShowReject] = useState(false);
   const [rejected, setRejected] = useState(false);
 
+  // inviteUrl/rejected reflect an action *this panel* just took locally —
+  // check those before the server-refreshed `status` prop, so the
+  // confirmation card doesn't get yanked out from under the admin the
+  // moment revalidatePath's background refresh delivers the new status.
+  if (inviteUrl) {
+    return (
+      <Card className="flex flex-col gap-2">
+        <p className="text-[15px] font-medium text-text-primary">Approved.</p>
+        <p className="text-[13px] text-text-secondary">
+          An activation link has been emailed to the Secretary. Backup copy, in case it doesn&apos;t
+          land:
+        </p>
+        <p className="break-all rounded-md bg-background-secondary p-2 text-[13px] text-text-primary">
+          {inviteUrl}
+        </p>
+      </Card>
+    );
+  }
+
   if (rejected) {
     return (
       <Card>
@@ -26,21 +45,6 @@ export function ApproveRejectPanel({ societyId, status }: { societyId: string; s
       <Card>
         <p className="text-[15px] text-text-primary">
           Already {status.toLowerCase().replace("_", " ")} — no action needed.
-        </p>
-      </Card>
-    );
-  }
-
-  if (inviteUrl) {
-    return (
-      <Card className="flex flex-col gap-2">
-        <p className="text-[15px] font-medium text-text-primary">Approved.</p>
-        <p className="text-[13px] text-text-secondary">
-          An activation link has been emailed to the Secretary. Backup copy, in case it doesn&apos;t
-          land:
-        </p>
-        <p className="break-all rounded-md bg-background-secondary p-2 text-[13px] text-text-primary">
-          {inviteUrl}
         </p>
       </Card>
     );
