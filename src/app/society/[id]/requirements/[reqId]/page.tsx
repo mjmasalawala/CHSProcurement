@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyAssignment } from "@/lib/society-auth";
+import { OB_ROLES } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
 import { BidComparison } from "./bid-comparison";
 import { ApprovalPanel } from "./approval-panel";
@@ -11,8 +12,6 @@ export const dynamic = "force-dynamic";
 function isClosed(deadline: Date): boolean {
   return deadline.getTime() <= Date.now();
 }
-
-const OB_ROLES = ["CHAIRMAN", "SECRETARY", "TREASURER"] as const;
 
 export default async function SocietyRequirementDetailPage({
   params,

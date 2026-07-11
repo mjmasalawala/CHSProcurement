@@ -37,8 +37,8 @@ export function ApprovalPanel({ societyId, requirementId, votes, canVote }: Prop
     <Card className="flex flex-col gap-3">
       <h2 className="text-[18px] font-semibold text-text-primary">Office Bearer approval</h2>
       <p className="text-[13px] text-text-secondary">
-        {approvals} of 3 approved · {rejections} rejected — 2 approvals finalizes, 2 rejections sends it back
-        to the Manager.
+        {approvals} of {votes.length} approved · {rejections} rejected — 2 approvals finalizes, 2 rejections
+        sends it back to the Manager.
       </p>
 
       <div className="flex flex-col gap-1">

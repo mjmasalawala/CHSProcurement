@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { finalizeRequirement } from "@/lib/work-order";
 import { notifyApprovalRequested, notifyReturnedToManager } from "@/lib/email";
+import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -51,6 +52,20 @@ export async function recommendBid(
     return { error: "This isn't the lowest bid — a justification note is required." };
   }
 
+  // Requirement creation already guarantees >= 2 active OBs (see
+  // society-ob.ts), but re-check here — before anything is written — in case
+  // one was deactivated in between. Otherwise this bid would get recommended
+  // and then stuck: an at/above-threshold recommendation with nobody able to
+  // reach the 2 votes needed to resolve it.
+  if (!bid.totalAmount.lessThan(requirement.society.approvalThreshold)) {
+    const obCount = await countActiveOfficeBearers(societyId);
+    if (obCount < MIN_ACTIVE_OFFICE_BEARERS) {
+      return {
+        error: `This society only has ${obCount} active Office Bearer${obCount === 1 ? "" : "s"} — at least ${MIN_ACTIVE_OFFICE_BEARERS} are needed to approve a bid at or above the threshold. Invite more from Members before recommending.`,
+      };
+    }
+  }
+
   await prisma.$transaction([
     // Fresh recommendation round — clear any votes cast against a
     // previously superseded recommendation.
@@ -82,7 +97,7 @@ export async function recommendBid(
       where: {
         entityType: "SOCIETY",
         entityId: societyId,
-        role: { in: ["CHAIRMAN", "SECRETARY", "TREASURER"] },
+        role: { in: [...OB_ROLES] },
         status: "ACTIVE",
       },
       include: { user: true },

@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { suffix: "", label: "Dashboard", permission: null },
   { suffix: "/requirements", label: "Requirements", permission: PERMISSIONS.CREATE_REQUIREMENT },
   { suffix: "/archive", label: "Archive", permission: PERMISSIONS.VIEW_ARCHIVE },
+  { suffix: "/members", label: "Members", permission: PERMISSIONS.MANAGE_USERS },
   { suffix: "/settings", label: "Settings", permission: null },
 ] as const;
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { matchVendors } from "@/lib/matching";
+import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { revalidatePath } from "next/cache";
 
 export interface RequirementCreationInput {
@@ -25,6 +26,15 @@ export async function createRequirement(
   input: RequirementCreationInput,
 ): Promise<{ error: string } | undefined> {
   await requireSocietyActionPermission(societyId, PERMISSIONS.CREATE_REQUIREMENT);
+
+  // Mirrors the page-level guard in requirements/new/page.tsx — kept here
+  // too since this action is the actual enforcement boundary.
+  const obCount = await countActiveOfficeBearers(societyId);
+  if (obCount < MIN_ACTIVE_OFFICE_BEARERS) {
+    return {
+      error: `This society needs at least ${MIN_ACTIVE_OFFICE_BEARERS} active Office Bearers before a requirement can be raised.`,
+    };
+  }
 
   if (!input.categoryId || !input.description.trim() || !input.urgency || !input.bidDeadline) {
     return { error: "Category, description, urgency, and deadline are required." };

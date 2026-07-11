@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyAssignment } from "@/lib/society-auth";
+import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
 import { ProposeThresholdForm, DecideThresholdPanel } from "./panel";
 
@@ -16,7 +17,7 @@ export default async function SocietySettingsPage({
   const assignment = await requireSocietyAssignment(id, `/society/${id}/settings`);
   const session = await auth();
 
-  const [society, pendingChange, history] = await Promise.all([
+  const [society, pendingChange, history, obCount] = await Promise.all([
     prisma.society.findUniqueOrThrow({ where: { id } }),
     prisma.proposedChange.findFirst({
       where: { societyId: id, field: "approvalThreshold", status: "PENDING" },
@@ -28,9 +29,12 @@ export default async function SocietySettingsPage({
       orderBy: { decidedAt: "desc" },
       take: 10,
     }),
+    countActiveOfficeBearers(id),
   ]);
 
-  const canPropose = assignment.permissions.includes(PERMISSIONS.PROPOSE_THRESHOLD_CHANGE);
+  const canPropose =
+    assignment.permissions.includes(PERMISSIONS.PROPOSE_THRESHOLD_CHANGE) &&
+    obCount >= MIN_ACTIVE_OFFICE_BEARERS;
   const canDecide =
     !!pendingChange &&
     assignment.permissions.includes(PERMISSIONS.APPROVE_REJECT_QUOTATION) &&
@@ -39,6 +43,20 @@ export default async function SocietySettingsPage({
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-[24px] font-bold text-text-primary">Settings</h1>
+
+      {obCount < MIN_ACTIVE_OFFICE_BEARERS && (
+        <Card className="border-status-warning">
+          <p className="text-[13px] text-text-secondary">
+            This society has {obCount} active Office Bearer{obCount === 1 ? "" : "s"} (Chairman/Secretary/
+            Treasurer). Threshold changes can&apos;t be proposed until at least {MIN_ACTIVE_OFFICE_BEARERS}{" "}
+            are active — visit{" "}
+            <a href={`/society/${id}/members`} className="text-accent-primary underline">
+              Members
+            </a>{" "}
+            to invite more.
+          </p>
+        </Card>
+      )}
 
       <Card className="flex flex-col gap-2">
         <p className="text-[13px] text-text-secondary">Approval threshold</p>

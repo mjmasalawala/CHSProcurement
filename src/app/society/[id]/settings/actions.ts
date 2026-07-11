@@ -5,9 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { notifyThresholdChangeProposed, notifyThresholdChangeDecided } from "@/lib/email";
+import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { revalidatePath } from "next/cache";
-
-const OB_ROLES = ["CHAIRMAN", "SECRETARY", "TREASURER"] as const;
 
 /**
  * Generic co-approval mechanism (society-portal-spec.md Section 7.1),
@@ -21,6 +20,13 @@ export async function proposeThresholdChange(
   await requireSocietyActionPermission(societyId, PERMISSIONS.PROPOSE_THRESHOLD_CHANGE);
   const session = await auth();
   if (!session) return { error: "Not authorized." };
+
+  const obCount = await countActiveOfficeBearers(societyId);
+  if (obCount < MIN_ACTIVE_OFFICE_BEARERS) {
+    return {
+      error: `This society needs at least ${MIN_ACTIVE_OFFICE_BEARERS} active Office Bearers before a threshold change can be proposed — nobody else would be able to approve it.`,
+    };
+  }
 
   const parsed = Number(newValue);
   if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
