@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import type { EntityType, RoleName } from "@/generated/prisma/enums";
 import { ROLE_DEFAULT_PERMISSIONS } from "@/lib/permissions";
+import { getEntityName } from "@/lib/entities";
+import { sendInvite } from "@/lib/email";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -11,10 +13,8 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
  * invite type (Secretary activation, Manager/Chairman/Treasurer invited by
  * Secretary, Vendor Staff invited by Owner). Creates a PENDING RoleAssignment
  * plus a single-use token; the invitee flips it to ACTIVE by visiting
- * /invite/[token].
- *
- * Does not send the email itself (that's M7's notification service) — for
- * now, callers log/display the link.
+ * /invite/[token]. Emails the link to the invitee before returning, so no
+ * caller needs to remember to wire that up separately.
  */
 export async function createInvite(params: {
   email: string;
@@ -50,5 +50,10 @@ export async function createInvite(params: {
   });
 
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  return { token, url: `${base}/invite/${token}` };
+  const url = `${base}/invite/${token}`;
+
+  const entityName = await getEntityName(params.entityType, params.entityId);
+  await sendInvite({ email: params.email, role: params.role, entityName, url });
+
+  return { token, url };
 }

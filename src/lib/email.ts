@@ -29,6 +29,44 @@ Review and approve: ${params.approveUrl}`,
   });
 }
 
+// Note: while RESEND_API_KEY is sandboxed, this — like notifyRejection —
+// won't actually reach a real invitee's inbox until a sending domain is
+// verified (Resend only delivers to the account owner's own address).
+export async function sendInvite(params: {
+  email: string;
+  role: string;
+  entityName: string | null;
+  url: string;
+}) {
+  const forWhat = params.entityName ? ` for ${params.entityName}` : "";
+  await resend.emails.send({
+    from: FROM,
+    to: params.email,
+    subject: `You've been invited to ProSoc as ${params.role}`,
+    text: `Hi,
+
+You've been invited to join ProSoc as ${params.role}${forWhat}.
+
+Accept the invite and set up your login here: ${params.url}
+
+This link expires in 7 days.`,
+  });
+}
+
+// Same Resend sandbox caveat as sendInvite/notifyRejection.
+export async function sendPasswordReset(params: { email: string; url: string }) {
+  await resend.emails.send({
+    from: FROM,
+    to: params.email,
+    subject: "Reset your ProSoc password",
+    text: `Hi,
+
+We received a request to reset your ProSoc password. Set a new one here: ${params.url}
+
+This link expires in 1 hour. If you didn't request this, you can ignore this email.`,
+  });
+}
+
 // Note: while RESEND_API_KEY is sandboxed (no verified sending domain),
 // Resend only delivers to the account owner's own verified address — this
 // won't actually reach the applicant's inbox until a domain is verified.

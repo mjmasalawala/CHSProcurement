@@ -56,6 +56,13 @@ export default async function LoginPage({
             Log in
           </Button>
         </form>
+
+        <a
+          href="/forgot-password"
+          className="mt-4 inline-block text-[13px] text-accent-primary underline"
+        >
+          Forgot your password?
+        </a>
       </Card>
     </main>
   );

@@ -23,6 +23,21 @@ model User {
   roleAssignments         RoleAssignment[]
   bids                    Bid[]
   recommendedRequirements Requirement[]
+  passwordResetTokens     PasswordResetToken[]
+}
+
+// Forgot-password flow (landing-page-and-auth-flow-spec.md) — same
+// single-use-token shape as Invite, but not tied to a RoleAssignment since
+// it's not granting access, just letting an existing login set a new
+// password.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
 
 enum EntityType {
