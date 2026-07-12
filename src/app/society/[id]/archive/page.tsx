@@ -113,8 +113,10 @@ export default async function SocietyArchivePage({
               className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs transition-shadow hover:shadow-sm"
             >
               <div>
-                <p className="text-[15px] font-semibold text-text-primary">{req.category.name}</p>
-                <p className="text-[13px] text-text-secondary">{req.description.slice(0, 80)}</p>
+                <p className="text-[15px] font-semibold text-text-primary">{req.name}</p>
+                <p className="text-[13px] text-text-secondary">
+                  {req.category.name} · {req.description.slice(0, 80)}
+                </p>
                 <p className="text-[13px] text-text-tertiary">
                   {req._count.bids} bids · {req.createdAt.toLocaleDateString()}
                   {req.workOrder && ` · ${req.workOrder.workOrderNumber} awarded to ${req.workOrder.vendorNameSnapshot}`}

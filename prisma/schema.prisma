@@ -302,6 +302,7 @@ model Requirement {
   society        Society            @relation(fields: [societyId], references: [id])
   categoryId     String
   category       Category           @relation(fields: [categoryId], references: [id])
+  name           String
   description    String
   urgency        RequirementUrgency
   // Free text (e.g. "₹10,000 - ₹25,000") — optional, no fixed band list yet.

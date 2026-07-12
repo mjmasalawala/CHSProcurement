@@ -52,6 +52,11 @@ export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
  * Secretary, Treasurer) hold propose_threshold_change, not just
  * Secretary/Treasurer — deviates from the original spec draft, which is
  * updated to match (society-portal-spec.md Sections 6 and 7.1).
+ *
+ * Product decision, 2026-07-12: Office Bearers (Chairman, Secretary,
+ * Treasurer) also hold create_requirement, not just Manager — deviates from
+ * the original spec draft (society-portal-spec.md Section 5), which is
+ * updated to match.
  */
 export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
   [RoleName.VENDOR_OWNER]: [
@@ -77,17 +82,20 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
   [RoleName.CHAIRMAN]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
     PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.CREATE_REQUIREMENT,
     PERMISSIONS.VIEW_ARCHIVE,
   ],
   [RoleName.SECRETARY]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
     PERMISSIONS.MANAGE_USERS,
     PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.CREATE_REQUIREMENT,
     PERMISSIONS.VIEW_ARCHIVE,
   ],
   [RoleName.TREASURER]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
     PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.CREATE_REQUIREMENT,
     PERMISSIONS.VIEW_ARCHIVE,
   ],
   [RoleName.OPS_VENDOR_QUEUE]: [

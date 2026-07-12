@@ -81,7 +81,7 @@ This link expires in 1 hour. If you didn't request this, you can ignore this ema
 export async function notifyApprovalRequested(params: {
   recipients: string[];
   societyName: string;
-  requirementDescription: string;
+  requirementName: string;
   reviewUrl: string;
 }) {
   await Promise.all(
@@ -92,7 +92,7 @@ export async function notifyApprovalRequested(params: {
         subject: `Approval needed: ${params.societyName}`,
         text: `Hi,
 
-A quotation for "${params.requirementDescription}" needs your approval (2 of 3 Office Bearers required) — it's at or above ${params.societyName}'s approval threshold.
+A quotation for "${params.requirementName}" needs your approval (2 of 3 Office Bearers required) — it's at or above ${params.societyName}'s approval threshold.
 
 Review and vote: ${params.reviewUrl}`,
       }),
@@ -103,7 +103,7 @@ Review and vote: ${params.reviewUrl}`,
 export async function notifyFinalized(params: {
   recipients: string[];
   societyName: string;
-  requirementDescription: string;
+  requirementName: string;
   workOrderNumber: string;
   reviewUrl: string;
 }) {
@@ -115,7 +115,7 @@ export async function notifyFinalized(params: {
         subject: `Quotation finalized: ${params.societyName}`,
         text: `Hi,
 
-The quotation for "${params.requirementDescription}" has been finalized. Work Order ${params.workOrderNumber} has been generated.
+The quotation for "${params.requirementName}" has been finalized. Work Order ${params.workOrderNumber} has been generated.
 
 View it here: ${params.reviewUrl}`,
       }),
@@ -126,7 +126,7 @@ View it here: ${params.reviewUrl}`,
 export async function notifyReturnedToManager(params: {
   managerEmail: string;
   societyName: string;
-  requirementDescription: string;
+  requirementName: string;
   reviewUrl: string;
 }) {
   await resend.emails.send({
@@ -135,7 +135,7 @@ export async function notifyReturnedToManager(params: {
     subject: `Requirement sent back to you: ${params.societyName}`,
     text: `Hi,
 
-The recommendation for "${params.requirementDescription}" was rejected by 2 of the 3 Office Bearers. It's been sent back to you to re-recommend or re-open bidding.
+The recommendation for "${params.requirementName}" was rejected by 2 of the 3 Office Bearers. It's been sent back to you to re-recommend or re-open bidding.
 
 Review it here: ${params.reviewUrl}`,
   });
@@ -144,12 +144,12 @@ Review it here: ${params.reviewUrl}`,
 export async function notifyBidOutcome(params: {
   vendorEmail: string;
   vendorPhone?: string | null;
-  requirementDescription: string;
+  requirementName: string;
   won: boolean;
 }) {
   const body = params.won
-    ? `Congratulations — your bid for "${params.requirementDescription}" was selected. Check My Bids / History on ProSoc for the Work Order.`
-    : `Your bid for "${params.requirementDescription}" was not selected this time. Check My Bids / History on ProSoc for details.`;
+    ? `Congratulations — your bid for "${params.requirementName}" was selected. Check My Bids / History on ProSoc for the Work Order.`
+    : `Your bid for "${params.requirementName}" was not selected this time. Check My Bids / History on ProSoc for details.`;
 
   await Promise.all([
     resend.emails.send({
@@ -336,7 +336,7 @@ ${body}`,
 export async function notifyDeadlineApproaching(params: {
   managerEmails: string[];
   societyName: string;
-  requirementDescription: string;
+  requirementName: string;
   reviewUrl: string;
 }) {
   await Promise.all(
@@ -347,7 +347,7 @@ export async function notifyDeadlineApproaching(params: {
         subject: `Bid deadline approaching: ${params.societyName}`,
         text: `Hi,
 
-The bid deadline for "${params.requirementDescription}" closes within 24 hours.
+The bid deadline for "${params.requirementName}" closes within 24 hours.
 
 Review it here: ${params.reviewUrl}`,
       }),
@@ -360,7 +360,7 @@ Review it here: ${params.reviewUrl}`,
 export async function notifyBidsReadyForReview(params: {
   managerEmails: string[];
   societyName: string;
-  requirementDescription: string;
+  requirementName: string;
   reviewUrl: string;
 }) {
   await Promise.all(
@@ -371,7 +371,7 @@ export async function notifyBidsReadyForReview(params: {
         subject: `Bids ready for review: ${params.societyName}`,
         text: `Hi,
 
-Bidding has closed for "${params.requirementDescription}" — the submitted bids are ready for your review and recommendation.
+Bidding has closed for "${params.requirementName}" — the submitted bids are ready for your review and recommendation.
 
 Review it here: ${params.reviewUrl}`,
       }),
@@ -385,10 +385,10 @@ Review it here: ${params.reviewUrl}`,
 export async function notifyBidDeadlineReminder(params: {
   vendorEmail: string;
   vendorPhone?: string | null;
-  requirementDescription: string;
+  requirementName: string;
   reviewUrl: string;
 }) {
-  const body = `The bid deadline for "${params.requirementDescription}" closes within 24 hours. Submit your bid: ${params.reviewUrl}`;
+  const body = `The bid deadline for "${params.requirementName}" closes within 24 hours. Submit your bid: ${params.reviewUrl}`;
 
   await Promise.all([
     resend.emails.send({

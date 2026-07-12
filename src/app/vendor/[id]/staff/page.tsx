@@ -24,7 +24,7 @@ export default async function VendorStaffPage({
     }),
     prisma.bid.findMany({
       where: { vendorCompanyId: id },
-      include: { submittedByUser: true, requirement: { select: { description: true } } },
+      include: { submittedByUser: true, requirement: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
@@ -73,7 +73,7 @@ export default async function VendorStaffPage({
               <div key={bid.id} className="rounded-lg border border-border-subtle bg-background-primary p-3 shadow-xs">
                 <p className="text-[13px] text-text-primary">
                   <span className="font-semibold">{bid.submittedByUser.name ?? bid.submittedByUser.email}</span>{" "}
-                  submitted a bid on &ldquo;{bid.requirement.description.slice(0, 60)}&rdquo;
+                  submitted a bid on &ldquo;{bid.requirement.name}&rdquo;
                 </p>
                 <p className="text-[13px] text-text-tertiary">
                   {bid.createdAt.toLocaleString()} · ₹{bid.totalAmount.toString()}

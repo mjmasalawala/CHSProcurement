@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -10,7 +12,10 @@ const HOW_IT_WORKS = [
   { title: "Fully archived", body: "Every requirement, every bid, every approval — searchable, permanently." },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  if (session) redirect("/app");
+
   return (
     <>
       <main className="flex flex-1 flex-col items-center gap-20 px-6 py-12">

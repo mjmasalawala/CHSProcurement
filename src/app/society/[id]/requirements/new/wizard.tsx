@@ -22,6 +22,7 @@ export function RequirementWizard({ societyId, categories }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<RequirementCreationInput>({
     categoryId: "",
+    name: "",
     description: "",
     budgetBand: "",
     urgency: "",
@@ -33,7 +34,7 @@ export function RequirementWizard({ societyId, categories }: Props) {
   }
 
   const canProceed = {
-    1: !!(form.categoryId && form.description),
+    1: !!(form.categoryId && form.name && form.description),
     2: !!form.urgency,
     3: !!form.bidDeadline,
   }[step];
@@ -58,6 +59,15 @@ export function RequirementWizard({ societyId, categories }: Props) {
           onNext={() => setStep(2)}
           nextDisabled={!canProceed}
         >
+          <div>
+            <Label htmlFor="name">Project Name</Label>
+            <Input
+              id="name"
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="e.g. Lobby ceiling repair"
+            />
+          </div>
           <div>
             <Label htmlFor="categoryId">Category</Label>
             <Select

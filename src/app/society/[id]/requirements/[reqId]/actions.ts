@@ -106,7 +106,7 @@ export async function recommendBid(
     await notifyApprovalRequested({
       recipients: obs.map((ra) => ra.user.email),
       societyName: requirement.society.name,
-      requirementDescription: requirement.description,
+      requirementName: requirement.name,
       reviewUrl: `${base}/society/${societyId}/requirements/${requirementId}`,
     });
   }
@@ -188,7 +188,7 @@ export async function castQuotationVote(
       await notifyReturnedToManager({
         managerEmail: manager.user.email,
         societyName: requirement.society.name,
-        requirementDescription: requirement.description,
+        requirementName: requirement.name,
         reviewUrl: `${base}/society/${societyId}/requirements/${requirementId}`,
       });
     }

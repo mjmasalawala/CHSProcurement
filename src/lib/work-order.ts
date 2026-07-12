@@ -73,7 +73,7 @@ export async function finalizeRequirement(params: {
   await notifyFinalized({
     recipients: obs.map((ra) => ra.user.email),
     societyName: requirement.society.name,
-    requirementDescription: requirement.description,
+    requirementName: requirement.name,
     workOrderNumber,
     reviewUrl,
   });
@@ -82,7 +82,7 @@ export async function finalizeRequirement(params: {
     requirement.bids.map((bid) =>
       notifyBidOutcome({
         vendorEmail: bid.vendorCompany.ownerEmail,
-        requirementDescription: requirement.description,
+        requirementName: requirement.name,
         won: bid.id === winningBid.id,
       }),
     ),

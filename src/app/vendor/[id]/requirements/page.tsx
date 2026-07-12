@@ -60,9 +60,11 @@ export default async function VendorRequirementsPage({
               >
                 <div>
                   <p className="text-[15px] font-semibold text-text-primary">
-                    {req.category.name} — {req.society.name}
+                    {req.name} — {req.society.name}
                   </p>
-                  <p className="text-[13px] text-text-secondary">{req.description.slice(0, 80)}</p>
+                  <p className="text-[13px] text-text-secondary">
+                    {req.category.name} · {req.description.slice(0, 80)}
+                  </p>
                   <p className="text-[13px] text-text-tertiary">
                     Deadline: {req.bidDeadline.toLocaleString()}
                   </p>

@@ -16,9 +16,9 @@ Allow a housing society (via its Manager and 3 Office Bearers) to raise R&M/CapE
 | Role | Who | Core permissions |
 |---|---|---|
 | **Manager** | Society employee, or staff of an external management company (may manage multiple societies) | Create requirements, view bids once closed, recommend a winner, finalize directly if below approval threshold |
-| **Chairman** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `propose_threshold_change` |
-| **Secretary** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `manage_users` (default Society Admin function) + `propose_threshold_change` |
-| **Treasurer** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `propose_threshold_change` |
+| **Chairman** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `propose_threshold_change` + `create_requirement` |
+| **Secretary** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `manage_users` (default Society Admin function) + `propose_threshold_change` + `create_requirement` |
+| **Treasurer** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `propose_threshold_change` + `create_requirement` |
 
 - Office bearer roles are **specific to one society** — a Chairman of Society A is not automatically anything in Society B, even under the same management company.
 - A **Manager** can be linked to multiple societies (one login, switch context — see architecture doc).
@@ -71,6 +71,7 @@ Allow a housing society (via its Manager and 3 Office Bearers) to raise R&M/CapE
 
 | Field | Type | Required? |
 |---|---|---|
+| Project Name | Text | Yes |
 | Category | Dropdown (shared taxonomy) | Yes |
 | Description | Text area | Yes |
 | Photos/attachments | File upload, multiple | Optional |
@@ -78,8 +79,8 @@ Allow a housing society (via its Manager and 3 Office Bearers) to raise R&M/CapE
 | Urgency | Dropdown (Routine / Urgent) | Yes |
 | Bid Submission Deadline | Date/time | Yes |
 
-- Only **Manager** can create a requirement.
-- On submit, system runs the matching engine (category + city match against Active vendors) and invites a pool of vendors automatically. **The Manager cannot hand-pick which vendors get invited** — this is a deliberate fairness control, not a gap. (See architecture doc, Section 7.)
+- **Manager or any Office Bearer** (Chairman, Secretary, Treasurer — `create_requirement`; product decision 2026-07-12, originally Manager-only) can create a requirement. Bid comparison, recommendation, and below-threshold finalization remain Manager-only — creating a requirement doesn't grant those.
+- On submit, system runs the matching engine (category + city match against Active vendors) and invites a pool of vendors automatically. **Nobody can hand-pick which vendors get invited** — this is a deliberate fairness control, not a gap. (See architecture doc, Section 7.)
 
 ---
 
@@ -156,7 +157,7 @@ Trigger events:
 
 | Component | Gate | Manager | Chairman | Secretary | Treasurer |
 |---|---|---|---|---|---|
-| Create Requirement | `manager` role | ✅ | ❌ | ❌ | ❌ |
+| Create Requirement | `create_requirement` | ✅ | ✅ | ✅ | ✅ |
 | Bid comparison view (post-deadline) | `manager` role | ✅ | ❌ | ❌ | ❌ |
 | Recommend a winning bid | `manager` role | ✅ | ❌ | ❌ | ❌ |
 | Finalize below-threshold selection | `manager` role | ✅ | ❌ | ❌ | ❌ |

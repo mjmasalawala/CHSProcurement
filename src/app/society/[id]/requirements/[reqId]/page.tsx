@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -62,9 +63,22 @@ export default async function SocietyRequirementDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{requirement.category.name}</h1>
-        <Badge tone={statusTone(requirement.status)}>{statusLabel(requirement.status)}</Badge>
+      <Link
+        href={`/society/${id}/requirements`}
+        className="text-[13px] text-text-secondary underline hover:text-text-primary"
+      >
+        ← Back to Requirements
+      </Link>
+
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{requirement.name}</h1>
+          <Badge tone={statusTone(requirement.status)}>{statusLabel(requirement.status)}</Badge>
+        </div>
+        <p className="text-[13px] text-text-secondary">{requirement.category.name}</p>
+        <p className="text-[13px] text-text-tertiary">
+          ID: {requirement.id} · Raised {requirement.createdAt.toLocaleDateString()}
+        </p>
       </div>
 
       <Card className="flex flex-col gap-2">

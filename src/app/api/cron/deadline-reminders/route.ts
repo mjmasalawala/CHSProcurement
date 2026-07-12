@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         ? notifyDeadlineApproaching({
             managerEmails: managers.map((m) => m.user.email),
             societyName: requirement.society.name,
-            requirementDescription: requirement.description,
+            requirementName: requirement.name,
             reviewUrl: `${base}/society/${requirement.societyId}/requirements/${requirement.id}`,
           })
         : Promise.resolve(),
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         notifyBidDeadlineReminder({
           vendorEmail: v.ownerEmail,
           vendorPhone: v.ownerPhone,
-          requirementDescription: requirement.description,
+          requirementName: requirement.name,
           reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
         }),
       ),
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       await notifyBidsReadyForReview({
         managerEmails: managers.map((m) => m.user.email),
         societyName: requirement.society.name,
-        requirementDescription: requirement.description,
+        requirementName: requirement.name,
         reviewUrl: `${base}/society/${requirement.societyId}/requirements/${requirement.id}`,
       });
     }
