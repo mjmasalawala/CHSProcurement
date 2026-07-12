@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 import { InviteStaffForm, ToggleStaffButton } from "./controls";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +32,7 @@ export default async function VendorStaffPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Staff</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Staff</h1>
 
       <Card>
         <InviteStaffForm vendorCompanyId={id} />
@@ -41,21 +43,22 @@ export default async function VendorStaffPage({
         {staff.map((ra) => (
           <div
             key={ra.id}
-            className="flex items-center justify-between rounded-lg border border-border-subtle p-4"
+            className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs"
           >
             <div>
-              <p className="text-[15px] font-medium text-text-primary">{ra.user.name ?? ra.user.email}</p>
-              <p className="text-[13px] text-text-secondary">
-                {ra.user.email} · {ra.status}
-              </p>
+              <p className="text-[15px] font-semibold text-text-primary">{ra.user.name ?? ra.user.email}</p>
+              <p className="text-[13px] text-text-secondary">{ra.user.email}</p>
             </div>
-            {ra.status !== "PENDING" && (
-              <ToggleStaffButton
-                vendorCompanyId={id}
-                roleAssignmentId={ra.id}
-                active={ra.status === "ACTIVE"}
-              />
-            )}
+            <div className="flex items-center gap-3">
+              <Badge tone={statusTone(ra.status)}>{statusLabel(ra.status)}</Badge>
+              {ra.status !== "PENDING" && (
+                <ToggleStaffButton
+                  vendorCompanyId={id}
+                  roleAssignmentId={ra.id}
+                  active={ra.status === "ACTIVE"}
+                />
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -67,12 +70,12 @@ export default async function VendorStaffPage({
         ) : (
           <div className="flex flex-col gap-2">
             {bids.map((bid) => (
-              <div key={bid.id} className="rounded-lg border border-border-subtle p-3">
+              <div key={bid.id} className="rounded-lg border border-border-subtle bg-background-primary p-3 shadow-xs">
                 <p className="text-[13px] text-text-primary">
-                  <span className="font-medium">{bid.submittedByUser.name ?? bid.submittedByUser.email}</span>{" "}
+                  <span className="font-semibold">{bid.submittedByUser.name ?? bid.submittedByUser.email}</span>{" "}
                   submitted a bid on &ldquo;{bid.requirement.description.slice(0, 60)}&rdquo;
                 </p>
-                <p className="text-[13px] text-text-secondary">
+                <p className="text-[13px] text-text-tertiary">
                   {bid.createdAt.toLocaleString()} · ₹{bid.totalAmount.toString()}
                 </p>
               </div>

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import type { BidStatus } from "@/generated/prisma/enums";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -46,17 +48,17 @@ export default async function VendorBidsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">My Bids / History</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">My Bids / History</h1>
 
-      <div className="flex gap-2 border-b border-border-subtle pb-3">
+      <div className="flex gap-1 border-b border-border-subtle pb-3">
         {TABS.map((tab) => (
           <Link
             key={tab.value}
             href={`/vendor/${id}/bids?status=${tab.value}`}
-            className={`rounded-md px-3 py-1.5 text-[13px] font-medium ${
+            className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
               activeTab === tab.value
-                ? "bg-accent-primary text-white"
-                : "text-text-secondary hover:bg-background-secondary"
+                ? "bg-accent-primary text-white shadow-xs"
+                : "text-text-secondary hover:bg-background-tertiary"
             }`}
           >
             {tab.label}
@@ -71,25 +73,25 @@ export default async function VendorBidsPage({
           {bids.map((bid) => (
             <div
               key={bid.id}
-              className="flex items-center justify-between rounded-lg border border-border-subtle p-4 hover:bg-background-secondary"
+              className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs transition-shadow hover:shadow-sm"
             >
               <Link href={`/vendor/${id}/requirements/${bid.requirementId}`} className="flex-1">
-                <p className="text-[15px] font-medium text-text-primary">
+                <p className="text-[15px] font-semibold text-text-primary">
                   {bid.requirement.category.name} — {bid.requirement.society.name}
                 </p>
                 <p className="text-[13px] text-text-secondary">
                   ₹{bid.totalAmount.toString()} · submitted by {bid.submittedByUser.name ?? bid.submittedByUser.email}
                 </p>
-                <p className="text-[13px] text-text-secondary">{bid.createdAt.toLocaleString()}</p>
+                <p className="text-[13px] text-text-tertiary">{bid.createdAt.toLocaleString()}</p>
               </Link>
-              <div className="text-right">
-                <p className="text-[13px] font-medium text-text-primary">{bid.status}</p>
+              <div className="flex flex-col items-end gap-1.5">
+                <Badge tone={statusTone(bid.status)}>{statusLabel(bid.status)}</Badge>
                 {bid.workOrder && (
                   <a
                     href={`/api/work-orders/${bid.workOrder.id}/pdf`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[13px] text-accent-primary underline"
+                    className="text-[13px] font-medium text-accent-primary underline"
                   >
                     Work Order PDF
                   </a>

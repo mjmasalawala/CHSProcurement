@@ -13,14 +13,7 @@ const HOW_IT_WORKS = [
 export default function Home() {
   return (
     <>
-      <header className="flex items-center justify-between px-6 py-4">
-        <span className="text-[18px] font-semibold text-text-primary">ProSoc</span>
-        <Link href="/login">
-          <Button variant="ghost">Login</Button>
-        </Link>
-      </header>
-
-      <main className="flex flex-1 flex-col items-center gap-20 px-6 pb-24">
+      <main className="flex flex-1 flex-col items-center gap-20 px-6 py-12">
         <section className="flex flex-col items-center gap-6 pt-12 text-center">
           <h1 className="max-w-2xl text-[24px] font-bold text-text-primary sm:text-[32px]">
             Fair, transparent, system-matched quotations for your housing society
@@ -52,14 +45,11 @@ export default function Home() {
           <Link href="/register/society">
             <Button>Register your Society</Button>
           </Link>
+          <Link href="/register/vendor" className="text-[13px] font-medium text-text-secondary underline hover:text-text-primary">
+            Register as a Vendor instead
+          </Link>
         </section>
       </main>
-
-      <footer className="flex items-center justify-center px-6 py-8 text-[13px] text-text-secondary">
-        <Link href="/register/vendor" className="underline hover:text-text-primary">
-          Register as a Vendor
-        </Link>
-      </footer>
     </>
   );
 }

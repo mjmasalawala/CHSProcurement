@@ -3,19 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyPagePermission } from "@/lib/society-auth";
 import { Button } from "@/components/ui/button";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
-function statusFor(status: string, deadline: Date): string {
+function statusFor(status: string, deadline: Date): { label: string; tone: BadgeTone } {
   switch (status) {
     case "AWAITING_APPROVAL":
-      return "Awaiting Office Bearer approval";
+      return { label: "Awaiting Office Bearer approval", tone: "warning" };
     case "RETURNED_TO_MANAGER":
-      return "Returned to you";
+      return { label: "Returned to you", tone: "warning" };
     case "FINALIZED":
-      return "Finalized";
+      return { label: "Finalized", tone: "success" };
     default:
-      return deadline.getTime() > Date.now() ? "Open" : "Awaiting review";
+      return deadline.getTime() > Date.now()
+        ? { label: "Open", tone: "info" }
+        : { label: "Awaiting review", tone: "neutral" };
   }
 }
 
@@ -39,7 +42,7 @@ export default async function SocietyRequirementsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-[24px] font-bold text-text-primary">Requirements</h1>
+        <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Requirements</h1>
         <Link href={`/society/${id}/requirements/new`}>
           <Button>New requirement</Button>
         </Link>
@@ -49,25 +52,26 @@ export default async function SocietyRequirementsPage({
         <p className="text-[13px] text-text-secondary">No requirements raised yet.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {requirements.map((req) => (
-            <Link
-              key={req.id}
-              href={`/society/${id}/requirements/${req.id}`}
-              className="flex items-center justify-between rounded-lg border border-border-subtle p-4 hover:bg-background-secondary"
-            >
-              <div>
-                <p className="text-[15px] font-medium text-text-primary">{req.category.name}</p>
-                <p className="text-[13px] text-text-secondary">{req.description.slice(0, 80)}</p>
-                <p className="text-[13px] text-text-secondary">
-                  {req._count.invites} vendors invited · {req._count.bids} bids · deadline{" "}
-                  {req.bidDeadline.toLocaleString()}
-                </p>
-              </div>
-              <p className="text-[13px] font-medium text-text-primary">
-                {statusFor(req.status, req.bidDeadline)}
-              </p>
-            </Link>
-          ))}
+          {requirements.map((req) => {
+            const status = statusFor(req.status, req.bidDeadline);
+            return (
+              <Link
+                key={req.id}
+                href={`/society/${id}/requirements/${req.id}`}
+                className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs transition-shadow hover:shadow-sm"
+              >
+                <div>
+                  <p className="text-[15px] font-semibold text-text-primary">{req.category.name}</p>
+                  <p className="text-[13px] text-text-secondary">{req.description.slice(0, 80)}</p>
+                  <p className="text-[13px] text-text-tertiary">
+                    {req._count.invites} vendors invited · {req._count.bids} bids · deadline{" "}
+                    {req.bidDeadline.toLocaleString()}
+                  </p>
+                </div>
+                <Badge tone={status.tone}>{status.label}</Badge>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

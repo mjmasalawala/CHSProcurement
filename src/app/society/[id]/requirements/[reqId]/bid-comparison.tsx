@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { recommendBid } from "./actions";
 
 interface BidLineItem {
@@ -73,15 +74,24 @@ export function BidComparison({
           const isRecommended = bid.id === recommendedBidId;
 
           return (
-            <Card key={bid.id} className={isRecommended ? "border-accent-primary" : undefined}>
+            <Card
+              key={bid.id}
+              className={
+                isRecommended
+                  ? "border-status-success-border bg-status-success-bg"
+                  : "transition-shadow hover:shadow-md"
+              }
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-[15px] font-semibold text-text-primary">{bid.vendorName}</p>
                   <p className="text-[13px] text-text-secondary">Valid until {bid.bidValidity}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[18px] font-bold text-text-primary">₹{Number(bid.totalAmount).toFixed(2)}</p>
-                  {isLowest && <p className="text-[13px] text-status-success">Lowest bid</p>}
+                <div className="flex flex-col items-end gap-1">
+                  <p className="text-[18px] font-bold tracking-tight text-text-primary">
+                    ₹{Number(bid.totalAmount).toFixed(2)}
+                  </p>
+                  {isLowest && <Badge tone="success">Lowest bid</Badge>}
                 </div>
               </div>
 
@@ -96,10 +106,10 @@ export function BidComparison({
               {bid.notes && <p className="mt-2 text-[13px] text-text-secondary">Notes: {bid.notes}</p>}
 
               {isRecommended ? (
-                <div className="mt-4 rounded-md bg-background-primary p-3">
-                  <p className="text-[13px] font-medium text-status-success">Recommended</p>
+                <div className="mt-4 rounded-lg bg-background-primary p-3 shadow-xs">
+                  <Badge tone="success">Recommended</Badge>
                   {recommendationNote && (
-                    <p className="mt-1 text-[13px] text-text-secondary">Justification: {recommendationNote}</p>
+                    <p className="mt-2 text-[13px] text-text-secondary">Justification: {recommendationNote}</p>
                   )}
                 </div>
               ) : canRecommend ? (

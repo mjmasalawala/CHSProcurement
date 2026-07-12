@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { PERMISSIONS } from "@/lib/permissions";
+import { WorkspaceNav } from "@/components/ui/workspace-nav";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", permission: null },
@@ -32,29 +32,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!hasAnyAdminAccess) redirect("/app");
 
   const visibleNav = NAV_ITEMS.filter((item) => !item.permission || perms.has(item.permission));
+  const navItems = visibleNav.map((item) => ({ href: item.href, label: item.label }));
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-10">
-      <div className="flex items-center justify-between">
-        <span className="text-[18px] font-semibold text-text-primary">ProSoc Admin</span>
-        <Link href="/app" className="text-[13px] text-text-secondary underline hover:text-text-primary">
-          Back to app
-        </Link>
-      </div>
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 md:flex-row md:gap-10">
+      <aside className="flex shrink-0 flex-col gap-5 md:w-56">
+        <p className="text-[16px] font-bold tracking-tight text-text-primary">ProSoc Admin</p>
+        <div className="md:hidden">
+          <WorkspaceNav basePath="/admin" items={navItems} orientation="horizontal" />
+        </div>
+        <div className="hidden border-r border-border-subtle pr-4 md:block">
+          <WorkspaceNav basePath="/admin" items={navItems} orientation="vertical" />
+        </div>
+      </aside>
 
-      <nav className="flex flex-wrap gap-2 border-b border-border-subtle pb-4">
-        {visibleNav.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="rounded-md px-3 py-1.5 text-[13px] font-medium text-text-secondary hover:bg-background-secondary hover:text-text-primary"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      {children}
+      <main className="min-w-0 flex-1">{children}</main>
     </div>
   );
 }

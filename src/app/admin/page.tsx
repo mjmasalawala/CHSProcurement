@@ -27,14 +27,14 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Dashboard</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Dashboard</h1>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {pendingVendors !== null && (
           <Link href="/admin/vendors?status=PENDING_VERIFICATION">
             <Card>
               <p className="text-[13px] text-text-secondary">Vendors pending review</p>
-              <p className="text-[24px] font-bold text-text-primary">{pendingVendors}</p>
+              <p className="text-[28px] font-bold tracking-tight text-text-primary">{pendingVendors}</p>
             </Card>
           </Link>
         )}
@@ -42,7 +42,7 @@ export default async function AdminDashboardPage() {
           <Link href="/admin/societies?status=PENDING_VERIFICATION">
             <Card>
               <p className="text-[13px] text-text-secondary">Societies pending review</p>
-              <p className="text-[24px] font-bold text-text-primary">{pendingSocieties}</p>
+              <p className="text-[28px] font-bold tracking-tight text-text-primary">{pendingSocieties}</p>
             </Card>
           </Link>
         )}
@@ -50,7 +50,7 @@ export default async function AdminDashboardPage() {
           <Link href="/admin/category-requests">
             <Card>
               <p className="text-[13px] text-text-secondary">Category requests pending</p>
-              <p className="text-[24px] font-bold text-text-primary">{pendingCategoryRequests}</p>
+              <p className="text-[28px] font-bold tracking-tight text-text-primary">{pendingCategoryRequests}</p>
             </Card>
           </Link>
         )}

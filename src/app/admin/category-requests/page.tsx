@@ -16,7 +16,7 @@ export default async function CategoryRequestsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Category Requests</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Category Requests</h1>
 
       {requests.length === 0 ? (
         <p className="text-[13px] text-text-secondary">No pending category requests.</p>

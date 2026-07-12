@@ -5,6 +5,8 @@ import { requireSocietyPagePermission } from "@/lib/society-auth";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 import type { RequirementStatus } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -70,7 +72,7 @@ export default async function SocietyArchivePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Archive</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Archive</h1>
       <p className="text-[13px] text-text-secondary">
         Every requirement and bid ever raised for this society, plus the full approval trail — nothing is
         deleted from this view.
@@ -108,17 +110,17 @@ export default async function SocietyArchivePage({
             <Link
               key={req.id}
               href={`/society/${id}/requirements/${req.id}`}
-              className="flex items-center justify-between rounded-lg border border-border-subtle p-4 hover:bg-background-secondary"
+              className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs transition-shadow hover:shadow-sm"
             >
               <div>
-                <p className="text-[15px] font-medium text-text-primary">{req.category.name}</p>
+                <p className="text-[15px] font-semibold text-text-primary">{req.category.name}</p>
                 <p className="text-[13px] text-text-secondary">{req.description.slice(0, 80)}</p>
-                <p className="text-[13px] text-text-secondary">
+                <p className="text-[13px] text-text-tertiary">
                   {req._count.bids} bids · {req.createdAt.toLocaleDateString()}
                   {req.workOrder && ` · ${req.workOrder.workOrderNumber} awarded to ${req.workOrder.vendorNameSnapshot}`}
                 </p>
               </div>
-              <p className="text-[13px] font-medium text-text-primary">{req.status.replace(/_/g, " ")}</p>
+              <Badge tone={statusTone(req.status)}>{statusLabel(req.status)}</Badge>
             </Link>
           ))}
         </div>
@@ -129,16 +131,22 @@ export default async function SocietyArchivePage({
           <h2 className="mb-2 text-[18px] font-semibold text-text-primary">Threshold change history</h2>
           <div className="flex flex-col gap-2">
             {thresholdHistory.map((change) => (
-              <div key={change.id} className="rounded-lg border border-border-subtle p-3">
-                <p className="text-[13px] text-text-primary">
-                  ₹{change.oldValue} → ₹{change.newValue} — {change.status}
-                </p>
-                <p className="text-[13px] text-text-secondary">
-                  Proposed by {change.proposedByUser.name ?? change.proposedByUser.email}
-                  {change.approvedByUser &&
-                    ` · decided by ${change.approvedByUser.name ?? change.approvedByUser.email}`}{" "}
-                  on {change.decidedAt?.toLocaleDateString()}
-                </p>
+              <div
+                key={change.id}
+                className="flex items-center justify-between rounded-lg border border-border-subtle bg-background-primary p-3 shadow-xs"
+              >
+                <div>
+                  <p className="text-[13px] font-medium text-text-primary">
+                    ₹{change.oldValue} → ₹{change.newValue}
+                  </p>
+                  <p className="text-[13px] text-text-secondary">
+                    Proposed by {change.proposedByUser.name ?? change.proposedByUser.email}
+                    {change.approvedByUser &&
+                      ` · decided by ${change.approvedByUser.name ?? change.approvedByUser.email}`}{" "}
+                    on {change.decidedAt?.toLocaleDateString()}
+                  </p>
+                </div>
+                <Badge tone={statusTone(change.status)}>{statusLabel(change.status)}</Badge>
               </div>
             ))}
           </div>

@@ -27,20 +27,20 @@ export default async function SocietyDashboardPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Dashboard</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Dashboard</h1>
 
       {isManager ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link href={`/society/${id}/requirements`}>
             <Card>
               <p className="text-[13px] text-text-secondary">Open requirements</p>
-              <p className="text-[24px] font-bold text-text-primary">{openRequirements}</p>
+              <p className="text-[28px] font-bold tracking-tight text-text-primary">{openRequirements}</p>
             </Card>
           </Link>
           <Link href={`/society/${id}/requirements`}>
             <Card>
               <p className="text-[13px] text-text-secondary">Closed, awaiting your review</p>
-              <p className="text-[24px] font-bold text-text-primary">{awaitingReview}</p>
+              <p className="text-[28px] font-bold tracking-tight text-text-primary">{awaitingReview}</p>
             </Card>
           </Link>
         </div>

@@ -6,7 +6,7 @@ export default function ForgotPasswordPage() {
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-24">
       <Card className="w-full max-w-sm">
-        <h1 className="mb-1 text-[24px] font-bold text-text-primary">Forgot your password?</h1>
+        <h1 className="mb-1 text-[28px] font-bold tracking-tight text-text-primary">Forgot your password?</h1>
         <p className="mb-6 text-[13px] text-text-secondary">
           Enter your email and we&apos;ll send you a link to reset it.
         </p>

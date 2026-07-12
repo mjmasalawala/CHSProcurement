@@ -24,7 +24,7 @@ export default async function VendorProfilePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Profile</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Profile</h1>
       <ProfileForm vendorCompanyId={id} vendor={vendor} categories={categories} cities={cities} />
     </div>
   );

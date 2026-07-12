@@ -3,6 +3,8 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyPagePermission } from "@/lib/society-auth";
 import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 import { InviteMemberForm, ToggleMemberButton } from "./controls";
 
 export const dynamic = "force-dynamic";
@@ -33,10 +35,10 @@ export default async function SocietyMembersPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Members</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Members</h1>
 
       {obCount < MIN_ACTIVE_OFFICE_BEARERS && (
-        <Card className="border-status-warning">
+        <Card className="border-status-warning-border bg-status-warning-bg">
           <p className="text-[13px] text-text-secondary">
             This society has {obCount} active Office Bearer{obCount === 1 ? "" : "s"} (Chairman/Secretary/
             Treasurer). Requirements can&apos;t be raised and threshold changes can&apos;t be proposed until
@@ -58,17 +60,20 @@ export default async function SocietyMembersPage({
         {members.map((ra) => (
           <div
             key={ra.id}
-            className="flex items-center justify-between rounded-lg border border-border-subtle p-4"
+            className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs"
           >
             <div>
-              <p className="text-[15px] font-medium text-text-primary">{ra.user.name ?? ra.user.email}</p>
+              <p className="text-[15px] font-semibold text-text-primary">{ra.user.name ?? ra.user.email}</p>
               <p className="text-[13px] text-text-secondary">
-                {ra.user.email} · {ROLE_LABELS[ra.role] ?? ra.role} · {ra.status}
+                {ra.user.email} · {ROLE_LABELS[ra.role] ?? ra.role}
               </p>
             </div>
-            {ra.role !== "SECRETARY" && ra.status !== "PENDING" && (
-              <ToggleMemberButton societyId={id} roleAssignmentId={ra.id} active={ra.status === "ACTIVE"} />
-            )}
+            <div className="flex items-center gap-3">
+              <Badge tone={statusTone(ra.status)}>{statusLabel(ra.status)}</Badge>
+              {ra.role !== "SECRETARY" && ra.status !== "PENDING" && (
+                <ToggleMemberButton societyId={id} roleAssignmentId={ra.id} active={ra.status === "ACTIVE"} />
+              )}
+            </div>
           </div>
         ))}
       </div>

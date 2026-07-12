@@ -23,10 +23,10 @@ export function CheckboxGroup({ options, selected, onChange, className }: Checkb
             onClick={() => toggle(option.id)}
             aria-pressed={isSelected}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-[13px] transition-colors",
+              "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
               isSelected
-                ? "border-accent-primary bg-accent-primary text-white"
-                : "border-border-subtle bg-background-primary text-text-primary hover:bg-background-secondary",
+                ? "border-accent-primary bg-accent-primary text-white shadow-xs"
+                : "border-border-strong bg-background-primary text-text-primary hover:bg-background-secondary",
             )}
           >
             {option.label}

@@ -19,14 +19,14 @@ export default async function NewRequirementPage({
   const obCount = await countActiveOfficeBearers(id);
   if (obCount < MIN_ACTIVE_OFFICE_BEARERS) {
     return (
-      <Card className="flex flex-col gap-2 border-status-warning">
-        <p className="text-[15px] font-medium text-text-primary">At least 2 Office Bearers required</p>
+      <Card className="flex flex-col gap-2 border-status-warning-border bg-status-warning-bg">
+        <p className="text-[15px] font-semibold text-text-primary">At least 2 Office Bearers required</p>
         <p className="text-[13px] text-text-secondary">
           This society only has {obCount} active Office Bearer{obCount === 1 ? "" : "s"} (Chairman/Secretary/
           Treasurer). A requirement can&apos;t be raised until at least {MIN_ACTIVE_OFFICE_BEARERS} are
           active, since quotation approval needs 2 signoffs.
         </p>
-        <Link href={`/society/${id}/members`} className="text-[13px] text-accent-primary underline">
+        <Link href={`/society/${id}/members`} className="text-[13px] font-semibold text-accent-primary underline">
           Invite Office Bearers
         </Link>
       </Card>

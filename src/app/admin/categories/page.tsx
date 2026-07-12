@@ -12,7 +12,7 @@ export default async function CategoriesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Categories</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Categories</h1>
 
       <AddCategoryForm />
 

@@ -42,7 +42,7 @@ export function TagInput({ tags, onChange, placeholder, className }: TagInputPro
             <span
               key={tag}
               className={cn(
-                "flex items-center gap-1 rounded-full border border-border-subtle bg-background-secondary px-3 py-1 text-[13px] text-text-primary",
+                "flex items-center gap-1 rounded-full border border-border-subtle bg-background-secondary px-3 py-1 text-[13px] font-medium text-text-primary",
               )}
             >
               {tag}

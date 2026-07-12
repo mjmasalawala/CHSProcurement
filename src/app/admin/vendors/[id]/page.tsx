@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requirePagePermission } from "@/lib/admin-auth";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 import { ApproveRejectPanel } from "./panel";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +25,11 @@ export default async function AdminVendorPage({ params }: { params: Promise<{ id
       <Link href="/admin/vendors" className="text-[13px] text-text-secondary underline hover:text-text-primary">
         ← Back to Vendors
       </Link>
-      <div>
-        <h1 className="text-[24px] font-bold text-text-primary">{vendor.name}</h1>
-        <p className="text-[13px] text-text-secondary">Status: {vendor.status}</p>
+      <div className="flex flex-col gap-2">
+        <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{vendor.name}</h1>
+        <Badge tone={statusTone(vendor.status)} className="w-fit">
+          {statusLabel(vendor.status)}
+        </Badge>
       </div>
 
       <Card className="flex flex-col gap-3">

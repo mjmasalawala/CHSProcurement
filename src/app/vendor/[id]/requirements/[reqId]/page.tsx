@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 import { BidForm } from "./bid-form";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +42,7 @@ export default async function RequirementDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">
         {requirement.category.name} — {requirement.society.name}
       </h1>
 
@@ -58,9 +60,13 @@ export default async function RequirementDetailPage({
 
       {closed ? (
         myBid ? (
-          <Card>
-            <p className="text-[15px] font-medium text-text-primary">Your bid: ₹{myBid.totalAmount.toString()}</p>
-            <p className="text-[13px] text-text-secondary">Status: {myBid.status}</p>
+          <Card className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[15px] font-semibold text-text-primary">
+                Your bid: ₹{myBid.totalAmount.toString()}
+              </p>
+              <Badge tone={statusTone(myBid.status)}>{statusLabel(myBid.status)}</Badge>
+            </div>
             {myBid.workOrder && (
               <a
                 href={`/api/work-orders/${myBid.workOrder.id}/pdf`}

@@ -4,6 +4,8 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyAssignment } from "@/lib/society-auth";
 import { OB_ROLES } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 import { BidComparison } from "./bid-comparison";
 import { ApprovalPanel } from "./approval-panel";
 
@@ -60,7 +62,10 @@ export default async function SocietyRequirementDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">{requirement.category.name}</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{requirement.category.name}</h1>
+        <Badge tone={statusTone(requirement.status)}>{statusLabel(requirement.status)}</Badge>
+      </div>
 
       <Card className="flex flex-col gap-2">
         <p className="text-[15px] text-text-primary">{requirement.description}</p>
@@ -78,8 +83,8 @@ export default async function SocietyRequirementDetailPage({
       </Card>
 
       {requirement.status === "RETURNED_TO_MANAGER" && (
-        <Card className="border-status-warning">
-          <p className="text-[15px] font-medium text-text-primary">Sent back to you</p>
+        <Card className="border-status-warning-border bg-status-warning-bg">
+          <p className="text-[15px] font-semibold text-text-primary">Sent back to you</p>
           <p className="mt-1 text-[13px] text-text-secondary">
             2 of 3 Office Bearers rejected the previous recommendation. Pick a bid to recommend again below.
           </p>
@@ -87,8 +92,8 @@ export default async function SocietyRequirementDetailPage({
       )}
 
       {requirement.status === "FINALIZED" && requirement.workOrder && (
-        <Card className="flex flex-col gap-2 border-accent-primary">
-          <p className="text-[15px] font-medium text-text-primary">
+        <Card className="flex flex-col gap-2 border-status-success-border bg-status-success-bg">
+          <p className="text-[15px] font-semibold text-text-primary">
             Finalized — Work Order {requirement.workOrder.workOrderNumber}
           </p>
           <p className="text-[13px] text-text-secondary">{requirement.workOrder.approvalSummary}</p>
@@ -102,7 +107,7 @@ export default async function SocietyRequirementDetailPage({
           </p>
           <a
             href={`/api/work-orders/${requirement.workOrder.id}/pdf`}
-            className="mt-1 inline-block text-[13px] text-accent-primary underline"
+            className="mt-1 inline-block text-[13px] font-semibold text-accent-primary underline"
             target="_blank"
             rel="noopener noreferrer"
           >

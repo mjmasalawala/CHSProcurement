@@ -1,34 +1,98 @@
 @import "tailwindcss";
 
 :root {
-  /* theme-and-design-system.md Section 3 — light theme only, no dark mode in v1 */
+  /* theme-and-design-system.md Section 3 — light theme only, no dark mode in
+     v1. Palette refreshed for a more polished/professional finish while
+     staying within the spec's "calm, not flashy" light-theme constraint. */
   --color-background-primary: #ffffff;
-  --color-background-secondary: #f7f8fa;
-  --color-border-subtle: #e3e5e8;
-  --color-text-primary: #1a1d23;
+  --color-background-secondary: #f6f7f9;
+  --color-background-tertiary: #eceef2;
+  --color-border-subtle: #e2e4e9;
+  --color-border-strong: #cfd3db;
+  --color-text-primary: #14171f;
   --color-text-secondary: #5b6270;
-  /* accent-primary is TBD pending ProSoc brand color, see design doc Section 3 */
+  --color-text-tertiary: #8a8f9c;
+
   --color-accent-primary: #1d4ed8;
-  --color-status-success: #2e7d32;
-  --color-status-warning: #b26a00;
+  --color-accent-primary-hover: #1a3fb0;
+  --color-accent-subtle: #eef2ff;
+  --color-accent-subtle-border: #c7d2fe;
+
+  /* Status tokens ship as text/bg/border triplets so any "state" (Society
+     status, RequirementStatus, Bid status, RoleAssignment status, etc.) can
+     render as a consistent colored-and-bordered badge — see
+     src/components/ui/badge.tsx and src/lib/status-badge.ts. */
+  --color-status-success: #1e7e34;
+  --color-status-success-bg: #e9f7ef;
+  --color-status-success-border: #b7e4c7;
+
+  --color-status-warning: #9a6700;
+  --color-status-warning-bg: #fff6e5;
+  --color-status-warning-border: #f2d69b;
+
   --color-status-error: #b3261e;
+  --color-status-error-bg: #fdecea;
+  --color-status-error-border: #f3c2bd;
+
+  --color-status-info: #1d4ed8;
+  --color-status-info-bg: #eef2ff;
+  --color-status-info-border: #c7d2fe;
+
+  --color-status-neutral: #4b5262;
+  --color-status-neutral-bg: #eef0f3;
+  --color-status-neutral-border: #d8dbe1;
+
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 10px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
 }
 
 @theme inline {
   --color-background-primary: var(--color-background-primary);
   --color-background-secondary: var(--color-background-secondary);
+  --color-background-tertiary: var(--color-background-tertiary);
   --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+
   --color-accent-primary: var(--color-accent-primary);
+  --color-accent-primary-hover: var(--color-accent-primary-hover);
+  --color-accent-subtle: var(--color-accent-subtle);
+  --color-accent-subtle-border: var(--color-accent-subtle-border);
+
   --color-status-success: var(--color-status-success);
+  --color-status-success-bg: var(--color-status-success-bg);
+  --color-status-success-border: var(--color-status-success-border);
   --color-status-warning: var(--color-status-warning);
+  --color-status-warning-bg: var(--color-status-warning-bg);
+  --color-status-warning-border: var(--color-status-warning-border);
   --color-status-error: var(--color-status-error);
-  --font-sans: Arial, "Helvetica Neue", Helvetica, "Calibri", sans-serif;
+  --color-status-error-bg: var(--color-status-error-bg);
+  --color-status-error-border: var(--color-status-error-border);
+  --color-status-info: var(--color-status-info);
+  --color-status-info-bg: var(--color-status-info-bg);
+  --color-status-info-border: var(--color-status-info-border);
+  --color-status-neutral: var(--color-status-neutral);
+  --color-status-neutral-bg: var(--color-status-neutral-bg);
+  --color-status-neutral-border: var(--color-status-neutral-border);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+
+  /* System font stack, no network font loading — spec calls for
+     Arial/Calibri; this keeps that constraint (zero custom font requests)
+     while favoring each OS's native UI face, which reads less "default
+     browser stylesheet" than Arial does. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Calibri", sans-serif;
 }
 
 body {
-  background: var(--color-background-primary);
+  background: var(--color-background-secondary);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }

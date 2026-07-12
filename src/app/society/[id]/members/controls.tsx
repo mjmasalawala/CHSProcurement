@@ -31,7 +31,7 @@ export function InviteMemberForm({ societyId }: { societyId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex items-end gap-2">
-      <Select value={role} onChange={(e) => setRole(e.target.value as RoleName)}>
+      <Select value={role} onChange={(e) => setRole(e.target.value as RoleName)} className="w-36 shrink-0">
         {ROLE_OPTIONS.map((r) => (
           <option key={r.value} value={r.value}>
             {r.label}
@@ -41,7 +41,7 @@ export function InviteMemberForm({ societyId }: { societyId: string }) {
       <div className="flex-1">
         <Input
           type="email"
-          placeholder="name@email.com"
+          placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required

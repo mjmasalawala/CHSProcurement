@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requirePagePermission } from "@/lib/admin-auth";
 import type { EntityStatus } from "@/generated/prisma/enums";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -35,17 +37,17 @@ export default async function AdminVendorsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Vendors</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Vendors</h1>
 
-      <div className="flex gap-2 border-b border-border-subtle pb-3">
+      <div className="flex gap-1 border-b border-border-subtle pb-3">
         {TABS.map((tab) => (
           <Link
             key={tab.value}
             href={`/admin/vendors?status=${tab.value}`}
-            className={`rounded-md px-3 py-1.5 text-[13px] font-medium ${
+            className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
               activeTab === tab.value
-                ? "bg-accent-primary text-white"
-                : "text-text-secondary hover:bg-background-secondary"
+                ? "bg-accent-primary text-white shadow-xs"
+                : "text-text-secondary hover:bg-background-tertiary"
             }`}
           >
             {tab.label}
@@ -61,22 +63,22 @@ export default async function AdminVendorsPage({
             <Link
               key={vendor.id}
               href={`/admin/vendors/${vendor.id}`}
-              className="flex items-center justify-between rounded-lg border border-border-subtle p-4 hover:bg-background-secondary"
+              className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs transition-shadow hover:shadow-sm"
             >
               <div>
-                <p className="text-[15px] font-medium text-text-primary">{vendor.name}</p>
+                <p className="text-[15px] font-semibold text-text-primary">{vendor.name}</p>
                 <p className="text-[13px] text-text-secondary">
                   {vendor.ownerName} · {vendor.ownerEmail}
                 </p>
-                <p className="text-[13px] text-text-secondary">
+                <p className="text-[13px] text-text-tertiary">
                   {vendor.serviceCategories.map((c) => c.name).join(", ") || "No categories"} ·{" "}
                   {vendor.citiesServed.map((c) => c.name).join(", ") || "No cities"}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-[13px] font-medium text-text-primary">{vendor.status}</p>
+              <div className="flex flex-col items-end gap-1">
+                <Badge tone={statusTone(vendor.status)}>{statusLabel(vendor.status)}</Badge>
                 {vendor.status === "PENDING_VERIFICATION" && (
-                  <p className="text-[13px] text-status-warning">
+                  <p className="text-[13px] font-medium text-status-warning">
                     {daysSince(vendor.createdAt)}d pending
                   </p>
                 )}

@@ -4,6 +4,8 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyAssignment } from "@/lib/society-auth";
 import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { statusTone, statusLabel } from "@/lib/status-badge";
 import { ProposeThresholdForm, DecideThresholdPanel } from "./panel";
 
 export const dynamic = "force-dynamic";
@@ -42,15 +44,15 @@ export default async function SocietySettingsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[24px] font-bold text-text-primary">Settings</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Settings</h1>
 
       {obCount < MIN_ACTIVE_OFFICE_BEARERS && (
-        <Card className="border-status-warning">
+        <Card className="border-status-warning-border bg-status-warning-bg">
           <p className="text-[13px] text-text-secondary">
             This society has {obCount} active Office Bearer{obCount === 1 ? "" : "s"} (Chairman/Secretary/
             Treasurer). Threshold changes can&apos;t be proposed until at least {MIN_ACTIVE_OFFICE_BEARERS}{" "}
             are active — visit{" "}
-            <a href={`/society/${id}/members`} className="text-accent-primary underline">
+            <a href={`/society/${id}/members`} className="font-semibold text-accent-primary underline">
               Members
             </a>{" "}
             to invite more.
@@ -59,16 +61,18 @@ export default async function SocietySettingsPage({
       )}
 
       <Card className="flex flex-col gap-2">
-        <p className="text-[13px] text-text-secondary">Approval threshold</p>
-        <p className="text-[24px] font-bold text-text-primary">₹{society.approvalThreshold}</p>
+        <p className="text-[13px] font-medium text-text-secondary">Approval threshold</p>
+        <p className="text-[28px] font-bold tracking-tight text-text-primary">
+          ₹{society.approvalThreshold}
+        </p>
         <p className="text-[13px] text-text-secondary">
           Recommendations below this amount auto-finalize; at or above, 2 of 3 Office Bearers must approve.
         </p>
       </Card>
 
       {pendingChange && (
-        <Card className="flex flex-col gap-2 border-status-warning">
-          <p className="text-[15px] font-medium text-text-primary">Pending threshold change</p>
+        <Card className="flex flex-col gap-2 border-status-warning-border bg-status-warning-bg">
+          <p className="text-[15px] font-semibold text-text-primary">Pending threshold change</p>
           <p className="text-[13px] text-text-secondary">
             {pendingChange.proposedByUser.name ?? pendingChange.proposedByUser.email} proposed ₹
             {pendingChange.oldValue} → ₹{pendingChange.newValue}
@@ -91,16 +95,22 @@ export default async function SocietySettingsPage({
           <h2 className="mb-2 text-[18px] font-semibold text-text-primary">Threshold change history</h2>
           <div className="flex flex-col gap-2">
             {history.map((change) => (
-              <div key={change.id} className="rounded-lg border border-border-subtle p-3">
-                <p className="text-[13px] text-text-primary">
-                  ₹{change.oldValue} → ₹{change.newValue} — {change.status}
-                </p>
-                <p className="text-[13px] text-text-secondary">
-                  Proposed by {change.proposedByUser.name ?? change.proposedByUser.email}
-                  {change.approvedByUser &&
-                    ` · decided by ${change.approvedByUser.name ?? change.approvedByUser.email}`}{" "}
-                  on {change.decidedAt?.toLocaleDateString()}
-                </p>
+              <div
+                key={change.id}
+                className="flex items-center justify-between rounded-lg border border-border-subtle bg-background-primary p-3 shadow-xs"
+              >
+                <div>
+                  <p className="text-[13px] font-medium text-text-primary">
+                    ₹{change.oldValue} → ₹{change.newValue}
+                  </p>
+                  <p className="text-[13px] text-text-secondary">
+                    Proposed by {change.proposedByUser.name ?? change.proposedByUser.email}
+                    {change.approvedByUser &&
+                      ` · decided by ${change.approvedByUser.name ?? change.approvedByUser.email}`}{" "}
+                    on {change.decidedAt?.toLocaleDateString()}
+                  </p>
+                </div>
+                <Badge tone={statusTone(change.status)}>{statusLabel(change.status)}</Badge>
               </div>
             ))}
           </div>

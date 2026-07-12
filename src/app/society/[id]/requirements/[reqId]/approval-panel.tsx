@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { castQuotationVote } from "./actions";
 
 interface Vote {
@@ -34,27 +35,27 @@ export function ApprovalPanel({ societyId, requirementId, votes, canVote }: Prop
   }
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className="flex flex-col gap-3 border-status-warning-border bg-status-warning-bg">
       <h2 className="text-[18px] font-semibold text-text-primary">Office Bearer approval</h2>
       <p className="text-[13px] text-text-secondary">
         {approvals} of {votes.length} approved · {rejections} rejected — 2 approvals finalizes, 2 rejections
         sends it back to the Manager.
       </p>
 
-      <div className="flex flex-col gap-1">
-        {votes.map((v) => (
-          <p key={v.role} className="text-[13px] text-text-primary">
-            <span className="font-medium">
-              {v.role} ({v.name})
-            </span>{" "}
-            —{" "}
-            {v.decision === "APPROVED"
-              ? "Approved"
-              : v.decision === "REJECTED"
-                ? "Rejected"
-                : "Awaiting vote"}
-          </p>
-        ))}
+      <div className="flex flex-col gap-2">
+        {votes.map((v) => {
+          const tone: BadgeTone =
+            v.decision === "APPROVED" ? "success" : v.decision === "REJECTED" ? "error" : "neutral";
+          const label = v.decision === "APPROVED" ? "Approved" : v.decision === "REJECTED" ? "Rejected" : "Awaiting vote";
+          return (
+            <div key={v.role} className="flex items-center justify-between rounded-lg bg-background-primary px-3 py-2 shadow-xs">
+              <p className="text-[13px] font-medium text-text-primary">
+                {v.role} ({v.name})
+              </p>
+              <Badge tone={tone}>{label}</Badge>
+            </div>
+          );
+        })}
       </div>
 
       {error && <p className="text-[13px] text-status-error">{error}</p>}

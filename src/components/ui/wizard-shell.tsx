@@ -32,19 +32,19 @@ export function WizardShell({
 }: WizardShellProps) {
   return (
     <div className={cn("mx-auto w-full max-w-lg", className)}>
-      <div className="mb-6">
-        <p className="mb-2 text-[13px] text-text-secondary">
+      <div className="mb-7">
+        <p className="mb-2 text-[13px] font-medium tracking-wide text-text-tertiary uppercase">
           Step {step} of {totalSteps}
         </p>
-        <div className="h-1.5 w-full rounded-full bg-background-secondary">
+        <div className="h-1.5 w-full rounded-full bg-background-tertiary">
           <div
-            className="h-1.5 rounded-full bg-accent-primary transition-all"
+            className="h-1.5 rounded-full bg-accent-primary transition-all duration-300"
             style={{ width: `${(step / totalSteps) * 100}%` }}
           />
         </div>
       </div>
 
-      <h2 className="mb-4 text-[18px] font-semibold text-text-primary">{title}</h2>
+      <h2 className="mb-4 text-[20px] font-bold tracking-tight text-text-primary">{title}</h2>
 
       <div className="mb-8 flex flex-col gap-4">{children}</div>
 
