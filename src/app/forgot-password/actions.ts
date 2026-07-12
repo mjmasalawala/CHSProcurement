@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { createPasswordResetToken } from "@/lib/password-reset";
-import { sendPasswordReset } from "@/lib/email";
+import { sendPasswordReset } from "@/lib/notifications";
 
 /**
  * Always resolves the same way regardless of whether the email exists —

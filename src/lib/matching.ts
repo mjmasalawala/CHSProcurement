@@ -13,6 +13,6 @@ export async function matchVendors(categoryId: string, cityId: string) {
       serviceCategories: { some: { id: categoryId } },
       citiesServed: { some: { id: cityId } },
     },
-    select: { id: true },
+    select: { id: true, ownerEmail: true, ownerPhone: true },
   });
 }

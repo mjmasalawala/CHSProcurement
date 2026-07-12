@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { EntityType, RoleName } from "@/generated/prisma/enums";
 import { ROLE_DEFAULT_PERMISSIONS } from "@/lib/permissions";
 import { getEntityName } from "@/lib/entities";
-import { sendInvite } from "@/lib/email";
+import { sendInvite } from "@/lib/notifications";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 

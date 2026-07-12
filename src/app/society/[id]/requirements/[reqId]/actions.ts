@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { finalizeRequirement } from "@/lib/work-order";
-import { notifyApprovalRequested, notifyReturnedToManager } from "@/lib/email";
+import { notifyApprovalRequested, notifyReturnedToManager } from "@/lib/notifications";
 import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { revalidatePath } from "next/cache";
 

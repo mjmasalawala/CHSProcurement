@@ -47,6 +47,11 @@ export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
  * Note: "Approve Threshold Change" isn't in here — it's the same
  * APPROVE_REJECT_QUOTATION-holding OB roles, excluding whoever proposed it,
  * which is a per-request check, not a static flag (society spec Section 7.1).
+ *
+ * Product decision, 2026-07-12: all 3 Office Bearer roles (Chairman,
+ * Secretary, Treasurer) hold propose_threshold_change, not just
+ * Secretary/Treasurer — deviates from the original spec draft, which is
+ * updated to match (society-portal-spec.md Sections 6 and 7.1).
  */
 export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
   [RoleName.VENDOR_OWNER]: [
@@ -69,7 +74,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.FINALIZE_BELOW_THRESHOLD,
     PERMISSIONS.VIEW_ARCHIVE,
   ],
-  [RoleName.CHAIRMAN]: [PERMISSIONS.APPROVE_REJECT_QUOTATION, PERMISSIONS.VIEW_ARCHIVE],
+  [RoleName.CHAIRMAN]: [
+    PERMISSIONS.APPROVE_REJECT_QUOTATION,
+    PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.VIEW_ARCHIVE,
+  ],
   [RoleName.SECRETARY]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
     PERMISSIONS.MANAGE_USERS,

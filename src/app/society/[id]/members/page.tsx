@@ -33,6 +33,13 @@ export default async function SocietyMembersPage({
     countActiveOfficeBearers(id),
   ]);
 
+  // Chairman/Treasurer are single-seat — the invite form disables re-inviting
+  // a post that already has an active holder (server-enforced too, see
+  // members/actions.ts).
+  const occupiedRoles = members
+    .filter((m) => m.status === "ACTIVE" && (m.role === "CHAIRMAN" || m.role === "TREASURER"))
+    .map((m) => m.role);
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Members</h1>
@@ -52,7 +59,7 @@ export default async function SocietyMembersPage({
           Invite the Manager, Chairman, or Treasurer. The Secretary role is assigned once by ProSoc during
           registration approval.
         </p>
-        <InviteMemberForm societyId={id} />
+        <InviteMemberForm societyId={id} occupiedRoles={occupiedRoles} />
       </Card>
 
       <div className="flex flex-col gap-2">
@@ -69,6 +76,9 @@ export default async function SocietyMembersPage({
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {ra.status === "PENDING" && (
+                <p className="text-[13px] text-text-secondary">Invited — waiting for them to set a password</p>
+              )}
               <Badge tone={statusTone(ra.status)}>{statusLabel(ra.status)}</Badge>
               {ra.role !== "SECRETARY" && ra.status !== "PENDING" && (
                 <ToggleMemberButton societyId={id} roleAssignmentId={ra.id} active={ra.status === "ACTIVE"} />

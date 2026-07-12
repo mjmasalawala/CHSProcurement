@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { FinalizationMethod } from "@/generated/prisma/enums";
-import { notifyFinalized, notifyBidOutcome } from "@/lib/email";
+import { notifyFinalized, notifyBidOutcome } from "@/lib/notifications";
 
 /**
  * Shared finalization path for both the below-threshold auto-finalize case

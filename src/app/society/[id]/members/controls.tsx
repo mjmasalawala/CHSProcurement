@@ -13,14 +13,25 @@ const ROLE_OPTIONS: { value: RoleName; label: string }[] = [
   { value: "TREASURER", label: "Treasurer" },
 ];
 
-export function InviteMemberForm({ societyId }: { societyId: string }) {
+export function InviteMemberForm({
+  societyId,
+  occupiedRoles = [],
+}: {
+  societyId: string;
+  occupiedRoles?: RoleName[];
+}) {
+  const firstAvailable = ROLE_OPTIONS.find((r) => !occupiedRoles.includes(r.value))?.value ?? "MANAGER";
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<RoleName>("CHAIRMAN");
+  const [role, setRole] = useState<RoleName>(firstAvailable);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (occupiedRoles.includes(role)) {
+      setError(`This society already has an active ${role.toLowerCase()} — deactivate them first.`);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     const result = await inviteMember(societyId, email, role);
@@ -33,8 +44,9 @@ export function InviteMemberForm({ societyId }: { societyId: string }) {
     <form onSubmit={handleSubmit} className="flex items-end gap-2">
       <Select value={role} onChange={(e) => setRole(e.target.value as RoleName)} className="w-36 shrink-0">
         {ROLE_OPTIONS.map((r) => (
-          <option key={r.value} value={r.value}>
+          <option key={r.value} value={r.value} disabled={occupiedRoles.includes(r.value)}>
             {r.label}
+            {occupiedRoles.includes(r.value) ? " (filled)" : ""}
           </option>
         ))}
       </Select>

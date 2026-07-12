@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireActionPermission } from "@/lib/admin-auth";
 import { createInvite } from "@/lib/invite";
-import { notifyRejection } from "@/lib/email";
+import { notifyRejection } from "@/lib/notifications";
 import { revalidatePath } from "next/cache";
 
 export async function approveSociety(societyId: string): Promise<{ inviteUrl: string }> {
@@ -39,6 +39,7 @@ export async function rejectSociety(societyId: string, reason: string): Promise<
     type: "Society",
     name: society.name,
     contactEmail: society.secretaryEmail,
+    contactPhone: society.secretaryPhone,
     reason,
   });
 

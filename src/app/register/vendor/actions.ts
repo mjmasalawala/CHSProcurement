@@ -5,7 +5,7 @@ import { signIn } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { ROLE_DEFAULT_PERMISSIONS } from "@/lib/permissions";
-import { notifyNewRegistration } from "@/lib/email";
+import { notifyNewRegistration, notifyRegistrationSubmitted } from "@/lib/notifications";
 
 export interface VendorRegistrationInput {
   name: string;
@@ -89,13 +89,21 @@ export async function registerVendor(
   }
 
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  await notifyNewRegistration({
-    type: "Vendor",
-    name: input.name,
-    contactName: input.ownerName,
-    contactEmail: input.ownerEmail,
-    approveUrl: `${base}/admin/vendors/${vendorCompanyId}`,
-  });
+  await Promise.all([
+    notifyNewRegistration({
+      type: "Vendor",
+      name: input.name,
+      contactName: input.ownerName,
+      contactEmail: input.ownerEmail,
+      approveUrl: `${base}/admin/vendors/${vendorCompanyId}`,
+    }),
+    notifyRegistrationSubmitted({
+      type: "Vendor",
+      name: input.name,
+      contactEmail: input.ownerEmail,
+      contactPhone: input.ownerPhone,
+    }),
+  ]);
 
   await signIn("credentials", {
     email: input.ownerEmail,

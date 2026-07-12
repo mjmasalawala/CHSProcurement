@@ -315,6 +315,12 @@ model Requirement {
   status      RequirementStatus @default(OPEN)
   finalizedAt DateTime?
 
+  // M7 — deadline-reminders cron (src/app/api/cron/deadline-reminders):
+  // stamped the first time each reminder fires, so a still-OPEN requirement
+  // never gets the same email/SMS twice on later cron runs.
+  deadlineReminderSentAt   DateTime?
+  deadlineClosedNotifiedAt DateTime?
+
   // Manager's recommendation (society-portal-spec.md Section 6).
   recommendedBidId    String?   @unique
   recommendedBid      Bid?      @relation("RequirementRecommendedBid", fields: [recommendedBidId], references: [id])

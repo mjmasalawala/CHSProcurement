@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { matchVendors } from "@/lib/matching";
 import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
+import { notifyRequirementMatched } from "@/lib/notifications";
 import { revalidatePath } from "next/cache";
 
 export interface RequirementCreationInput {
@@ -47,7 +48,7 @@ export async function createRequirement(
 
   const society = await prisma.society.findUniqueOrThrow({
     where: { id: societyId },
-    select: { cityId: true },
+    select: { name: true, cityId: true },
   });
 
   const requirement = await prisma.requirement.create({
@@ -59,6 +60,7 @@ export async function createRequirement(
       budgetBand: input.budgetBand.trim() || null,
       bidDeadline,
     },
+    include: { category: true },
   });
 
   const matched = await matchVendors(input.categoryId, society.cityId);
@@ -66,6 +68,19 @@ export async function createRequirement(
     await prisma.requirementInvite.createMany({
       data: matched.map((v) => ({ requirementId: requirement.id, vendorCompanyId: v.id })),
     });
+
+    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    await Promise.all(
+      matched.map((v) =>
+        notifyRequirementMatched({
+          vendorEmail: v.ownerEmail,
+          vendorPhone: v.ownerPhone,
+          categoryName: requirement.category.name,
+          societyName: society.name,
+          reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
+        }),
+      ),
+    );
   }
 
   revalidatePath(`/society/${societyId}/requirements`);

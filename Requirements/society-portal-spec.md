@@ -16,7 +16,7 @@ Allow a housing society (via its Manager and 3 Office Bearers) to raise R&M/CapE
 | Role | Who | Core permissions |
 |---|---|---|
 | **Manager** | Society employee, or staff of an external management company (may manage multiple societies) | Create requirements, view bids once closed, recommend a winner, finalize directly if below approval threshold |
-| **Chairman** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) |
+| **Chairman** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `propose_threshold_change` |
 | **Secretary** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `manage_users` (default Society Admin function) + `propose_threshold_change` |
 | **Treasurer** | Elected office bearer, specific to this society | Approve/reject quotations (1 of 3 votes) + `propose_threshold_change` |
 
@@ -101,7 +101,7 @@ Allow a housing society (via its Manager and 3 Office Bearers) to raise R&M/CapE
 
 ### 7.1 Threshold change (co-approval pattern)
 
-- Any Office Bearer with `propose_threshold_change` (Secretary or Treasurer, per the permissions matrix) can propose a new threshold value.
+- Any Office Bearer with `propose_threshold_change` (Chairman, Secretary, or Treasurer — all 3 OB roles, per the permissions matrix; product decision 2026-07-12, originally Secretary/Treasurer only) can propose a new threshold value.
 - Requires **one additional Office Bearer's approval** to take effect (i.e., 2-party sign-off, same pattern as quotation approval but simpler — 1 proposer + 1 approver, not 2-of-3).
 - Logged: old value, new value, proposer, approver, timestamp.
 
@@ -162,7 +162,7 @@ Trigger events:
 | Finalize below-threshold selection | `manager` role | ✅ | ❌ | ❌ | ❌ |
 | Approve/Reject Quotation (at/above threshold) | base OB role | ❌ | ✅ | ✅ | ✅ |
 | Manage Users tab (invite/remove/reassign roles) | `manage_users` | ❌ | ❌ | ✅ (default) | ❌ |
-| Propose Threshold Change | `propose_threshold_change` | ❌ | ❌ | ✅ | ✅ |
+| Propose Threshold Change | `propose_threshold_change` | ❌ | ✅ | ✅ | ✅ |
 | Approve Threshold Change | base OB role, excluding proposer | ❌ | ✅ (if not proposer) | ✅ (if not proposer) | ✅ (if not proposer) |
 | Requirement/Bid Archive (view) | base role, any assignment | ✅ | ✅ | ✅ | ✅ |
 

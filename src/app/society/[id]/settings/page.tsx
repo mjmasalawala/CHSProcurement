@@ -6,7 +6,7 @@ import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/socie
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
-import { ProposeThresholdForm, DecideThresholdPanel } from "./panel";
+import { ThresholdCard, DecideThresholdPanel } from "./panel";
 
 export const dynamic = "force-dynamic";
 
@@ -60,15 +60,11 @@ export default async function SocietySettingsPage({
         </Card>
       )}
 
-      <Card className="flex flex-col gap-2">
-        <p className="text-[13px] font-medium text-text-secondary">Approval threshold</p>
-        <p className="text-[28px] font-bold tracking-tight text-text-primary">
-          ₹{society.approvalThreshold}
-        </p>
-        <p className="text-[13px] text-text-secondary">
-          Recommendations below this amount auto-finalize; at or above, 2 of 3 Office Bearers must approve.
-        </p>
-      </Card>
+      <ThresholdCard
+        societyId={id}
+        currentValue={String(society.approvalThreshold)}
+        canPropose={canPropose && !pendingChange}
+      />
 
       {pendingChange && (
         <Card className="flex flex-col gap-2 border-status-warning-border bg-status-warning-bg">
@@ -81,12 +77,6 @@ export default async function SocietySettingsPage({
           {!canDecide && !canPropose && (
             <p className="text-[13px] text-text-secondary">Awaiting another Office Bearer&apos;s decision.</p>
           )}
-        </Card>
-      )}
-
-      {canPropose && !pendingChange && (
-        <Card>
-          <ProposeThresholdForm societyId={id} />
         </Card>
       )}
 

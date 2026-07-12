@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { notifyNewRegistration } from "@/lib/email";
+import { notifyNewRegistration, notifyRegistrationSubmitted } from "@/lib/notifications";
 
 export interface SocietyRegistrationInput {
   name: string;
@@ -45,13 +45,21 @@ export async function registerSociety(
   });
 
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  await notifyNewRegistration({
-    type: "Society",
-    name: input.name,
-    contactName: input.secretaryName,
-    contactEmail: input.secretaryEmail,
-    approveUrl: `${base}/admin/societies/${society.id}`,
-  });
+  await Promise.all([
+    notifyNewRegistration({
+      type: "Society",
+      name: input.name,
+      contactName: input.secretaryName,
+      contactEmail: input.secretaryEmail,
+      approveUrl: `${base}/admin/societies/${society.id}`,
+    }),
+    notifyRegistrationSubmitted({
+      type: "Society",
+      name: input.name,
+      contactEmail: input.secretaryEmail,
+      contactPhone: input.secretaryPhone,
+    }),
+  ]);
 
   return { ok: true };
 }

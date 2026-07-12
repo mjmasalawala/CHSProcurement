@@ -13,6 +13,12 @@ import type { RoleName } from "@/generated/prisma/enums";
 // Chairman, and Treasurer."
 const INVITABLE_ROLES: RoleName[] = ["MANAGER", "CHAIRMAN", "TREASURER"];
 
+// Chairman and Treasurer are single-seat posts — inviting a second person
+// while one is ACTIVE would leave two people holding the same OB vote.
+// Manager is exempt: a society can have more than one (society-portal-spec.md
+// Section 2).
+const SINGLE_SEAT_ROLES: RoleName[] = ["CHAIRMAN", "TREASURER"];
+
 export async function inviteMember(
   societyId: string,
   email: string,
@@ -24,6 +30,15 @@ export async function inviteMember(
 
   const trimmed = email.trim().toLowerCase();
   if (!trimmed) return { error: "Email is required." };
+
+  if (SINGLE_SEAT_ROLES.includes(role)) {
+    const activeHolder = await prisma.roleAssignment.findFirst({
+      where: { entityType: "SOCIETY", entityId: societyId, role, status: "ACTIVE" },
+    });
+    if (activeHolder) {
+      return { error: `This society already has an active ${role.toLowerCase()} — deactivate them first.` };
+    }
+  }
 
   const existing = await prisma.roleAssignment.findFirst({
     where: {

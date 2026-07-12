@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
-import { notifyThresholdChangeProposed, notifyThresholdChangeDecided } from "@/lib/email";
+import { notifyThresholdChangeProposed, notifyThresholdChangeDecided } from "@/lib/notifications";
 import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { revalidatePath } from "next/cache";
 
