@@ -62,10 +62,6 @@ export default async function RequirementDetailPage({
 
       <Card className="flex flex-col gap-2">
         <p className="text-[15px] text-text-primary">{requirement.description}</p>
-        <p className="text-[13px] text-text-secondary">Urgency: {requirement.urgency}</p>
-        {requirement.budgetBand && (
-          <p className="text-[13px] text-text-secondary">Budget band: {requirement.budgetBand}</p>
-        )}
         <p className="text-[13px] text-text-secondary">Location: {requirement.society.address}</p>
         <p className="text-[13px] font-medium text-text-primary">
           Bid deadline: {requirement.bidDeadline.toLocaleString()} {closed && "(closed)"}

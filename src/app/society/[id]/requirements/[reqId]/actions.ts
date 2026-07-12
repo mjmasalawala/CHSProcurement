@@ -10,6 +10,28 @@ import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@
 import { revalidatePath } from "next/cache";
 
 /**
+ * Inline rename from the requirement detail page — same permission as
+ * raising the requirement (Manager or Office Bearer, CREATE_REQUIREMENT).
+ */
+export async function updateRequirementName(
+  societyId: string,
+  requirementId: string,
+  name: string,
+): Promise<{ error: string } | undefined> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.CREATE_REQUIREMENT);
+
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Project name can't be empty." };
+
+  const requirement = await prisma.requirement.findUnique({ where: { id: requirementId } });
+  if (!requirement || requirement.societyId !== societyId) return { error: "Requirement not found." };
+
+  await prisma.requirement.update({ where: { id: requirementId }, data: { name: trimmed } });
+  revalidatePath(`/society/${societyId}/requirements/${requirementId}`);
+  revalidatePath(`/society/${societyId}/requirements`);
+}
+
+/**
  * Manager recommends a winning bid (society-portal-spec.md Section 6). If
  * it isn't the lowest submitted bid, a justification note is mandatory and
  * becomes part of the permanent record. Below the society's approval

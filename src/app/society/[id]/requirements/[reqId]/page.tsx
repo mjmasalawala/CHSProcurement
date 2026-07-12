@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
 import { BidComparison } from "./bid-comparison";
 import { ApprovalPanel } from "./approval-panel";
+import { EditableProjectName } from "./editable-name";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function SocietyRequirementDetailPage({
   const closed = isClosed(requirement.bidDeadline);
   const canRecommend = assignment.permissions.includes(PERMISSIONS.RECOMMEND_BID);
   const canVote = assignment.permissions.includes(PERMISSIONS.APPROVE_REJECT_QUOTATION);
+  const canEditName = assignment.permissions.includes(PERMISSIONS.CREATE_REQUIREMENT);
 
   const obAssignments =
     requirement.status === "AWAITING_APPROVAL"
@@ -72,7 +74,12 @@ export default async function SocietyRequirementDetailPage({
 
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{requirement.name}</h1>
+          <EditableProjectName
+            societyId={id}
+            requirementId={reqId}
+            initialName={requirement.name}
+            canEdit={canEditName}
+          />
           <Badge tone={statusTone(requirement.status)}>{statusLabel(requirement.status)}</Badge>
         </div>
         <p className="text-[13px] text-text-secondary">{requirement.category.name}</p>
@@ -83,10 +90,6 @@ export default async function SocietyRequirementDetailPage({
 
       <Card className="flex flex-col gap-2">
         <p className="text-[15px] text-text-primary">{requirement.description}</p>
-        <p className="text-[13px] text-text-secondary">Urgency: {requirement.urgency}</p>
-        {requirement.budgetBand && (
-          <p className="text-[13px] text-text-secondary">Budget band: {requirement.budgetBand}</p>
-        )}
         <p className="text-[13px] font-medium text-text-primary">
           Bid deadline: {requirement.bidDeadline.toLocaleString()} {closed && "(closed)"}
         </p>

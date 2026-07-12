@@ -13,8 +13,6 @@ export interface RequirementCreationInput {
   categoryId: string;
   name: string;
   description: string;
-  budgetBand: string;
-  urgency: string;
   bidDeadline: string;
 }
 
@@ -38,8 +36,8 @@ export async function createRequirement(
     };
   }
 
-  if (!input.categoryId || !input.name.trim() || !input.description.trim() || !input.urgency || !input.bidDeadline) {
-    return { error: "Project name, category, description, urgency, and deadline are required." };
+  if (!input.categoryId || !input.name.trim() || !input.description.trim() || !input.bidDeadline) {
+    return { error: "Project name, category, description, and deadline are required." };
   }
 
   const bidDeadline = new Date(input.bidDeadline);
@@ -58,8 +56,9 @@ export async function createRequirement(
       categoryId: input.categoryId,
       name: input.name.trim(),
       description: input.description.trim(),
-      urgency: input.urgency as "ROUTINE" | "URGENT",
-      budgetBand: input.budgetBand.trim() || null,
+      // Not captured in the v1 creation form (product decision) — schema
+      // field kept for a possible future re-introduction.
+      urgency: "ROUTINE",
       bidDeadline,
     },
     include: { category: true },

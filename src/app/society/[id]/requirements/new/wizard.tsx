@@ -11,6 +11,15 @@ import { createRequirement, type RequirementCreationInput } from "../actions";
 
 const TOTAL_STEPS = 3;
 
+// datetime-local expects "YYYY-MM-DDTHH:mm" in local time, no timezone suffix.
+function defaultBidDeadline(): string {
+  const twoDaysOut = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${twoDaysOut.getFullYear()}-${pad(twoDaysOut.getMonth() + 1)}-${pad(twoDaysOut.getDate())}T${pad(
+    twoDaysOut.getHours(),
+  )}:${pad(twoDaysOut.getMinutes())}`;
+}
+
 interface Props {
   societyId: string;
   categories: { id: string; name: string }[];
@@ -24,9 +33,7 @@ export function RequirementWizard({ societyId, categories }: Props) {
     categoryId: "",
     name: "",
     description: "",
-    budgetBand: "",
-    urgency: "",
-    bidDeadline: "",
+    bidDeadline: defaultBidDeadline(),
   });
 
   function update<K extends keyof RequirementCreationInput>(key: K, value: RequirementCreationInput[K]) {
@@ -34,8 +41,8 @@ export function RequirementWizard({ societyId, categories }: Props) {
   }
 
   const canProceed = {
-    1: !!(form.categoryId && form.name && form.description),
-    2: !!form.urgency,
+    1: !!form.name,
+    2: !!(form.categoryId && form.description),
     3: !!form.bidDeadline,
   }[step];
 
@@ -55,7 +62,7 @@ export function RequirementWizard({ societyId, categories }: Props) {
         <WizardShell
           step={1}
           totalSteps={TOTAL_STEPS}
-          title="What do you need done?"
+          title="What's this project called?"
           onNext={() => setStep(2)}
           nextDisabled={!canProceed}
         >
@@ -68,6 +75,18 @@ export function RequirementWizard({ societyId, categories }: Props) {
               placeholder="e.g. Lobby ceiling repair"
             />
           </div>
+        </WizardShell>
+      )}
+
+      {step === 2 && (
+        <WizardShell
+          step={2}
+          totalSteps={TOTAL_STEPS}
+          title="What do you need done?"
+          onBack={() => setStep(1)}
+          onNext={() => setStep(3)}
+          nextDisabled={!canProceed}
+        >
           <div>
             <Label htmlFor="categoryId">Category</Label>
             <Select
@@ -90,35 +109,6 @@ export function RequirementWizard({ societyId, categories }: Props) {
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
               placeholder="What needs fixing, where, and any relevant details."
-            />
-          </div>
-        </WizardShell>
-      )}
-
-      {step === 2 && (
-        <WizardShell
-          step={2}
-          totalSteps={TOTAL_STEPS}
-          title="How urgent, and what's the budget?"
-          onBack={() => setStep(1)}
-          onNext={() => setStep(3)}
-          nextDisabled={!canProceed}
-        >
-          <div>
-            <Label htmlFor="urgency">Urgency</Label>
-            <Select id="urgency" value={form.urgency} onChange={(e) => update("urgency", e.target.value)}>
-              <option value="">Select one</option>
-              <option value="ROUTINE">Routine</option>
-              <option value="URGENT">Urgent</option>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="budgetBand">Estimated Budget Band (optional)</Label>
-            <Input
-              id="budgetBand"
-              value={form.budgetBand}
-              onChange={(e) => update("budgetBand", e.target.value)}
-              placeholder="e.g. ₹10,000 - ₹25,000"
             />
           </div>
         </WizardShell>

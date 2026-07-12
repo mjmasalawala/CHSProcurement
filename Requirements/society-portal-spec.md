@@ -75,10 +75,11 @@ Allow a housing society (via its Manager and 3 Office Bearers) to raise R&M/CapE
 | Category | Dropdown (shared taxonomy) | Yes |
 | Description | Text area | Yes |
 | Photos/attachments | File upload, multiple | Optional |
-| Estimated Budget Band | Dropdown or range | Optional |
-| Urgency | Dropdown (Routine / Urgent) | Yes |
-| Bid Submission Deadline | Date/time | Yes |
+| Bid Submission Deadline | Date/time, defaults to 2 days out | Yes |
 
+- **Urgency and Estimated Budget Band exist in the data model but aren't captured in the v1 creation form** (product decision, 2026-07-12) — may return to the GUI later; new requirements are created with `urgency: ROUTINE` and no budget band.
+- The wizard is 3 steps: Project Name → Category + Description → Bid Deadline.
+- Project Name can be edited inline from the requirement detail page afterwards, by anyone with `create_requirement`.
 - **Manager or any Office Bearer** (Chairman, Secretary, Treasurer — `create_requirement`; product decision 2026-07-12, originally Manager-only) can create a requirement. Bid comparison, recommendation, and below-threshold finalization remain Manager-only — creating a requirement doesn't grant those.
 - On submit, system runs the matching engine (category + city match against Active vendors) and invites a pool of vendors automatically. **Nobody can hand-pick which vendors get invited** — this is a deliberate fairness control, not a gap. (See architecture doc, Section 7.)
 
