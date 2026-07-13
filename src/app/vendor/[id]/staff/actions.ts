@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorActionPermission } from "@/lib/vendor-auth";
-import { createInvite } from "@/lib/invite";
+import { createInvite, resendInvite } from "@/lib/invite";
 import { revalidatePath } from "next/cache";
 
 export async function inviteStaff(
@@ -26,7 +26,7 @@ export async function inviteStaff(
   });
   if (existing) return { error: "This person is already staff (or has a pending invite)." };
 
-  await createInvite({
+  const { emailError } = await createInvite({
     email: trimmed,
     entityType: "VENDOR_COMPANY",
     entityId: vendorCompanyId,
@@ -34,6 +34,23 @@ export async function inviteStaff(
   });
 
   revalidatePath(`/vendor/${vendorCompanyId}/staff`);
+  if (emailError) {
+    return { error: "Invite created, but the email failed to send. Please contact support." };
+  }
+}
+
+export async function resendStaffInvite(
+  vendorCompanyId: string,
+  roleAssignmentId: string,
+): Promise<{ error: string } | undefined> {
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.MANAGE_STAFF);
+
+  const assignment = await prisma.roleAssignment.findFirst({
+    where: { id: roleAssignmentId, entityType: "VENDOR_COMPANY", entityId: vendorCompanyId, status: "PENDING" },
+  });
+  if (!assignment) return { error: "No pending invite to resend." };
+
+  return resendInvite(roleAssignmentId);
 }
 
 export async function setStaffActive(

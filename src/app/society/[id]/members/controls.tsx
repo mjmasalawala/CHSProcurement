@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { inviteMember, setMemberActive } from "./actions";
+import { inviteMember, setMemberActive, resendMemberInvite } from "./actions";
 import type { RoleName } from "@/generated/prisma/enums";
 
 const ROLE_OPTIONS: { value: RoleName; label: string }[] = [
@@ -64,6 +64,51 @@ export function InviteMemberForm({
         {submitting ? "Inviting…" : "Invite"}
       </Button>
     </form>
+  );
+}
+
+const RESEND_COOLDOWN_SECONDS = 60;
+
+export function ResendInviteButton({
+  societyId,
+  roleAssignmentId,
+}: {
+  societyId: string;
+  roleAssignmentId: string;
+}) {
+  const [pending, setPending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  return (
+    // Fixed width regardless of whether `error` is showing — that's what
+    // keeps the button from shifting left when the message appears. Normal
+    // (non-absolute) flow so the row grows to fit a wrapped error instead of
+    // the message hanging past the row's bottom border.
+    <div className="flex w-44 flex-col items-end gap-1">
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={pending || cooldown > 0}
+        onClick={async () => {
+          setPending(true);
+          setError(null);
+          const result = await resendMemberInvite(societyId, roleAssignmentId);
+          setPending(false);
+          if (result?.error) setError(result.error);
+          else setCooldown(RESEND_COOLDOWN_SECONDS);
+        }}
+      >
+        {pending ? "Sending…" : cooldown > 0 ? `Sent (${cooldown}s)` : "Resend Invite"}
+      </Button>
+      {error && <p className="text-right text-[12px] text-status-error">{error}</p>}
+    </div>
   );
 }
 

@@ -9,6 +9,22 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // once a sending domain is verified in Resend, to unlock real delivery.
 const FROM = process.env.RESEND_FROM_EMAIL ?? "ProSoc <onboarding@resend.dev>";
 
+/**
+ * The Resend SDK does NOT throw on API-level failures (invalid/unverified
+ * sending domain, bad recipient, etc.) — it resolves with { data, error }.
+ * Every call site in this file used to call resend.emails.send() directly
+ * and ignore that error field entirely, so a rejected send (e.g. the "from"
+ * domain failing verification) silently did nothing: no exception, no log,
+ * callers proceeded as if the email went out. Routing every send through
+ * here makes that failure loud instead of silent.
+ */
+async function sendEmail(params: { to: string | string[]; subject: string; text: string }) {
+  const { error } = await resend.emails.send({ from: FROM, ...params });
+  if (error) {
+    throw new Error(`Resend send failed (to: ${params.to}, subject: "${params.subject}"): ${error.message}`);
+  }
+}
+
 // Shared notification service (unified-platform-architecture.md Section 6,
 // M7) — one function per trigger event, each firing email + (where a phone
 // number is on record) SMS. Individual users (Managers/Office
@@ -26,8 +42,7 @@ export async function notifyNewRegistration(params: {
   const supportEmail = process.env.SUPPORT_EMAIL;
   if (!supportEmail) return;
 
-  await resend.emails.send({
-    from: FROM,
+  await sendEmail({
     to: supportEmail,
     subject: `New ${params.type} registration: ${params.name}`,
     text: `A new ${params.type} has registered on ProSoc and is pending verification.
@@ -49,8 +64,7 @@ export async function sendInvite(params: {
   url: string;
 }) {
   const forWhat = params.entityName ? ` for ${params.entityName}` : "";
-  await resend.emails.send({
-    from: FROM,
+  await sendEmail({
     to: params.email,
     subject: `You've been invited to ProSoc as ${params.role}`,
     text: `Hi,
@@ -65,8 +79,7 @@ This link expires in 7 days.`,
 
 // Same Resend sandbox caveat as sendInvite/notifyRejection.
 export async function sendPasswordReset(params: { email: string; url: string }) {
-  await resend.emails.send({
-    from: FROM,
+  await sendEmail({
     to: params.email,
     subject: "Reset your ProSoc password",
     text: `Hi,
@@ -88,8 +101,7 @@ export async function notifyApprovalRequested(params: {
 }) {
   await Promise.all(
     params.recipients.map((to) =>
-      resend.emails.send({
-        from: FROM,
+      sendEmail({
         to,
         subject: `Approval needed: ${params.societyName}`,
         text: `Hi,
@@ -111,8 +123,7 @@ export async function notifyFinalized(params: {
 }) {
   await Promise.all(
     params.recipients.map((to) =>
-      resend.emails.send({
-        from: FROM,
+      sendEmail({
         to,
         subject: `Quotation finalized: ${params.societyName}`,
         text: `Hi,
@@ -131,8 +142,7 @@ export async function notifyReturnedToManager(params: {
   requirementName: string;
   reviewUrl: string;
 }) {
-  await resend.emails.send({
-    from: FROM,
+  await sendEmail({
     to: params.managerEmail,
     subject: `Requirement sent back to you: ${params.societyName}`,
     text: `Hi,
@@ -154,8 +164,7 @@ export async function notifyBidOutcome(params: {
     : `Your bid for "${params.requirementName}" was not selected this time. Check My Bids / History on ProSoc for details.`;
 
   await Promise.all([
-    resend.emails.send({
-      from: FROM,
+    sendEmail({
       to: params.vendorEmail,
       subject: params.won ? "You were selected on ProSoc" : "Bid outcome on ProSoc",
       text: body,
@@ -174,8 +183,7 @@ export async function notifyThresholdChangeProposed(params: {
 }) {
   await Promise.all(
     params.recipients.map((to) =>
-      resend.emails.send({
-        from: FROM,
+      sendEmail({
         to,
         subject: `Threshold change proposed: ${params.societyName}`,
         text: `Hi,
@@ -196,8 +204,7 @@ export async function notifyThresholdChangeDecided(params: {
   approved: boolean;
   deciderName: string;
 }) {
-  await resend.emails.send({
-    from: FROM,
+  await sendEmail({
     to: params.proposerEmail,
     subject: `Threshold change ${params.approved ? "approved" : "rejected"}: ${params.societyName}`,
     text: `Hi,
@@ -223,8 +230,7 @@ export async function notifyRejection(params: {
   } If you believe this was a mistake or would like to re-apply with corrected details, please get in touch with ProSoc support.`;
 
   await Promise.all([
-    resend.emails.send({
-      from: FROM,
+    sendEmail({
       to: params.contactEmail,
       subject: `Your ${params.type} registration on ProSoc`,
       text: `Hi,
@@ -246,8 +252,7 @@ export async function notifyRegistrationSubmitted(params: {
   const body = `Your ${params.type} registration for "${params.name}" on ProSoc has been submitted and is pending verification. We'll notify you once it's reviewed.`;
 
   await Promise.all([
-    resend.emails.send({
-      from: FROM,
+    sendEmail({
       to: params.contactEmail,
       subject: `Your ${params.type} registration was submitted`,
       text: `Hi,
@@ -270,8 +275,7 @@ export async function notifyApproval(params: {
   const body = `Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.`;
 
   await Promise.all([
-    resend.emails.send({
-      from: FROM,
+    sendEmail({
       to: params.contactEmail,
       subject: `Your ${params.type} registration was approved`,
       text: `Hi,
@@ -295,8 +299,7 @@ export async function notifyRequirementMatched(params: {
   const body = `A new ${params.categoryName} requirement from ${params.societyName} matches your profile. Submit your bid: ${params.reviewUrl}`;
 
   await Promise.all([
-    resend.emails.send({
-      from: FROM,
+    sendEmail({
       to: params.vendorEmail,
       subject: `New requirement matched: ${params.categoryName}`,
       text: `Hi,
@@ -320,8 +323,7 @@ export async function notifyCategoryRequestDecided(params: {
     : `Your requested category "${params.categoryName}" was not approved.`;
 
   await Promise.all([
-    resend.emails.send({
-      from: FROM,
+    sendEmail({
       to: params.vendorEmail,
       subject: `Category request ${params.approved ? "approved" : "rejected"}: ${params.categoryName}`,
       text: `Hi,
@@ -343,8 +345,7 @@ export async function notifyDeadlineApproaching(params: {
 }) {
   await Promise.all(
     params.managerEmails.map((to) =>
-      resend.emails.send({
-        from: FROM,
+      sendEmail({
         to,
         subject: `Bid deadline approaching: ${params.societyName}`,
         text: `Hi,
@@ -367,8 +368,7 @@ export async function notifyBidsReadyForReview(params: {
 }) {
   await Promise.all(
     params.managerEmails.map((to) =>
-      resend.emails.send({
-        from: FROM,
+      sendEmail({
         to,
         subject: `Bids ready for review: ${params.societyName}`,
         text: `Hi,
@@ -393,8 +393,7 @@ export async function notifyBidDeadlineReminder(params: {
   const body = `The bid deadline for "${params.requirementName}" closes within 24 hours. Submit your bid: ${params.reviewUrl}`;
 
   await Promise.all([
-    resend.emails.send({
-      from: FROM,
+    sendEmail({
       to: params.vendorEmail,
       subject: "Bid deadline closing soon",
       text: `Hi,

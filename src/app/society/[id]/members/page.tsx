@@ -5,7 +5,7 @@ import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/socie
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
-import { InviteMemberForm, ToggleMemberButton } from "./controls";
+import { InviteMemberForm, ToggleMemberButton, ResendInviteButton } from "./controls";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +80,9 @@ export default async function SocietyMembersPage({
                 <p className="text-[13px] text-text-secondary">Invited — waiting for them to set a password</p>
               )}
               <Badge tone={statusTone(ra.status)}>{statusLabel(ra.status)}</Badge>
+              {ra.status === "PENDING" && (
+                <ResendInviteButton societyId={id} roleAssignmentId={ra.id} />
+              )}
               {ra.role !== "SECRETARY" && ra.status !== "PENDING" && (
                 <ToggleMemberButton societyId={id} roleAssignmentId={ra.id} active={ra.status === "ACTIVE"} />
               )}

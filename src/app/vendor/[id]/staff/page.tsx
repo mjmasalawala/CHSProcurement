@@ -4,7 +4,7 @@ import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
-import { InviteStaffForm, ToggleStaffButton } from "./controls";
+import { InviteStaffForm, ToggleStaffButton, ResendStaffInviteButton } from "./controls";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +51,9 @@ export default async function VendorStaffPage({
             </div>
             <div className="flex items-center gap-3">
               <Badge tone={statusTone(ra.status)}>{statusLabel(ra.status)}</Badge>
+              {ra.status === "PENDING" && (
+                <ResendStaffInviteButton vendorCompanyId={id} roleAssignmentId={ra.id} />
+              )}
               {ra.status !== "PENDING" && (
                 <ToggleStaffButton
                   vendorCompanyId={id}

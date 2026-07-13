@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
-import { createInvite } from "@/lib/invite";
+import { createInvite, resendInvite } from "@/lib/invite";
 import { revalidatePath } from "next/cache";
 import type { RoleName } from "@/generated/prisma/enums";
 
@@ -51,9 +51,26 @@ export async function inviteMember(
   });
   if (existing) return { error: "This person already has this role (or a pending invite)." };
 
-  await createInvite({ email: trimmed, entityType: "SOCIETY", entityId: societyId, role });
+  const { emailError } = await createInvite({ email: trimmed, entityType: "SOCIETY", entityId: societyId, role });
 
   revalidatePath(`/society/${societyId}/members`);
+  if (emailError) {
+    return { error: "Invite created, but the email failed to send. Please contact support." };
+  }
+}
+
+export async function resendMemberInvite(
+  societyId: string,
+  roleAssignmentId: string,
+): Promise<{ error: string } | undefined> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.MANAGE_USERS);
+
+  const assignment = await prisma.roleAssignment.findFirst({
+    where: { id: roleAssignmentId, entityType: "SOCIETY", entityId: societyId, status: "PENDING" },
+  });
+  if (!assignment) return { error: "No pending invite to resend." };
+
+  return resendInvite(roleAssignmentId);
 }
 
 export async function setMemberActive(
