@@ -3,9 +3,11 @@ import { sendSms } from "@/lib/sms";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Resend's sandbox sender works without domain verification but can only
-// deliver to the account owner's own verified address (SUPPORT_EMAIL).
-const FROM = "ProSoc <onboarding@resend.dev>";
+// Falls back to Resend's shared sandbox sender, which only delivers to the
+// account owner's own verified address (SUPPORT_EMAIL) — set RESEND_FROM_EMAIL
+// to a verified-domain address (e.g. "ProSoc <notifications@yourdomain.com>")
+// once a sending domain is verified in Resend, to unlock real delivery.
+const FROM = process.env.RESEND_FROM_EMAIL ?? "ProSoc <onboarding@resend.dev>";
 
 // Shared notification service (unified-platform-architecture.md Section 6,
 // M7) — one function per trigger event, each firing email + (where a phone
@@ -155,7 +157,7 @@ export async function notifyBidOutcome(params: {
     resend.emails.send({
       from: FROM,
       to: params.vendorEmail,
-      subject: params.won ? "You won a bid on ProSoc" : "Bid outcome on ProSoc",
+      subject: params.won ? "You were selected on ProSoc" : "Bid outcome on ProSoc",
       text: body,
     }),
     sendSms({ to: params.vendorPhone, body }),

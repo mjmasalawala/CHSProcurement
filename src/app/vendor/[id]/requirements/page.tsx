@@ -12,7 +12,7 @@ function statusFor(
 ): { label: string; tone: BadgeTone } {
   const closed = deadline.getTime() <= Date.now();
   if (!bidStatus) return closed ? { label: "Not Selected", tone: "neutral" } : { label: "New", tone: "info" };
-  if (bidStatus === "WON") return { label: "Won", tone: "success" };
+  if (bidStatus === "WON") return { label: "Selected", tone: "success" };
   if (bidStatus === "NOT_SELECTED") return { label: "Not Selected", tone: "neutral" };
   return { label: "Bid Submitted", tone: "info" };
 }

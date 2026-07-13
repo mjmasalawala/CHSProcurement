@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 const TABS: { value: BidStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
   { value: "SUBMITTED", label: "Submitted" },
-  { value: "WON", label: "Won" },
+  { value: "WON", label: "Selected" },
   { value: "NOT_SELECTED", label: "Not Selected" },
 ];
 
