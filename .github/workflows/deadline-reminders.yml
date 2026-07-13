@@ -1,0 +1,21 @@
+name: Deadline reminders cron
+
+# Vercel Hobby plan only allows once-daily cron jobs, but this route needs to
+# run hourly (society-portal-spec.md / vendor-registration-portal-spec.md
+# Section 9 — 24h-before-deadline reminders). GitHub Actions' scheduler is
+# free and unrestricted, so it triggers the route over HTTP instead of
+# vercel.json's crons array.
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call deadline-reminders route
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.DEPLOYMENT_URL }}/api/cron/deadline-reminders"

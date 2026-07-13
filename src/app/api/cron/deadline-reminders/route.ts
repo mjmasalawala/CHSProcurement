@@ -11,7 +11,9 @@ import {
  * (society-portal-spec.md / vendor-registration-portal-spec.md Section 9):
  * "bid deadline approaching" (to the Manager, 24h before close) and "bid
  * deadline reminder" (to vendors who haven't bid yet), plus "bids ready for
- * review" once the deadline has passed. Scheduled hourly via vercel.json.
+ * review" once the deadline has passed. Scheduled hourly via a GitHub
+ * Actions workflow (.github/workflows/deadline-reminders.yml) rather than
+ * Vercel's own crons — Vercel's Hobby plan only allows once-daily cron jobs.
  * Each requirement gets each notification exactly once, tracked by
  * deadlineReminderSentAt / deadlineClosedNotifiedAt.
  */
