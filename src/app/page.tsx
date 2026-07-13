@@ -7,9 +7,9 @@ import { Card } from "@/components/ui/card";
 const HOW_IT_WORKS = [
   { title: "Raise a requirement", body: "A Manager describes the work — category, description, deadline." },
   { title: "System matches vendors", body: "Eligible Active vendors in the right category and city are invited automatically." },
-  { title: "Vendors bid blind", body: "Structured quotations, submitted without seeing competitors' bids." },
+  { title: "Vendors quote blind", body: "Structured quotations, submitted without seeing competitors' quotes." },
   { title: "Office Bearers approve", body: "The Manager recommends; Chairman, Secretary and Treasurer co-approve." },
-  { title: "Fully archived", body: "Every requirement, every bid, every approval — searchable, permanently." },
+  { title: "Fully archived", body: "Every requirement, every quote, every approval — searchable, permanently." },
 ];
 
 export default async function Home() {
@@ -25,7 +25,7 @@ export default async function Home() {
           </h1>
           <p className="max-w-xl text-[15px] text-text-secondary">
             ProSoc replaces the informal &quot;get three quotes&quot; process with a matched vendor
-            pool, blind bidding, and a co-approval workflow — with a full, searchable record of
+            pool, blind quoting, and a co-approval workflow — with a full, searchable record of
             every transaction.
           </p>
           <Link href="/register/society">

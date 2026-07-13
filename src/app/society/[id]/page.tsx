@@ -20,7 +20,7 @@ export default async function SocietyDashboardPage({
   const canRecommendBid = assignment.permissions.includes(PERMISSIONS.RECOMMEND_BID);
   const isOfficeBearer = assignment.permissions.includes(PERMISSIONS.APPROVE_REJECT_QUOTATION);
 
-  const [openRequirements, awaitingReview, pendingVotes, pendingThreshold] = await Promise.all([
+  const [openRequirements, awaitingReview, pendingVotes, pendingThreshold, pendingRemovals] = await Promise.all([
     canCreateRequirement
       ? prisma.requirement.count({ where: { societyId: id, bidDeadline: { gt: new Date() } } })
       : Promise.resolve(null),
@@ -50,9 +50,19 @@ export default async function SocietyDashboardPage({
           },
         })
       : Promise.resolve(null),
+    isOfficeBearer && session
+      ? prisma.proposedChange.findMany({
+          where: {
+            societyId: id,
+            field: "remove_member",
+            status: "PENDING",
+            proposedByUserId: { not: session.user.id },
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
-  const hasPendingTasks = pendingVotes.length > 0 || !!pendingThreshold;
+  const hasPendingTasks = pendingVotes.length > 0 || !!pendingThreshold || pendingRemovals.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -70,6 +80,13 @@ export default async function SocietyDashboardPage({
               </Card>
             </Link>
           )}
+          {pendingRemovals.map((pc) => (
+            <Link key={pc.id} href={`/society/${id}/members`}>
+              <Card className="border-status-warning-border bg-status-warning-bg">
+                <p className="text-[13px] text-text-secondary">Member removal proposed — {pc.newValue}</p>
+              </Card>
+            </Link>
+          ))}
           {pendingVotes.map((r) => (
             <Link key={r.id} href={`/society/${id}/requirements/${r.id}`}>
               <Card className="border-status-warning-border bg-status-warning-bg">

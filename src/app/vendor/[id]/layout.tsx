@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { suffix: "", label: "Dashboard", permission: null },
   { suffix: "/profile", label: "Profile", permission: PERMISSIONS.EDIT_COMPANY_PROFILE },
   { suffix: "/requirements", label: "Requirements", permission: PERMISSIONS.VIEW_REQUIREMENTS_INBOX },
-  { suffix: "/bids", label: "My Bids", permission: PERMISSIONS.VIEW_OWN_BIDS },
+  { suffix: "/bids", label: "My Quotes", permission: PERMISSIONS.VIEW_OWN_BIDS },
   { suffix: "/staff", label: "Staff", permission: PERMISSIONS.MANAGE_STAFF },
 ] as const;
 

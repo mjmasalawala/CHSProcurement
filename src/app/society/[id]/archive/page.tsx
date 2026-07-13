@@ -41,7 +41,7 @@ export default async function SocietyArchivePage({
   const { category, status, vendor, from, to } = await searchParams;
 
   const where: Prisma.RequirementWhereInput = { societyId: id };
-  if (category) where.categoryId = category;
+  if (category) where.categories = { some: { id: category } };
   if (status) where.status = status as RequirementStatus;
   if (vendor) where.bids = { some: { vendorCompany: { name: { contains: vendor, mode: "insensitive" } } } };
   if (from || to) {
@@ -55,7 +55,7 @@ export default async function SocietyArchivePage({
     prisma.requirement.findMany({
       where,
       include: {
-        category: true,
+        categories: true,
         _count: { select: { bids: true, quotationApprovals: true } },
         workOrder: { select: { workOrderNumber: true, vendorNameSnapshot: true } },
       },
@@ -74,7 +74,7 @@ export default async function SocietyArchivePage({
     <div className="flex flex-col gap-6">
       <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Archive</h1>
       <p className="text-[13px] text-text-secondary">
-        Every requirement and bid ever raised for this society, plus the full approval trail — nothing is
+        Every requirement and quote ever raised for this society, plus the full approval trail — nothing is
         deleted from this view.
       </p>
 
@@ -115,10 +115,10 @@ export default async function SocietyArchivePage({
               <div>
                 <p className="text-[15px] font-semibold text-text-primary">{req.name}</p>
                 <p className="text-[13px] text-text-secondary">
-                  {req.category.name} · {req.description.slice(0, 80)}
+                  {req.categories.map((c) => c.name).join(", ")} · {req.description.slice(0, 80)}
                 </p>
                 <p className="text-[13px] text-text-tertiary">
-                  {req._count.bids} bids · {req.createdAt.toLocaleDateString()}
+                  {req._count.bids} quotes · {req.createdAt.toLocaleDateString()}
                   {req.workOrder && ` · ${req.workOrder.workOrderNumber} awarded to ${req.workOrder.vendorNameSnapshot}`}
                 </p>
               </div>

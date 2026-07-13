@@ -27,7 +27,7 @@ export default async function RequirementDetailPage({
     include: {
       requirement: {
         include: {
-          category: true,
+          categories: true,
           society: { select: { name: true, address: true } },
           bids: { where: { vendorCompanyId: id }, include: { lineItems: true, workOrder: { select: { id: true } } } },
         },
@@ -54,7 +54,7 @@ export default async function RequirementDetailPage({
         <h1 className="text-[28px] font-bold tracking-tight text-text-primary">
           {requirement.name} — {requirement.society.name}
         </h1>
-        <p className="text-[13px] text-text-secondary">{requirement.category.name}</p>
+        <p className="text-[13px] text-text-secondary">{requirement.categories.map((c) => c.name).join(", ")}</p>
         <p className="text-[13px] text-text-tertiary">
           ID: {requirement.id} · Raised {requirement.createdAt.toLocaleDateString()}
         </p>
@@ -64,7 +64,7 @@ export default async function RequirementDetailPage({
         <p className="text-[15px] text-text-primary">{requirement.description}</p>
         <p className="text-[13px] text-text-secondary">Location: {requirement.society.address}</p>
         <p className="text-[13px] font-medium text-text-primary">
-          Bid deadline: {requirement.bidDeadline.toLocaleString()} {closed && "(closed)"}
+          Quote deadline: {requirement.bidDeadline.toLocaleString()} {closed && "(closed)"}
         </p>
       </Card>
 
@@ -73,7 +73,7 @@ export default async function RequirementDetailPage({
           <Card className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <p className="text-[15px] font-semibold text-text-primary">
-                Your bid: ₹{myBid.totalAmount.toString()}
+                Your quote: ₹{myBid.totalAmount.toString()}
               </p>
               <Badge tone={statusTone(myBid.status)}>{statusLabel(myBid.status)}</Badge>
             </div>
@@ -89,7 +89,7 @@ export default async function RequirementDetailPage({
             )}
           </Card>
         ) : (
-          <p className="text-[13px] text-text-secondary">Bidding closed — you did not submit a bid.</p>
+          <p className="text-[13px] text-text-secondary">Quote submission closed — you did not submit a quote.</p>
         )
       ) : (
         <BidForm

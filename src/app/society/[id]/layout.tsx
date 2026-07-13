@@ -5,11 +5,19 @@ import { requireSocietyAssignment } from "@/lib/society-auth";
 import { WorkspaceNav } from "@/components/ui/workspace-nav";
 
 const NAV_ITEMS = [
-  { suffix: "", label: "Dashboard", permission: null },
-  { suffix: "/requirements", label: "Requirements", permission: PERMISSIONS.CREATE_REQUIREMENT },
-  { suffix: "/archive", label: "Archive", permission: PERMISSIONS.VIEW_ARCHIVE },
-  { suffix: "/members", label: "Members", permission: PERMISSIONS.MANAGE_USERS },
-  { suffix: "/settings", label: "Settings", permission: null },
+  { suffix: "", label: "Dashboard", permissions: [] },
+  { suffix: "/requirements", label: "Requirements", permissions: [PERMISSIONS.CREATE_REQUIREMENT] },
+  { suffix: "/archive", label: "Archive", permissions: [PERMISSIONS.VIEW_ARCHIVE] },
+  // Reachable by MANAGE_USERS (Secretary's invite/deactivate) OR either
+  // member-removal permission (any Office Bearer's propose/decide) — see
+  // members/page.tsx, which checks each independently for the specific
+  // actions it unlocks.
+  {
+    suffix: "/members",
+    label: "Members",
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.PROPOSE_MEMBER_REMOVAL, PERMISSIONS.APPROVE_MEMBER_REMOVAL],
+  },
+  { suffix: "/settings", label: "Settings", permissions: [] },
 ] as const;
 
 export default async function SocietyLayout({
@@ -26,7 +34,7 @@ export default async function SocietyLayout({
 
   const assignment = await requireSocietyAssignment(id, `/society/${id}`);
   const visibleNav = NAV_ITEMS.filter(
-    (item) => !item.permission || assignment.permissions.includes(item.permission),
+    (item) => item.permissions.length === 0 || item.permissions.some((p) => assignment.permissions.includes(p)),
   );
   const navItems = visibleNav.map((item) => ({ href: `/society/${id}${item.suffix}`, label: item.label }));
 

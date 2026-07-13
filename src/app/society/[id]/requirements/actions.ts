@@ -10,7 +10,7 @@ import { notifyRequirementMatched } from "@/lib/notifications";
 import { revalidatePath } from "next/cache";
 
 export interface RequirementCreationInput {
-  categoryId: string;
+  categoryIds: string[];
   name: string;
   description: string;
   bidDeadline: string;
@@ -36,8 +36,13 @@ export async function createRequirement(
     };
   }
 
-  if (!input.categoryId || !input.name.trim() || !input.description.trim() || !input.bidDeadline) {
-    return { error: "Project name, category, description, and deadline are required." };
+  if (
+    !input.categoryIds.length ||
+    !input.name.trim() ||
+    !input.description.trim() ||
+    !input.bidDeadline
+  ) {
+    return { error: "Project name, at least one category, description, and deadline are required." };
   }
 
   const bidDeadline = new Date(input.bidDeadline);
@@ -53,7 +58,7 @@ export async function createRequirement(
   const requirement = await prisma.requirement.create({
     data: {
       societyId,
-      categoryId: input.categoryId,
+      categories: { connect: input.categoryIds.map((id) => ({ id })) },
       name: input.name.trim(),
       description: input.description.trim(),
       // Not captured in the v1 creation form (product decision) — schema
@@ -61,22 +66,25 @@ export async function createRequirement(
       urgency: "ROUTINE",
       bidDeadline,
     },
-    include: { category: true },
+    include: { categories: true },
   });
 
-  const matched = await matchVendors(input.categoryId, society.cityId);
+  // ANY-match: a vendor is invited if they service at least one of the
+  // requirement's categories, not necessarily all of them (lib/matching.ts).
+  const matched = await matchVendors(input.categoryIds, society.cityId);
   if (matched.length > 0) {
     await prisma.requirementInvite.createMany({
       data: matched.map((v) => ({ requirementId: requirement.id, vendorCompanyId: v.id })),
     });
 
     const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const categoryNames = requirement.categories.map((c) => c.name).join(", ");
     await Promise.all(
       matched.map((v) =>
         notifyRequirementMatched({
           vendorEmail: v.ownerEmail,
           vendorPhone: v.ownerPhone,
-          categoryName: requirement.category.name,
+          categoryName: categoryNames,
           societyName: society.name,
           reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
         }),

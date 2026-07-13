@@ -72,16 +72,17 @@ Allow a housing society (via its Manager and 3 Office Bearers) to raise R&M/CapE
 | Field | Type | Required? |
 |---|---|---|
 | Project Name | Text | Yes |
-| Category | Dropdown (shared taxonomy) | Yes |
+| Categories | Multi-select checkboxes (shared taxonomy) | Yes, at least one |
 | Description | Text area | Yes |
 | Photos/attachments | File upload, multiple | Optional |
-| Bid Submission Deadline | Date/time, defaults to 2 days out | Yes |
+| Quote Submission Deadline | Date/time, defaults to 2 days out | Yes |
 
 - **Urgency and Estimated Budget Band exist in the data model but aren't captured in the v1 creation form** (product decision, 2026-07-12) — may return to the GUI later; new requirements are created with `urgency: ROUTINE` and no budget band.
-- The wizard is 3 steps: Project Name → Category + Description → Bid Deadline.
+- The wizard is 3 steps: Project Name → Categories + Description → Quote Deadline.
 - Project Name can be edited inline from the requirement detail page afterwards, by anyone with `create_requirement`.
 - **Manager or any Office Bearer** (Chairman, Secretary, Treasurer — `create_requirement`; product decision 2026-07-12, originally Manager-only) can create a requirement. Bid comparison, recommendation, and below-threshold finalization remain Manager-only — creating a requirement doesn't grant those.
-- On submit, system runs the matching engine (category + city match against Active vendors) and invites a pool of vendors automatically. **Nobody can hand-pick which vendors get invited** — this is a deliberate fairness control, not a gap. (See architecture doc, Section 7.)
+- **A requirement can span more than one category** (product decision, 2026-07-13) — e.g. a job needing both waterproofing and painting. `Requirement.categories` is many-to-many. On submit, the matching engine runs an **ANY-match**: a vendor is invited if they service at least one of the listed categories, not necessarily all — so a painting-only vendor still gets invited to a waterproofing+painting job. **Nobody can hand-pick which vendors get invited** — this is a deliberate fairness control, not a gap. (See architecture doc, Section 7.)
+- The v1 form is a manual multi-select — an AI-assisted category suggestion (describe the project, categories suggested from the fixed taxonomy, Manager can add/remove) is a candidate follow-up, building on this same multi-category foundation; see `voice-to-job-ai-spec.md` for the related voice-note roadmap item.
 
 ---
 
@@ -108,6 +109,18 @@ Allow a housing society (via its Manager and 3 Office Bearers) to raise R&M/CapE
 - Logged: old value, new value, proposer, approver, timestamp.
 
 **Dev note:** Build this as a generic "proposed change requires co-approval" mechanism rather than a one-off for the threshold field — you'll likely want the same pattern for other sensitive society settings later.
+
+### 7.2 Member removal (co-approval pattern, product decision 2026-07-13)
+
+- Any Office Bearer with `propose_member_removal` (Chairman, Secretary, or Treasurer — all 3 OB roles) can propose removing any active society member — Manager, Chairman, Secretary, or Treasurer, including themselves.
+- Requires **one additional Office Bearer with `approve_member_removal`** to take effect — same 1-proposer + 1-different-approver pattern as the threshold change (Section 7.1), reusing the same generic co-approval mechanism. `approve_member_removal` is its own permission, not a reuse of `approve_reject_quotation` — even though today's grant is identical (all 3 OB roles), keeping it separate means changing who can approve quotations doesn't silently change who can approve removing a member, and vice versa.
+- On approval: the member's Role Assignment for this society is deleted — they immediately lose access to this workspace. Their ProSoc account (login, email, password) is **not** deleted — if they hold role assignments at other Societies/Vendor Companies, those are untouched; if this was their only assignment, they'll see a "no workspace access" screen if they try to log in. They're notified by email that they've been removed.
+- Logged: who was removed, proposer, approver, timestamp (same audit-trail pattern as the threshold history).
+
+### 7.3 Inviting an email that already has a ProSoc account
+
+- If the email being invited (Members page, Vendor Staff page, or Secretary activation on society approval) already belongs to an account with real login credentials (not just an unaccepted invite stub), the invite/accept-token flow is skipped entirely: the Role Assignment activates immediately, and the person is emailed a notice ("you've been added as X") with a plain login link — they don't set up a password again, since they already have one.
+- A brand-new email (or one that was invited elsewhere but never accepted) still goes through the normal PENDING → `/invite/[token]` → set password → ACTIVE flow (Section 3, landing-page-and-auth-flow-spec.md Section 4).
 
 ---
 
@@ -163,9 +176,12 @@ Trigger events:
 | Recommend a winning bid | `manager` role | ✅ | ❌ | ❌ | ❌ |
 | Finalize below-threshold selection | `manager` role | ✅ | ❌ | ❌ | ❌ |
 | Approve/Reject Quotation (at/above threshold) | base OB role | ❌ | ✅ | ✅ | ✅ |
-| Manage Users tab (invite/remove/reassign roles) | `manage_users` | ❌ | ❌ | ✅ (default) | ❌ |
+| Members page (view) | `manage_users` OR `propose_member_removal` OR `approve_member_removal` (any one) | ❌ | ✅ | ✅ | ✅ |
+| Invite a member / Deactivate-Reactivate | `manage_users` | ❌ | ❌ | ✅ (default) | ❌ |
 | Propose Threshold Change | `propose_threshold_change` | ❌ | ✅ | ✅ | ✅ |
 | Approve Threshold Change | base OB role, excluding proposer | ❌ | ✅ (if not proposer) | ✅ (if not proposer) | ✅ (if not proposer) |
+| Propose Member Removal (any role, incl. Secretary) | `propose_member_removal` | ❌ | ✅ | ✅ | ✅ |
+| Approve Member Removal | `approve_member_removal`, excluding proposer | ❌ | ✅ (if not proposer) | ✅ (if not proposer) | ✅ (if not proposer) |
 | Requirement/Bid Archive (view) | base role, any assignment | ✅ | ✅ | ✅ | ✅ |
 
 **Note:** Manager cannot approve or reject quotations — that's deliberately restricted to the 3 Office Bearers, keeping the person who *recommends* separate from the people who *approve*, which is the actual fairness control here (not just the 3-quote count). See `unified-platform-architecture.md` Section 8 for the platform-wide gating pattern.

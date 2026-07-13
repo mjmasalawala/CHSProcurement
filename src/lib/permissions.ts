@@ -23,6 +23,8 @@ export const PERMISSIONS = {
   APPROVE_REJECT_QUOTATION: "approve_reject_quotation",
   MANAGE_USERS: "manage_users",
   PROPOSE_THRESHOLD_CHANGE: "propose_threshold_change",
+  PROPOSE_MEMBER_REMOVAL: "propose_member_removal",
+  APPROVE_MEMBER_REMOVAL: "approve_member_removal",
   VIEW_ARCHIVE: "view_archive",
 
   // Admin module
@@ -57,6 +59,15 @@ export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
  * Treasurer) also hold create_requirement, not just Manager — deviates from
  * the original spec draft (society-portal-spec.md Section 5), which is
  * updated to match.
+ *
+ * Product decision, 2026-07-13: all 3 Office Bearer roles hold
+ * propose_member_removal and approve_member_removal too (member removal —
+ * society-portal-spec.md Section 7.2 — reuses the same "propose + different
+ * OB approves" co-approval pattern as the threshold). Deliberately its own
+ * permission pair rather than reusing APPROVE_REJECT_QUOTATION — even though
+ * today's grant is identical (all 3 OB roles), collapsing "approve a
+ * quotation" and "approve removing a member" onto the same flag means a
+ * future change to one silently changes the other.
  */
 export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
   [RoleName.VENDOR_OWNER]: [
@@ -82,6 +93,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
   [RoleName.CHAIRMAN]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
     PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.PROPOSE_MEMBER_REMOVAL,
+    PERMISSIONS.APPROVE_MEMBER_REMOVAL,
     PERMISSIONS.CREATE_REQUIREMENT,
     PERMISSIONS.VIEW_ARCHIVE,
   ],
@@ -89,12 +102,16 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
     PERMISSIONS.MANAGE_USERS,
     PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.PROPOSE_MEMBER_REMOVAL,
+    PERMISSIONS.APPROVE_MEMBER_REMOVAL,
     PERMISSIONS.CREATE_REQUIREMENT,
     PERMISSIONS.VIEW_ARCHIVE,
   ],
   [RoleName.TREASURER]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
     PERMISSIONS.PROPOSE_THRESHOLD_CHANGE,
+    PERMISSIONS.PROPOSE_MEMBER_REMOVAL,
+    PERMISSIONS.APPROVE_MEMBER_REMOVAL,
     PERMISSIONS.CREATE_REQUIREMENT,
     PERMISSIONS.VIEW_ARCHIVE,
   ],

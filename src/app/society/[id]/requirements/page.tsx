@@ -33,7 +33,7 @@ export default async function SocietyRequirementsPage({
   const requirements = await prisma.requirement.findMany({
     where: { societyId: id },
     include: {
-      category: true,
+      categories: true,
       _count: { select: { invites: true, bids: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -63,10 +63,10 @@ export default async function SocietyRequirementsPage({
                 <div>
                   <p className="text-[15px] font-semibold text-text-primary">{req.name}</p>
                   <p className="text-[13px] text-text-secondary">
-                    {req.category.name} · {req.description.slice(0, 80)}
+                    {req.categories.map((c) => c.name).join(", ")} · {req.description.slice(0, 80)}
                   </p>
                   <p className="text-[13px] text-text-tertiary">
-                    {req._count.invites} vendors invited · {req._count.bids} bids · deadline{" "}
+                    {req._count.invites} vendors invited · {req._count.bids} quotes · deadline{" "}
                     {req.bidDeadline.toLocaleString()}
                   </p>
                 </div>

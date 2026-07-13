@@ -14,7 +14,7 @@ function statusFor(
   if (!bidStatus) return closed ? { label: "Not Selected", tone: "neutral" } : { label: "New", tone: "info" };
   if (bidStatus === "WON") return { label: "Selected", tone: "success" };
   if (bidStatus === "NOT_SELECTED") return { label: "Not Selected", tone: "neutral" };
-  return { label: "Bid Submitted", tone: "info" };
+  return { label: "Quote Submitted", tone: "info" };
 }
 
 export default async function VendorRequirementsPage({
@@ -30,7 +30,7 @@ export default async function VendorRequirementsPage({
     include: {
       requirement: {
         include: {
-          category: true,
+          categories: true,
           society: { select: { name: true } },
           bids: { where: { vendorCompanyId: id }, select: { status: true } },
         },
@@ -46,7 +46,7 @@ export default async function VendorRequirementsPage({
       {invites.length === 0 ? (
         <p className="text-[13px] text-text-secondary">
           No requirements yet — you&apos;ll see requirements here once ProSoc&apos;s matching engine invites
-          you to bid.
+          you to quote.
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -63,7 +63,7 @@ export default async function VendorRequirementsPage({
                     {req.name} — {req.society.name}
                   </p>
                   <p className="text-[13px] text-text-secondary">
-                    {req.category.name} · {req.description.slice(0, 80)}
+                    {req.categories.map((c) => c.name).join(", ")} · {req.description.slice(0, 80)}
                   </p>
                   <p className="text-[13px] text-text-tertiary">
                     Deadline: {req.bidDeadline.toLocaleString()}

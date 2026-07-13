@@ -69,14 +69,14 @@ export default async function VendorStaffPage({
       <div>
         <h2 className="mb-2 text-[18px] font-semibold text-text-primary">Staff activity log</h2>
         {bids.length === 0 ? (
-          <p className="text-[13px] text-text-secondary">No bids submitted yet.</p>
+          <p className="text-[13px] text-text-secondary">No quotes submitted yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {bids.map((bid) => (
               <div key={bid.id} className="rounded-lg border border-border-subtle bg-background-primary p-3 shadow-xs">
                 <p className="text-[13px] text-text-primary">
                   <span className="font-semibold">{bid.submittedByUser.name ?? bid.submittedByUser.email}</span>{" "}
-                  submitted a bid on &ldquo;{bid.requirement.name}&rdquo;
+                  submitted a quote on &ldquo;{bid.requirement.name}&rdquo;
                 </p>
                 <p className="text-[13px] text-text-tertiary">
                   {bid.createdAt.toLocaleString()} · ₹{bid.totalAmount.toString()}

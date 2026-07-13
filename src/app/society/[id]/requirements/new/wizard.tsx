@@ -4,7 +4,7 @@ import { useState } from "react";
 import { WizardShell } from "@/components/ui/wizard-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { CheckboxGroup } from "@/components/ui/checkbox-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { createRequirement, type RequirementCreationInput } from "../actions";
@@ -30,7 +30,7 @@ export function RequirementWizard({ societyId, categories }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<RequirementCreationInput>({
-    categoryId: "",
+    categoryIds: [],
     name: "",
     description: "",
     bidDeadline: defaultBidDeadline(),
@@ -42,7 +42,7 @@ export function RequirementWizard({ societyId, categories }: Props) {
 
   const canProceed = {
     1: !!form.name,
-    2: !!(form.categoryId && form.description),
+    2: form.categoryIds.length > 0 && !!form.description,
     3: !!form.bidDeadline,
   }[step];
 
@@ -88,19 +88,15 @@ export function RequirementWizard({ societyId, categories }: Props) {
           nextDisabled={!canProceed}
         >
           <div>
-            <Label htmlFor="categoryId">Category</Label>
-            <Select
-              id="categoryId"
-              value={form.categoryId}
-              onChange={(e) => update("categoryId", e.target.value)}
-            >
-              <option value="">Select one</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
+            <Label htmlFor="categoryIds">Categories</Label>
+            <CheckboxGroup
+              options={categories.map((c) => ({ id: c.id, label: c.name }))}
+              selected={form.categoryIds}
+              onChange={(ids) => update("categoryIds", ids)}
+            />
+            <p className="mt-1 text-[13px] text-text-secondary">
+              Select every trade this project needs — vendors are matched if they service any one of them.
+            </p>
           </div>
           <div>
             <Label htmlFor="description">Description</Label>
@@ -118,11 +114,11 @@ export function RequirementWizard({ societyId, categories }: Props) {
         <WizardShell
           step={3}
           totalSteps={TOTAL_STEPS}
-          title="Bid submission deadline"
+          title="Quote submission deadline"
           onBack={() => setStep(2)}
         >
           <div>
-            <Label htmlFor="bidDeadline">Vendors must bid before</Label>
+            <Label htmlFor="bidDeadline">Vendors must submit quotes before</Label>
             <Input
               id="bidDeadline"
               type="datetime-local"
@@ -130,8 +126,8 @@ export function RequirementWizard({ societyId, categories }: Props) {
               onChange={(e) => update("bidDeadline", e.target.value)}
             />
             <p className="mt-1 text-[13px] text-text-secondary">
-              Submitting invites the matched vendor pool automatically — you can&apos;t hand-pick who&apos;s
-              invited.
+              Vendors will be matched with you automatically. They will need to submit their quotes by the
+              submission deadline.
             </p>
           </div>
           {error && <p className="text-[13px] text-status-error">{error}</p>}

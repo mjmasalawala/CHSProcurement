@@ -61,7 +61,7 @@ export default async function VendorDashboardPage({
         {submittedBids !== null && (
           <Link href={`/vendor/${id}/bids`}>
             <Card className="transition-shadow hover:shadow-md">
-              <p className="text-[13px] font-medium text-text-secondary">Bids submitted</p>
+              <p className="text-[13px] font-medium text-text-secondary">Quotes submitted</p>
               <p className="text-[32px] font-bold tracking-tight text-text-primary">{submittedBids}</p>
             </Card>
           </Link>

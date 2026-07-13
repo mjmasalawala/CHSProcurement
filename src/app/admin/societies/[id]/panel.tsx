@@ -22,8 +22,8 @@ export function ApproveRejectPanel({ societyId, status }: { societyId: string; s
       <Card className="flex flex-col gap-2">
         <p className="text-[15px] font-medium text-text-primary">Approved.</p>
         <p className="text-[13px] text-text-secondary">
-          An activation link has been emailed to the Secretary. Backup copy, in case it doesn&apos;t
-          land:
+          A link to access ProSoc has been emailed to the Secretary (an activation link if they&apos;re new, or a
+          login link if they already have an account). Backup copy, in case it doesn&apos;t land:
         </p>
         <p className="break-all rounded-md bg-background-secondary p-2 text-[13px] text-text-primary">
           {inviteUrl}

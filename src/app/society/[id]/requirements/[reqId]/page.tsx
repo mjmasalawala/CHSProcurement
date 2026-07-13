@@ -32,7 +32,7 @@ export default async function SocietyRequirementDetailPage({
   const requirement = await prisma.requirement.findUnique({
     where: { id: reqId },
     include: {
-      category: true,
+      categories: true,
       invites: { include: { vendorCompany: { select: { name: true } } } },
       bids: {
         include: { vendorCompany: { select: { name: true } }, lineItems: true },
@@ -82,7 +82,7 @@ export default async function SocietyRequirementDetailPage({
           />
           <Badge tone={statusTone(requirement.status)}>{statusLabel(requirement.status)}</Badge>
         </div>
-        <p className="text-[13px] text-text-secondary">{requirement.category.name}</p>
+        <p className="text-[13px] text-text-secondary">{requirement.categories.map((c) => c.name).join(", ")}</p>
         <p className="text-[13px] text-text-tertiary">
           ID: {requirement.id} · Raised {requirement.createdAt.toLocaleDateString()}
         </p>
@@ -91,7 +91,7 @@ export default async function SocietyRequirementDetailPage({
       <Card className="flex flex-col gap-2">
         <p className="text-[15px] text-text-primary">{requirement.description}</p>
         <p className="text-[13px] font-medium text-text-primary">
-          Bid deadline: {requirement.bidDeadline.toLocaleString()} {closed && "(closed)"}
+          Quote deadline: {requirement.bidDeadline.toLocaleString()} {closed && "(closed)"}
         </p>
         <p className="text-[13px] text-text-secondary">
           {requirement.invites.length} vendors matched and invited:{" "}
@@ -103,7 +103,7 @@ export default async function SocietyRequirementDetailPage({
         <Card className="border-status-warning-border bg-status-warning-bg">
           <p className="text-[15px] font-semibold text-text-primary">Sent back to you</p>
           <p className="mt-1 text-[13px] text-text-secondary">
-            2 of 3 Office Bearers rejected the previous recommendation. Pick a bid to recommend again below.
+            2 of 3 Office Bearers rejected the previous recommendation. Pick a quote to recommend again below.
           </p>
         </Card>
       )}
@@ -139,10 +139,10 @@ export default async function SocietyRequirementDetailPage({
 
       {!closed ? (
         <p className="text-[13px] text-text-secondary">
-          Bids stay blind until the deadline — check back once it closes to compare.
+          Quotes stay blind until the deadline — check back once it closes to compare.
         </p>
       ) : requirement.bids.length === 0 ? (
-        <p className="text-[13px] text-text-secondary">No bids were submitted for this requirement.</p>
+        <p className="text-[13px] text-text-secondary">No quotes were submitted for this requirement.</p>
       ) : requirement.status === "FINALIZED" ? null : (
         <BidComparison
           societyId={id}

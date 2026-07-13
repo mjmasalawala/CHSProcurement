@@ -39,7 +39,7 @@ export default async function VendorBidsPage({
       ...(isOwner ? {} : { submittedByUserId: session?.user.id }),
     },
     include: {
-      requirement: { include: { category: true, society: { select: { name: true } } } },
+      requirement: { include: { categories: true, society: { select: { name: true } } } },
       submittedByUser: { select: { name: true, email: true } },
       workOrder: { select: { id: true } },
     },
@@ -48,7 +48,7 @@ export default async function VendorBidsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">My Bids / History</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">My Quotes / History</h1>
 
       <div className="flex gap-1 border-b border-border-subtle pb-3">
         {TABS.map((tab) => (
@@ -67,7 +67,7 @@ export default async function VendorBidsPage({
       </div>
 
       {bids.length === 0 ? (
-        <p className="text-[13px] text-text-secondary">No bids here.</p>
+        <p className="text-[13px] text-text-secondary">No quotes here.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {bids.map((bid) => (
@@ -77,7 +77,7 @@ export default async function VendorBidsPage({
             >
               <Link href={`/vendor/${id}/requirements/${bid.requirementId}`} className="flex-1">
                 <p className="text-[15px] font-semibold text-text-primary">
-                  {bid.requirement.category.name} — {bid.requirement.society.name}
+                  {bid.requirement.categories.map((c) => c.name).join(", ")} — {bid.requirement.society.name}
                 </p>
                 <p className="text-[13px] text-text-secondary">
                   ₹{bid.totalAmount.toString()} · submitted by {bid.submittedByUser.name ?? bid.submittedByUser.email}

@@ -38,6 +38,24 @@ export async function requireSocietyPagePermission(
   return assignment;
 }
 
+/**
+ * Same as requireSocietyPagePermission, but for pages reachable by more than
+ * one permission (e.g. Members: MANAGE_USERS for the Secretary's invite/
+ * deactivate actions, PROPOSE_MEMBER_REMOVAL/APPROVE_MEMBER_REMOVAL for any
+ * Office Bearer's removal workflow) — deliberately a list of distinct
+ * permissions checked with "any", not one shared flag, so each stays
+ * independently grantable without affecting page access for the others.
+ */
+export async function requireSocietyPageAnyPermission(
+  societyId: string,
+  permissions: Permission[],
+  pathname: string,
+): Promise<SessionRoleAssignment> {
+  const assignment = await requireSocietyAssignment(societyId, pathname);
+  if (!permissions.some((p) => assignment.permissions.includes(p))) redirect(`/society/${societyId}`);
+  return assignment;
+}
+
 export async function requireSocietyActionPermission(
   societyId: string,
   permission: Permission,

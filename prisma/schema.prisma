@@ -300,8 +300,10 @@ model Requirement {
   id             String             @id @default(cuid())
   societyId      String
   society        Society            @relation(fields: [societyId], references: [id])
-  categoryId     String
-  category       Category           @relation(fields: [categoryId], references: [id])
+  // Many-to-many (product decision, 2026-07-13): a project can span more than
+  // one trade — e.g. waterproofing + painting — and vendors in either trade
+  // should be matched, not just ones who do both (see matchVendors).
+  categories     Category[]
   name           String
   description    String
   urgency        RequirementUrgency

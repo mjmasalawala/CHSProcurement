@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { EntityType, RoleName } from "@/generated/prisma/enums";
 import { ROLE_DEFAULT_PERMISSIONS } from "@/lib/permissions";
 import { getEntityName } from "@/lib/entities";
-import { sendInvite } from "@/lib/notifications";
+import { sendInvite, notifyAddedToExistingAccount } from "@/lib/notifications";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -16,28 +16,64 @@ const EMAIL_FAILURE_MESSAGE = "Email sending failed. Please contact support.";
  * Generic invite-acceptance mechanism (landing-page-and-auth-flow-spec.md
  * Section 4) — one function, parameterized by role/entity, reused for every
  * invite type (Secretary activation, Manager/Chairman/Treasurer invited by
- * Secretary, Vendor Staff invited by Owner). Creates a PENDING RoleAssignment
- * plus a single-use token; the invitee flips it to ACTIVE by visiting
- * /invite/[token]. Emails the link to the invitee before returning, so no
- * caller needs to remember to wire that up separately.
+ * Secretary, Vendor Staff invited by Owner).
  *
- * The invite record itself (RoleAssignment + Invite row) is the source of
- * truth — a send failure (bad domain config, provider outage, etc.) doesn't
- * roll that back, since the record is still useful (the URL can be shared
- * manually, or resendInvite tried again later). emailError is set instead of
- * throwing, so a broken mail provider can't take down invite creation itself.
+ * Two paths, branching on whether the email already belongs to a real
+ * account (passwordHash set — i.e. someone who has actually logged in
+ * before, not just a stub User row created by an earlier unaccepted
+ * invite): a brand-new person gets the usual PENDING RoleAssignment + a
+ * single-use token, flipped to ACTIVE by visiting /invite/[token] and
+ * setting a password. Someone who already has working ProSoc credentials
+ * doesn't need to go through that again — their RoleAssignment activates
+ * immediately and they're just emailed a plain /login link (product
+ * decision, 2026-07-13).
+ *
+ * The invite record itself (RoleAssignment [+ Invite row, new-user path
+ * only]) is the source of truth — a send failure (bad domain config,
+ * provider outage, etc.) doesn't roll that back, since the record is still
+ * useful (the URL can be shared manually, or resendInvite tried again
+ * later). emailError is set instead of throwing, so a broken mail provider
+ * can't take down invite creation itself.
  */
 export async function createInvite(params: {
   email: string;
   entityType: EntityType;
   entityId: string | null;
   role: RoleName;
-}): Promise<{ token: string; url: string; emailError?: string }> {
-  const user = await prisma.user.upsert({
-    where: { email: params.email },
-    update: {},
-    create: { email: params.email },
-  });
+}): Promise<{ token: string | null; url: string; emailError?: string }> {
+  const existingUser = await prisma.user.findUnique({ where: { email: params.email } });
+  const hasRealAccount = !!existingUser?.passwordHash;
+
+  const user =
+    existingUser ??
+    (await prisma.user.create({
+      data: { email: params.email },
+    }));
+
+  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const entityName = await getEntityName(params.entityType, params.entityId);
+
+  if (hasRealAccount) {
+    await prisma.roleAssignment.create({
+      data: {
+        userId: user.id,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        role: params.role,
+        permissions: ROLE_DEFAULT_PERMISSIONS[params.role],
+        status: "ACTIVE",
+      },
+    });
+
+    const loginUrl = `${base}/login`;
+    try {
+      await notifyAddedToExistingAccount({ email: params.email, role: params.role, entityName, loginUrl });
+    } catch (err) {
+      console.error("createInvite: failed to send added-to-existing-account email", err);
+      return { token: null, url: loginUrl, emailError: EMAIL_FAILURE_MESSAGE };
+    }
+    return { token: null, url: loginUrl };
+  }
 
   const roleAssignment = await prisma.roleAssignment.create({
     data: {
@@ -60,10 +96,7 @@ export async function createInvite(params: {
     },
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const url = `${base}/invite/${token}`;
-
-  const entityName = await getEntityName(params.entityType, params.entityId);
   try {
     await sendInvite({ email: params.email, role: params.role, entityName, url });
   } catch (err) {

@@ -66,7 +66,7 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid }: Props) 
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <Card className="flex flex-col gap-3">
         <h2 className="text-[18px] font-semibold text-text-primary">
-          {existingBid ? "Edit your bid" : "Submit a bid"}
+          {existingBid ? "Edit your quote" : "Submit a quote"}
         </h2>
 
         <div className="flex flex-col gap-3">
@@ -131,13 +131,13 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid }: Props) 
         </Button>
 
         <p className="text-right text-[18px] font-bold text-text-primary">
-          Total Bid Amount: ₹{total.toFixed(2)}
+          Total Quote Amount: ₹{total.toFixed(2)}
         </p>
       </Card>
 
       <Card className="flex flex-col gap-4">
         <div>
-          <Label htmlFor="bidValidity">Bid Validity (date)</Label>
+          <Label htmlFor="bidValidity">Quote Validity (date)</Label>
           <Input
             id="bidValidity"
             type="date"
@@ -152,10 +152,10 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid }: Props) 
       </Card>
 
       {error && <p className="text-[13px] text-status-error">{error}</p>}
-      {submitted && !error && <p className="text-[13px] text-status-success">Bid submitted.</p>}
+      {submitted && !error && <p className="text-[13px] text-status-success">Quote submitted.</p>}
 
       <Button type="submit" disabled={submitting} className="self-start">
-        {submitting ? "Submitting…" : existingBid ? "Update bid" : "Submit bid"}
+        {submitting ? "Submitting…" : existingBid ? "Update quote" : "Submit quote"}
       </Button>
     </form>
   );

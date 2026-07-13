@@ -147,7 +147,7 @@ export async function notifyReturnedToManager(params: {
     subject: `Requirement sent back to you: ${params.societyName}`,
     text: `Hi,
 
-The recommendation for "${params.requirementName}" was rejected by 2 of the 3 Office Bearers. It's been sent back to you to re-recommend or re-open bidding.
+The recommendation for "${params.requirementName}" was rejected by 2 of the 3 Office Bearers. It's been sent back to you to re-recommend or re-open quoting.
 
 Review it here: ${params.reviewUrl}`,
   });
@@ -160,13 +160,13 @@ export async function notifyBidOutcome(params: {
   won: boolean;
 }) {
   const body = params.won
-    ? `Congratulations — your bid for "${params.requirementName}" was selected. Check My Bids / History on ProSoc for the Work Order.`
-    : `Your bid for "${params.requirementName}" was not selected this time. Check My Bids / History on ProSoc for details.`;
+    ? `Congratulations — your quote for "${params.requirementName}" was selected. Check My Quotes / History on ProSoc for the Work Order.`
+    : `Your quote for "${params.requirementName}" was not selected this time. Check My Quotes / History on ProSoc for details.`;
 
   await Promise.all([
     sendEmail({
       to: params.vendorEmail,
-      subject: params.won ? "You were selected on ProSoc" : "Bid outcome on ProSoc",
+      subject: params.won ? "You were selected on ProSoc" : "Quote outcome on ProSoc",
       text: body,
     }),
     sendSms({ to: params.vendorPhone, body }),
@@ -212,6 +212,82 @@ export async function notifyThresholdChangeDecided(params: {
 Your proposed threshold change (₹${params.oldValue} → ₹${params.newValue}) for ${params.societyName} was ${
       params.approved ? "approved" : "rejected"
     } by ${params.deciderName}.`,
+  });
+}
+
+// M8 — member removal (society-portal-spec.md Section 7.2), same
+// propose/decide co-approval pattern as the threshold above.
+export async function notifyMemberRemovalProposed(params: {
+  recipients: string[];
+  societyName: string;
+  targetName: string;
+  proposerName: string;
+  reviewUrl: string;
+}) {
+  await Promise.all(
+    params.recipients.map((to) =>
+      sendEmail({
+        to,
+        subject: `Member removal proposed: ${params.societyName}`,
+        text: `Hi,
+
+${params.proposerName} proposed removing ${params.targetName} from ${params.societyName}. One other Office Bearer's approval is needed.
+
+Review it here: ${params.reviewUrl}`,
+      }),
+    ),
+  );
+}
+
+export async function notifyMemberRemovalDecided(params: {
+  proposerEmail: string;
+  societyName: string;
+  targetName: string;
+  approved: boolean;
+  deciderName: string;
+}) {
+  await sendEmail({
+    to: params.proposerEmail,
+    subject: `Member removal ${params.approved ? "approved" : "rejected"}: ${params.societyName}`,
+    text: `Hi,
+
+Your proposal to remove ${params.targetName} from ${params.societyName} was ${
+      params.approved ? "approved" : "rejected"
+    } by ${params.deciderName}.`,
+  });
+}
+
+// Sent to the removed person themselves once the removal is approved — their
+// ProSoc login still exists (other role assignments, if any, are untouched),
+// they just lose access to this specific society.
+export async function notifyMemberRemoved(params: { email: string; societyName: string }) {
+  await sendEmail({
+    to: params.email,
+    subject: `Removed from ${params.societyName} on ProSoc`,
+    text: `Hi,
+
+You've been removed from ${params.societyName} on ProSoc and no longer have access to that workspace. If you believe this was a mistake, please get in touch with the society directly.`,
+  });
+}
+
+// Fast-path invite: the invitee already has a real ProSoc account (a
+// passwordHash is set), so there's no password-setup step — just tell them
+// they've been added and point them at /login instead of an invite token.
+export async function notifyAddedToExistingAccount(params: {
+  email: string;
+  role: string;
+  entityName: string | null;
+  loginUrl: string;
+}) {
+  const forWhat = params.entityName ? ` for ${params.entityName}` : "";
+  await sendEmail({
+    to: params.email,
+    subject: `You've been added to ProSoc as ${params.role}`,
+    text: `Hi,
+
+You've been added as ${params.role}${forWhat} on ProSoc, using your existing account (${params.email}).
+
+Log in here: ${params.loginUrl}`,
   });
 }
 
@@ -296,7 +372,7 @@ export async function notifyRequirementMatched(params: {
   societyName: string;
   reviewUrl: string;
 }) {
-  const body = `A new ${params.categoryName} requirement from ${params.societyName} matches your profile. Submit your bid: ${params.reviewUrl}`;
+  const body = `A new ${params.categoryName} requirement from ${params.societyName} matches your profile. Submit your quote: ${params.reviewUrl}`;
 
   await Promise.all([
     sendEmail({
@@ -347,10 +423,10 @@ export async function notifyDeadlineApproaching(params: {
     params.managerEmails.map((to) =>
       sendEmail({
         to,
-        subject: `Bid deadline approaching: ${params.societyName}`,
+        subject: `Quote deadline approaching: ${params.societyName}`,
         text: `Hi,
 
-The bid deadline for "${params.requirementName}" closes within 24 hours.
+The quote deadline for "${params.requirementName}" closes within 24 hours.
 
 Review it here: ${params.reviewUrl}`,
       }),
@@ -370,10 +446,10 @@ export async function notifyBidsReadyForReview(params: {
     params.managerEmails.map((to) =>
       sendEmail({
         to,
-        subject: `Bids ready for review: ${params.societyName}`,
+        subject: `Quotes ready for review: ${params.societyName}`,
         text: `Hi,
 
-Bidding has closed for "${params.requirementName}" — the submitted bids are ready for your review and recommendation.
+Quote submission has closed for "${params.requirementName}" — the submitted quotes are ready for your review and recommendation.
 
 Review it here: ${params.reviewUrl}`,
       }),
@@ -390,12 +466,12 @@ export async function notifyBidDeadlineReminder(params: {
   requirementName: string;
   reviewUrl: string;
 }) {
-  const body = `The bid deadline for "${params.requirementName}" closes within 24 hours. Submit your bid: ${params.reviewUrl}`;
+  const body = `The quote deadline for "${params.requirementName}" closes within 24 hours. Submit your quote: ${params.reviewUrl}`;
 
   await Promise.all([
     sendEmail({
       to: params.vendorEmail,
-      subject: "Bid deadline closing soon",
+      subject: "Quote deadline closing soon",
       text: `Hi,
 
 ${body}`,

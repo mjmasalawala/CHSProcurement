@@ -120,7 +120,7 @@ function WorkOrderDocument({ data }: { data: WorkOrderPdfData }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Bid validity</Text>
+          <Text style={styles.sectionTitle}>Quote validity</Text>
           <Text>{data.bidValidity.toLocaleDateString()}</Text>
         </View>
 
@@ -144,7 +144,7 @@ export async function renderWorkOrderPdf(workOrderId: string): Promise<Buffer | 
   const workOrder = await prisma.workOrder.findUnique({
     where: { id: workOrderId },
     include: {
-      requirement: { include: { category: true } },
+      requirement: { include: { categories: true } },
       bid: { include: { lineItems: true } },
     },
   });
@@ -161,7 +161,7 @@ export async function renderWorkOrderPdf(workOrderId: string): Promise<Buffer | 
     approvalSummary: workOrder.approvalSummary,
     justificationNote: workOrder.justificationNote,
     requirementId: workOrder.requirementId,
-    categoryName: workOrder.requirement.category.name,
+    categoryName: workOrder.requirement.categories.map((c) => c.name).join(", "),
     description: workOrder.requirement.description,
     bidValidity: workOrder.bid.bidValidity,
     notes: workOrder.bid.notes,

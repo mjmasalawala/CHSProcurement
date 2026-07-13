@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { inviteMember, setMemberActive, resendMemberInvite } from "./actions";
+import {
+  inviteMember,
+  setMemberActive,
+  resendMemberInvite,
+  proposeRemoveMember,
+  decideRemoveMember,
+} from "./actions";
 import type { RoleName } from "@/generated/prisma/enums";
 
 const ROLE_OPTIONS: { value: RoleName; label: string }[] = [
@@ -136,5 +142,76 @@ export function ToggleMemberButton({
     >
       {active ? "Deactivate" : "Reactivate"}
     </Button>
+  );
+}
+
+export function ProposeRemovalButton({
+  societyId,
+  roleAssignmentId,
+}: {
+  societyId: string;
+  roleAssignmentId: string;
+}) {
+  const [pending, setPending] = useState(false);
+  const [proposed, setProposed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (proposed) {
+    return <p className="text-[13px] text-text-secondary">Removal proposed — awaiting a second Office Bearer</p>;
+  }
+
+  return (
+    <div className="flex w-44 flex-col items-end gap-1">
+      <Button
+        type="button"
+        variant="danger"
+        disabled={pending}
+        onClick={async () => {
+          if (!confirm("Propose removing this member? A different Office Bearer will need to approve it.")) return;
+          setPending(true);
+          setError(null);
+          const result = await proposeRemoveMember(societyId, roleAssignmentId);
+          setPending(false);
+          if (result?.error) setError(result.error);
+          else setProposed(true);
+        }}
+      >
+        {pending ? "Proposing…" : "Propose Removal"}
+      </Button>
+      {error && <p className="text-right text-[12px] text-status-error">{error}</p>}
+    </div>
+  );
+}
+
+export function DecideRemovalPanel({
+  societyId,
+  proposedChangeId,
+}: {
+  societyId: string;
+  proposedChangeId: string;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function decide(decision: "APPROVED" | "REJECTED") {
+    setSubmitting(true);
+    setError(null);
+    const result = await decideRemoveMember(societyId, proposedChangeId, decision);
+    setSubmitting(false);
+    if (result?.error) setError(result.error);
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {error && <p className="text-[13px] text-status-error">{error}</p>}
+      <div className="flex gap-3">
+        <Button type="button" variant="danger" disabled={submitting} onClick={() => decide("APPROVED")}>
+          Approve removal
+        </Button>
+        <Button type="button" variant="secondary" disabled={submitting} onClick={() => decide("REJECTED")}>
+          Reject
+        </Button>
+      </div>
+    </div>
   );
 }

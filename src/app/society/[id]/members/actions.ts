@@ -1,9 +1,16 @@
 "use server";
 
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { createInvite, resendInvite } from "@/lib/invite";
+import {
+  notifyMemberRemovalProposed,
+  notifyMemberRemovalDecided,
+  notifyMemberRemoved,
+} from "@/lib/notifications";
+import { OB_ROLES } from "@/lib/society-ob";
 import { revalidatePath } from "next/cache";
 import type { RoleName } from "@/generated/prisma/enums";
 
@@ -90,6 +97,121 @@ export async function setMemberActive(
     },
     data: { status: active ? "ACTIVE" : "DEACTIVATED" },
   });
+
+  revalidatePath(`/society/${societyId}/members`);
+}
+
+/**
+ * Member removal (society-portal-spec.md Section 7.2) — same generic
+ * ProposedChange co-approval pattern as the threshold (settings/actions.ts):
+ * one Office Bearer proposes, a different one approves. Unlike
+ * Deactivate/Reactivate (instant, single-actor), this permanently deletes
+ * the RoleAssignment on approval — the User account itself is untouched
+ * (they may hold roles elsewhere), only their access to this society is
+ * revoked. All 4 society roles are eligible, including Secretary (product
+ * decision, 2026-07-13).
+ */
+export async function proposeRemoveMember(
+  societyId: string,
+  roleAssignmentId: string,
+): Promise<{ error: string } | undefined> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.PROPOSE_MEMBER_REMOVAL);
+  const session = await auth();
+  if (!session) return { error: "Not authorized." };
+
+  const target = await prisma.roleAssignment.findFirst({
+    where: { id: roleAssignmentId, entityType: "SOCIETY", entityId: societyId, status: "ACTIVE" },
+    include: { user: true },
+  });
+  if (!target) return { error: "This member can't be removed (not found or not active)." };
+
+  const existing = await prisma.proposedChange.findFirst({
+    where: { societyId, field: "remove_member", status: "PENDING", oldValue: roleAssignmentId },
+  });
+  if (existing) return { error: "There's already a pending removal proposal for this member." };
+
+  const targetName = target.user.name ?? target.user.email;
+
+  await prisma.proposedChange.create({
+    data: {
+      societyId,
+      field: "remove_member",
+      oldValue: roleAssignmentId,
+      newValue: `${targetName} (${target.role})`,
+      proposedByUserId: session.user.id,
+    },
+  });
+
+  const obs = await prisma.roleAssignment.findMany({
+    where: {
+      entityType: "SOCIETY",
+      entityId: societyId,
+      role: { in: [...OB_ROLES] },
+      status: "ACTIVE",
+      userId: { not: session.user.id },
+    },
+    include: { user: true },
+  });
+  const society = await prisma.society.findUniqueOrThrow({ where: { id: societyId } });
+  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  await notifyMemberRemovalProposed({
+    recipients: obs.map((ra) => ra.user.email),
+    societyName: society.name,
+    targetName,
+    proposerName: session.user.name ?? session.user.email ?? "An Office Bearer",
+    reviewUrl: `${base}/society/${societyId}/members`,
+  });
+
+  revalidatePath(`/society/${societyId}/members`);
+}
+
+export async function decideRemoveMember(
+  societyId: string,
+  proposedChangeId: string,
+  decision: "APPROVED" | "REJECTED",
+): Promise<{ error: string } | undefined> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.APPROVE_MEMBER_REMOVAL);
+  const session = await auth();
+  if (!session) return { error: "Not authorized." };
+
+  const change = await prisma.proposedChange.findUnique({ where: { id: proposedChangeId } });
+  if (!change || change.societyId !== societyId || change.status !== "PENDING" || change.field !== "remove_member") {
+    return { error: "This proposal is no longer pending." };
+  }
+  if (change.proposedByUserId === session.user.id) {
+    return { error: "You can't approve your own proposal — it needs a different Office Bearer." };
+  }
+
+  const roleAssignmentId = change.oldValue;
+  const target =
+    decision === "APPROVED"
+      ? await prisma.roleAssignment.findUnique({ where: { id: roleAssignmentId }, include: { user: true } })
+      : null;
+  if (decision === "APPROVED" && !target) {
+    return { error: "This member no longer exists." };
+  }
+
+  await prisma.$transaction([
+    prisma.proposedChange.update({
+      where: { id: proposedChangeId },
+      data: { status: decision, approvedByUserId: session.user.id, decidedAt: new Date() },
+    }),
+    ...(decision === "APPROVED" ? [prisma.roleAssignment.delete({ where: { id: roleAssignmentId } })] : []),
+  ]);
+
+  const proposer = await prisma.user.findUniqueOrThrow({ where: { id: change.proposedByUserId } });
+  const society = await prisma.society.findUniqueOrThrow({ where: { id: societyId } });
+  await notifyMemberRemovalDecided({
+    proposerEmail: proposer.email,
+    societyName: society.name,
+    targetName: change.newValue,
+    approved: decision === "APPROVED",
+    deciderName: session.user.name ?? session.user.email ?? "an Office Bearer",
+  });
+
+  if (decision === "APPROVED" && target) {
+    await notifyMemberRemoved({ email: target.user.email, societyName: society.name });
+  }
 
   revalidatePath(`/society/${societyId}/members`);
 }

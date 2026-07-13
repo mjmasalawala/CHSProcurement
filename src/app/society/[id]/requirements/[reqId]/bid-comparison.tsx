@@ -65,7 +65,7 @@ export function BidComparison({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-[18px] font-semibold text-text-primary">Bid comparison</h2>
+      <h2 className="text-[18px] font-semibold text-text-primary">Quote comparison</h2>
       {error && <p className="text-[13px] text-status-error">{error}</p>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -91,7 +91,7 @@ export function BidComparison({
                   <p className="text-[18px] font-bold tracking-tight text-text-primary">
                     ₹{Number(bid.totalAmount).toFixed(2)}
                   </p>
-                  {isLowest && <Badge tone="success">Lowest bid</Badge>}
+                  {isLowest && <Badge tone="success">Lowest quote</Badge>}
                 </div>
               </div>
 
@@ -117,7 +117,7 @@ export function BidComparison({
                   {justifyingBidId === bid.id && (
                     <div>
                       <Label htmlFor={`justification-${bid.id}`}>
-                        This isn&apos;t the lowest bid — justification required
+                        This isn&apos;t the lowest quote — justification required
                       </Label>
                       <Textarea
                         id={`justification-${bid.id}`}

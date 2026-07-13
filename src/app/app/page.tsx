@@ -48,11 +48,12 @@ export default async function AppHome() {
       {withNames.length === 0 && (
         <Card>
           <p className="text-[15px] text-text-primary">
-            No active role assignments yet.
+            You don&apos;t currently have access to any workspace.
           </p>
           <p className="mt-1 text-[13px] text-text-secondary">
-            You&apos;ll land here once a Society/Vendor registration is approved or
-            you accept an invite (M3).
+            This can happen if you&apos;re a new account waiting on a registration approval or invite, or if
+            you&apos;ve been removed from a Society/Vendor Company you previously had access to. If you believe
+            this is a mistake, get in touch with the relevant Society/Vendor or ProSoc support.
           </p>
         </Card>
       )}

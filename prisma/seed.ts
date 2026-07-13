@@ -229,7 +229,7 @@ async function main() {
     create: {
       id: "seed-requirement-open",
       societyId: societyOne.id,
-      categoryId: plumbing.id,
+      categories: { connect: { id: plumbing.id } },
       name: "Ground-floor bathroom leak repair",
       description: "Fix recurring leak in the ground-floor common bathroom and replace worn-out fittings.",
       urgency: "URGENT",
@@ -244,7 +244,7 @@ async function main() {
     create: {
       id: "seed-requirement-closed",
       societyId: societyOne.id,
-      categoryId: plumbing.id,
+      categories: { connect: { id: plumbing.id } },
       name: "Annual plumbing maintenance",
       description: "Annual plumbing maintenance across all common-area bathrooms.",
       urgency: "ROUTINE",
@@ -263,7 +263,7 @@ async function main() {
     create: {
       id: "seed-requirement-below-threshold",
       societyId: societyOne.id,
-      categoryId: plumbing.id,
+      categories: { connect: { id: plumbing.id } },
       name: "Security cabin tap washer replacement",
       description: "Replace a single tap washer in the security cabin.",
       urgency: "ROUTINE",
