@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
+import { formatDate } from "@/lib/date";
 import type { RequirementStatus } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -118,7 +119,7 @@ export default async function SocietyArchivePage({
                   {req.categories.map((c) => c.name).join(", ")} · {req.description.slice(0, 80)}
                 </p>
                 <p className="text-[13px] text-text-tertiary">
-                  {req._count.bids} quotes · {req.createdAt.toLocaleDateString()}
+                  {req._count.bids} quotes · {formatDate(req.createdAt)}
                   {req.workOrder && ` · ${req.workOrder.workOrderNumber} awarded to ${req.workOrder.vendorNameSnapshot}`}
                 </p>
               </div>
@@ -145,7 +146,7 @@ export default async function SocietyArchivePage({
                     Proposed by {change.proposedByUser.name ?? change.proposedByUser.email}
                     {change.approvedByUser &&
                       ` · decided by ${change.approvedByUser.name ?? change.approvedByUser.email}`}{" "}
-                    on {change.decidedAt?.toLocaleDateString()}
+                    on {change.decidedAt && formatDate(change.decidedAt)}
                   </p>
                 </div>
                 <Badge tone={statusTone(change.status)}>{statusLabel(change.status)}</Badge>

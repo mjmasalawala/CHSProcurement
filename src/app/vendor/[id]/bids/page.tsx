@@ -6,6 +6,7 @@ import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import type { BidStatus } from "@/generated/prisma/enums";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
+import { formatDateTime } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export default async function VendorBidsPage({
                 <p className="text-[13px] text-text-secondary">
                   ₹{bid.totalAmount.toString()} · submitted by {bid.submittedByUser.name ?? bid.submittedByUser.email}
                 </p>
-                <p className="text-[13px] text-text-tertiary">{bid.createdAt.toLocaleString()}</p>
+                <p className="text-[13px] text-text-tertiary">{formatDateTime(bid.createdAt)}</p>
               </Link>
               <div className="flex flex-col items-end gap-1.5">
                 <Badge tone={statusTone(bid.status)}>{statusLabel(bid.status)}</Badge>

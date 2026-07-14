@@ -208,6 +208,7 @@ model VendorCompany {
   categoryRequests   CategoryRequest[]
   requirementInvites RequirementInvite[]
   bids               Bid[]
+  bidDrafts          BidDraft[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -335,6 +336,7 @@ model Requirement {
 
   invites            RequirementInvite[]
   bids               Bid[]
+  bidDrafts          BidDraft[]
   quotationApprovals QuotationApproval[]
   workOrder          WorkOrder?
 
@@ -456,4 +458,44 @@ model BidLineItem {
   unit        String
   unitRate    Decimal @db.Decimal(12, 2)
   amount      Decimal @db.Decimal(12, 2)
+}
+
+// A vendor's in-progress quote for a Requirement, saved explicitly via the
+// bid form's "Save Draft Quote" button (or auto-populated the first time
+// "Suggest line items" succeeds) — entirely separate from Bid so a draft
+// never appears anywhere a real submitted quote is read (bid comparison,
+// finalization, deadline-reminder "who hasn't bid" check, bid history,
+// etc.). Fields are kept as raw strings, mirroring the form's own input
+// types, since a draft is allowed to be incomplete/unparseable — only a
+// real Bid enforces numeric validity.
+model BidDraft {
+  id              String        @id @default(cuid())
+  requirementId   String
+  requirement     Requirement   @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  vendorCompanyId String
+  vendorCompany   VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  bidValidity     String        @default("")
+  notes           String        @default("")
+
+  // Stamped the first time "Suggest line items" succeeds for this
+  // requirement/vendor pair — its presence is what permanently disables the
+  // Suggest button, independent of any later manual Save Draft Quote calls.
+  suggestionGeneratedAt DateTime?
+
+  lineItems BidDraftLineItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([requirementId, vendorCompanyId])
+}
+
+model BidDraftLineItem {
+  id          String   @id @default(cuid())
+  bidDraftId  String
+  bidDraft    BidDraft @relation(fields: [bidDraftId], references: [id], onDelete: Cascade)
+  description String
+  quantity    String
+  unit        String
+  unitRate    String
 }

@@ -386,6 +386,37 @@ ${body}`,
   ]);
 }
 
+// Used when a vendor becomes newly eligible for several open requirements at
+// once (approval, or a profile edit widening their categories/cities) — one
+// summary email instead of one per requirement (lib/matching.ts,
+// syncVendorRequirementMatches).
+export async function notifyVendorMatchedRequirements(params: {
+  vendorEmail: string;
+  vendorPhone?: string | null;
+  requirements: { categoryName: string; societyName: string }[];
+  dashboardUrl: string;
+}) {
+  const count = params.requirements.length;
+  const list = params.requirements
+    .map((r) => `- ${r.categoryName} for ${r.societyName}`)
+    .join("\n");
+  const body = `You've been matched with ${count} new requirement${count === 1 ? "" : "s"} that fit your profile:\n\n${list}\n\nCheck your dashboard and submit your quotes: ${params.dashboardUrl}`;
+
+  await Promise.all([
+    sendEmail({
+      to: params.vendorEmail,
+      subject: `You've been matched with ${count} new requirement${count === 1 ? "" : "s"}`,
+      text: `Hi,
+
+${body}`,
+    }),
+    sendSms({
+      to: params.vendorPhone,
+      body: `ProSoc: You've been matched with ${count} new requirement${count === 1 ? "" : "s"}. Check your dashboard: ${params.dashboardUrl}`,
+    }),
+  ]);
+}
+
 // M7 — vendor-registration-portal-spec.md Section 9, "New category request
 // approved/rejected".
 export async function notifyCategoryRequestDecided(params: {

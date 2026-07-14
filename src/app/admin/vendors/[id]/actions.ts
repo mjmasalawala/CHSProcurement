@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireActionPermission } from "@/lib/admin-auth";
 import { notifyApproval, notifyRejection } from "@/lib/notifications";
+import { syncVendorRequirementMatches } from "@/lib/matching";
 import { revalidatePath } from "next/cache";
 
 // The Vendor Owner already has a working login from registration (product
@@ -24,6 +25,8 @@ export async function approveVendor(vendorCompanyId: string): Promise<void> {
     contactEmail: vendor.ownerEmail,
     contactPhone: vendor.ownerPhone,
   });
+
+  await syncVendorRequirementMatches(vendorCompanyId);
 
   revalidatePath(`/admin/vendors/${vendorCompanyId}`);
   revalidatePath("/admin/vendors");

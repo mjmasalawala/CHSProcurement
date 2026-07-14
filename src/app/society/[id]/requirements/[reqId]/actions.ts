@@ -7,6 +7,7 @@ import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { finalizeRequirement } from "@/lib/work-order";
 import { notifyApprovalRequested, notifyReturnedToManager } from "@/lib/notifications";
 import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
+import { formatDate } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -178,7 +179,7 @@ export async function castQuotationVote(
     const approverUsers = await prisma.user.findMany({
       where: { id: { in: approverNames.map((v) => v.officeBearerUserId) } },
     });
-    const summary = `Approved by ${approverUsers.map((u) => u.name ?? u.email).join(", ")} on ${new Date().toLocaleDateString()}.`;
+    const summary = `Approved by ${approverUsers.map((u) => u.name ?? u.email).join(", ")} on ${formatDate(new Date())}.`;
     if (!requirement.recommendedBidId) return { error: "No recommended bid to finalize." };
     await finalizeRequirement({
       requirementId,

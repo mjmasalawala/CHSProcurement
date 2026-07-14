@@ -6,6 +6,7 @@ import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
+import { formatDate, formatDateTime } from "@/lib/date";
 import { BidForm } from "./bid-form";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,11 @@ export default async function RequirementDetailPage({
   const myBid = requirement.bids[0] ?? null;
   const closed = isClosed(requirement.bidDeadline);
 
+  const myDraft = await prisma.bidDraft.findUnique({
+    where: { requirementId_vendorCompanyId: { requirementId: reqId, vendorCompanyId: id } },
+    include: { lineItems: true },
+  });
+
   return (
     <div className="flex flex-col gap-6">
       <Link
@@ -56,7 +62,7 @@ export default async function RequirementDetailPage({
         </h1>
         <p className="text-[13px] text-text-secondary">{requirement.categories.map((c) => c.name).join(", ")}</p>
         <p className="text-[13px] text-text-tertiary">
-          ID: {requirement.id} · Raised {requirement.createdAt.toLocaleDateString()}
+          ID: {requirement.id} · Raised {formatDate(requirement.createdAt)}
         </p>
       </div>
 
@@ -64,7 +70,7 @@ export default async function RequirementDetailPage({
         <p className="text-[15px] text-text-primary">{requirement.description}</p>
         <p className="text-[13px] text-text-secondary">Location: {requirement.society.address}</p>
         <p className="text-[13px] font-medium text-text-primary">
-          Quote deadline: {requirement.bidDeadline.toLocaleString()} {closed && "(closed)"}
+          Quote deadline: {formatDateTime(requirement.bidDeadline)} {closed && "(closed)"}
         </p>
       </Card>
 
@@ -109,6 +115,21 @@ export default async function RequirementDetailPage({
                 }
               : null
           }
+          draft={
+            myDraft
+              ? {
+                  bidValidity: myDraft.bidValidity,
+                  notes: myDraft.notes,
+                  lineItems: myDraft.lineItems.map((li) => ({
+                    description: li.description,
+                    quantity: li.quantity,
+                    unit: li.unit,
+                    unitRate: li.unitRate,
+                  })),
+                }
+              : null
+          }
+          suggestDisabled={!!myDraft?.suggestionGeneratedAt}
         />
       )}
     </div>

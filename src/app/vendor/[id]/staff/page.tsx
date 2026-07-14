@@ -4,6 +4,7 @@ import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
+import { formatDateTime } from "@/lib/date";
 import { InviteStaffForm, ToggleStaffButton, ResendStaffInviteButton } from "./controls";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +80,7 @@ export default async function VendorStaffPage({
                   submitted a quote on &ldquo;{bid.requirement.name}&rdquo;
                 </p>
                 <p className="text-[13px] text-text-tertiary">
-                  {bid.createdAt.toLocaleString()} · ₹{bid.totalAmount.toString()}
+                  {formatDateTime(bid.createdAt)} · ₹{bid.totalAmount.toString()}
                 </p>
               </div>
             ))}

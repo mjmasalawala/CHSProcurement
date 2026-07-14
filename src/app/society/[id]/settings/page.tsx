@@ -6,6 +6,7 @@ import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/socie
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
+import { formatDate } from "@/lib/date";
 import { ThresholdCard, DecideThresholdPanel } from "./panel";
 
 export const dynamic = "force-dynamic";
@@ -97,7 +98,7 @@ export default async function SocietySettingsPage({
                     Proposed by {change.proposedByUser.name ?? change.proposedByUser.email}
                     {change.approvedByUser &&
                       ` · decided by ${change.approvedByUser.name ?? change.approvedByUser.email}`}{" "}
-                    on {change.decidedAt?.toLocaleDateString()}
+                    on {change.decidedAt && formatDate(change.decidedAt)}
                   </p>
                 </div>
                 <Badge tone={statusTone(change.status)}>{statusLabel(change.status)}</Badge>

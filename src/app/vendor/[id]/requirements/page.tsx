@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { formatDateTime } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export default async function VendorRequirementsPage({
                     {req.categories.map((c) => c.name).join(", ")} · {req.description.slice(0, 80)}
                   </p>
                   <p className="text-[13px] text-text-tertiary">
-                    Deadline: {req.bidDeadline.toLocaleString()}
+                    Deadline: {formatDateTime(req.bidDeadline)}
                   </p>
                 </div>
                 <Badge tone={status.tone}>{status.label}</Badge>

@@ -4,6 +4,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyPagePermission } from "@/lib/society-auth";
 import { Button } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { formatDateTime } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ export default async function SocietyRequirementsPage({
                   </p>
                   <p className="text-[13px] text-text-tertiary">
                     {req._count.invites} vendors invited · {req._count.bids} quotes · deadline{" "}
-                    {req.bidDeadline.toLocaleString()}
+                    {formatDateTime(req.bidDeadline)}
                   </p>
                 </div>
                 <Badge tone={status.tone}>{status.label}</Badge>

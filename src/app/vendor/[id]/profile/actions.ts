@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorActionPermission } from "@/lib/vendor-auth";
+import { syncVendorRequirementMatches } from "@/lib/matching";
 import { revalidatePath } from "next/cache";
 
 export interface VendorProfileInput {
@@ -44,6 +45,8 @@ export async function updateVendorProfile(
       citiesServed: { set: input.cityIds.map((id) => ({ id })) },
     },
   });
+
+  await syncVendorRequirementMatches(vendorCompanyId);
 
   revalidatePath(`/vendor/${vendorCompanyId}/profile`);
 }

@@ -7,6 +7,7 @@ import { OB_ROLES } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
+import { formatDate, formatDateTime } from "@/lib/date";
 import { BidComparison } from "./bid-comparison";
 import { ApprovalPanel } from "./approval-panel";
 import { EditableProjectName } from "./editable-name";
@@ -84,14 +85,14 @@ export default async function SocietyRequirementDetailPage({
         </div>
         <p className="text-[13px] text-text-secondary">{requirement.categories.map((c) => c.name).join(", ")}</p>
         <p className="text-[13px] text-text-tertiary">
-          ID: {requirement.id} · Raised {requirement.createdAt.toLocaleDateString()}
+          ID: {requirement.id} · Raised {formatDate(requirement.createdAt)}
         </p>
       </div>
 
       <Card className="flex flex-col gap-2">
         <p className="text-[15px] text-text-primary">{requirement.description}</p>
         <p className="text-[13px] font-medium text-text-primary">
-          Quote deadline: {requirement.bidDeadline.toLocaleString()} {closed && "(closed)"}
+          Quote deadline: {formatDateTime(requirement.bidDeadline)} {closed && "(closed)"}
         </p>
         <p className="text-[13px] text-text-secondary">
           {requirement.invites.length} vendors matched and invited:{" "}
@@ -152,7 +153,7 @@ export default async function SocietyRequirementDetailPage({
             id: b.id,
             vendorName: b.vendorCompany.name,
             totalAmount: b.totalAmount.toString(),
-            bidValidity: b.bidValidity.toISOString().slice(0, 10),
+            bidValidity: formatDate(b.bidValidity),
             notes: b.notes,
             lineItems: b.lineItems.map((li) => ({
               description: li.description,

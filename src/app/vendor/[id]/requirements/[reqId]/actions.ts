@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorActionPermission } from "@/lib/vendor-auth";
+import { suggestLineItems } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 
 export interface BidLineItemInput {
@@ -17,6 +18,112 @@ export interface SubmitBidInput {
   lineItems: BidLineItemInput[];
   bidValidity: string;
   notes: string;
+}
+
+export interface BidDraftInput {
+  lineItems: BidLineItemInput[];
+  bidValidity: string;
+  notes: string;
+}
+
+/**
+ * Drafts line items from the requirement's description via Claude
+ * (lib/ai.ts) for the vendor to review/edit before submitting — never
+ * suggests a price, only description/quantity/unit. Capped at once per
+ * requirement/vendor pair (to bound API spend): a successful call stamps
+ * BidDraft.suggestionGeneratedAt, which the caller checks first — a repeat
+ * call (e.g. a stale client, or the button somehow re-enabled) is rejected
+ * server-side rather than re-billing the AI call. A failed attempt leaves no
+ * stamp, so the vendor can freely retry.
+ */
+export async function suggestBidLineItems(
+  vendorCompanyId: string,
+  requirementId: string,
+): Promise<{ lineItems: { description: string; quantity: string; unit: string }[] } | { error: string }> {
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID);
+
+  const invited = await prisma.requirementInvite.findUnique({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+  });
+  if (!invited) return { error: "You were not invited to bid on this requirement." };
+
+  const existingDraft = await prisma.bidDraft.findUnique({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+    select: { suggestionGeneratedAt: true },
+  });
+  if (existingDraft?.suggestionGeneratedAt) {
+    return { error: "Suggestions have already been generated for this quote." };
+  }
+
+  const requirement = await prisma.requirement.findUniqueOrThrow({
+    where: { id: requirementId },
+    select: { description: true, categories: { select: { name: true } } },
+  });
+
+  try {
+    const lineItems = await suggestLineItems(
+      requirement.description,
+      requirement.categories.map((c) => c.name).join(", "),
+    );
+
+    await prisma.bidDraft.upsert({
+      where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+      create: {
+        requirementId,
+        vendorCompanyId,
+        suggestionGeneratedAt: new Date(),
+        lineItems: { create: lineItems.map((li) => ({ ...li, unitRate: "" })) },
+      },
+      update: {
+        suggestionGeneratedAt: new Date(),
+        lineItems: { deleteMany: {}, create: lineItems.map((li) => ({ ...li, unitRate: "" })) },
+      },
+    });
+    revalidatePath(`/vendor/${vendorCompanyId}/requirements/${requirementId}`);
+
+    return { lineItems };
+  } catch (err) {
+    console.error(`Failed to suggest line items for requirement ${requirementId}:`, err);
+    return { error: "Couldn't generate suggestions this time. Please add line items manually." };
+  }
+}
+
+/**
+ * Explicit "Save Draft Quote" — persists the vendor's in-progress quote
+ * (line items, validity, notes) to BidDraft so it survives navigating away
+ * before the real Submit. Kept separate from Bid entirely (see
+ * prisma/schema.prisma BidDraft comment) so an unsubmitted draft never shows
+ * up anywhere a real quote is read.
+ */
+export async function saveBidDraft(
+  vendorCompanyId: string,
+  requirementId: string,
+  input: BidDraftInput,
+): Promise<{ error: string } | undefined> {
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID);
+
+  const invited = await prisma.requirementInvite.findUnique({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+  });
+  if (!invited) return { error: "You were not invited to bid on this requirement." };
+
+  await prisma.bidDraft.upsert({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+    create: {
+      requirementId,
+      vendorCompanyId,
+      bidValidity: input.bidValidity,
+      notes: input.notes,
+      lineItems: { create: input.lineItems },
+    },
+    update: {
+      bidValidity: input.bidValidity,
+      notes: input.notes,
+      lineItems: { deleteMany: {}, create: input.lineItems },
+    },
+  });
+
+  revalidatePath(`/vendor/${vendorCompanyId}/requirements/${requirementId}`);
 }
 
 /**
