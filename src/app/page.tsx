@@ -28,9 +28,6 @@ export default async function Home() {
             pool, blind quoting, and a co-approval workflow — with a full, searchable record of
             every transaction.
           </p>
-          <Link href="/register/society">
-            <Button>Register your Society</Button>
-          </Link>
         </section>
 
         <section className="flex w-full max-w-4xl flex-col gap-6">
@@ -49,9 +46,6 @@ export default async function Home() {
         <section className="flex flex-col items-center gap-4">
           <Link href="/register/society">
             <Button>Register your Society</Button>
-          </Link>
-          <Link href="/vendors" className="text-[13px] font-medium text-text-secondary underline hover:text-text-primary">
-            Register as a Vendor instead
           </Link>
         </section>
       </main>

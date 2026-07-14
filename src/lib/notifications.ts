@@ -488,6 +488,27 @@ Review it here: ${params.reviewUrl}`,
   );
 }
 
+// Contact Us form (public, unauthenticated) — forwards the message straight
+// to SUPPORT_EMAIL. No-op if SUPPORT_EMAIL isn't configured, same as
+// notifyNewRegistration above.
+export async function notifyContactMessage(params: {
+  name: string;
+  email: string;
+  message: string;
+}) {
+  const supportEmail = process.env.SUPPORT_EMAIL;
+  if (!supportEmail) return;
+
+  await sendEmail({
+    to: supportEmail,
+    subject: `New Contact Us message from ${params.name}`,
+    text: `Name: ${params.name}
+Email: ${params.email}
+
+${params.message}`,
+  });
+}
+
 // M7 — vendor-registration-portal-spec.md Section 9, "Bid deadline reminder
 // (e.g., 24 hrs before close)". Sent by the deadline-reminders cron route,
 // only to vendors invited to this requirement who haven't submitted a bid yet.

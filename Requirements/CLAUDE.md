@@ -49,18 +49,6 @@ A single-URL SaaS web application for **Bluejay**, solving the "three-quotation"
 
 ## 5. Stack notes
 
-No stack has been mandated yet. Whatever is chosen, build to support:
-- Server-side permission checks on every API endpoint (see Section 4 above)
-- Server-side PDF generation (see `work-order-pdf-spec.md`)
-- Audio upload + transcription + LLM call for the voice-to-job feature (see `voice-to-job-ai-spec.md`)
-- Google OAuth + email/password auth, encrypted password storage
+## 6. Open product questions flagged across the specs
 
-If you (Claude Code) are choosing the stack, flag the choice back to the product owner before committing to it — this file doesn't prescribe one.
 
----
-
-## 6. Open product questions flagged across the specs (not yet decided)
-
-These are called out inline in their respective docs — don't silently assume an answer, ask:
-- Work Order PDF: confirm it's one PDF per finalized Work Order addressed to the winning vendor (current assumption), vs. also needing a formal RFQ/invitation letter sent to all invited vendors at the bidding stage.
-- Voice-to-job AI: language scope for v1 (English-only assumed; confirm if Hindi/regional language support is needed at launch, not Phase 2).
