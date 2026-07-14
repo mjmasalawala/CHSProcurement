@@ -31,3 +31,21 @@ export async function setCategoryActive(id: string, active: boolean): Promise<vo
 
   revalidatePath("/admin/categories");
 }
+
+export async function renameCategory(id: string, name: string): Promise<{ error: string } | undefined> {
+  await requireActionPermission(PERMISSIONS.TAXONOMY_MANAGEMENT);
+
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Name is required." };
+
+  try {
+    await prisma.category.update({ where: { id }, data: { name: trimmed } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: "A category with this name already exists." };
+    }
+    throw err;
+  }
+
+  revalidatePath("/admin/categories");
+}

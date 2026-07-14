@@ -36,6 +36,10 @@ export interface VendorRegistrationInput {
 export async function registerVendor(
   input: VendorRegistrationInput,
 ): Promise<{ error: string } | undefined> {
+  if (input.categoryIds.length > 5) {
+    return { error: "You can select up to 5 service categories." };
+  }
+
   let vendorCompanyId: string;
   try {
     const passwordHash = await hashPassword(input.password);

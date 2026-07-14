@@ -50,7 +50,7 @@ export default async function Home() {
           <Link href="/register/society">
             <Button>Register your Society</Button>
           </Link>
-          <Link href="/register/vendor" className="text-[13px] font-medium text-text-secondary underline hover:text-text-primary">
+          <Link href="/vendors" className="text-[13px] font-medium text-text-secondary underline hover:text-text-primary">
             Register as a Vendor instead
           </Link>
         </section>

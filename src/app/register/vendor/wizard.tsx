@@ -178,11 +178,12 @@ export function VendorRegistrationWizard({ categories, cities }: Props) {
           nextDisabled={!canProceed}
         >
           <div>
-            <Label>Service Categories</Label>
+            <Label>Service Categories (up to 5)</Label>
             <CheckboxGroup
               options={categories.map((c) => ({ id: c.id, label: c.name }))}
               selected={form.categoryIds}
               onChange={(ids) => update("categoryIds", ids)}
+              max={5}
             />
           </div>
           <div>
@@ -229,7 +230,7 @@ export function VendorRegistrationWizard({ categories, cities }: Props) {
         <WizardShell
           step={5}
           totalSteps={TOTAL_STEPS}
-          title="A few more details (optional)"
+          title="A few more details"
           onBack={() => setStep(4)}
           onNext={() => setStep(6)}
         >
@@ -244,7 +245,7 @@ export function VendorRegistrationWizard({ categories, cities }: Props) {
             />
           </div>
           <div>
-            <Label htmlFor="description">Short Description / About</Label>
+            <Label htmlFor="description">Short description about your business</Label>
             <Textarea
               id="description"
               value={form.description}

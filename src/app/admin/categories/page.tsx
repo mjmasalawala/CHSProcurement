@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requirePagePermission } from "@/lib/admin-auth";
-import { AddCategoryForm, ToggleActiveButton } from "./controls";
+import { AddCategoryForm, ToggleActiveButton, RenameCategoryButton } from "./controls";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,10 @@ export default async function CategoriesPage() {
                 {category.active ? "Active" : "Inactive"}
               </p>
             </div>
-            <ToggleActiveButton id={category.id} active={category.active} />
+            <div className="flex items-center gap-2">
+              <RenameCategoryButton id={category.id} name={category.name} />
+              <ToggleActiveButton id={category.id} active={category.active} />
+            </div>
           </div>
         ))}
       </div>

@@ -53,6 +53,7 @@ export function ProfileForm({ vendorCompanyId, vendor, categories, cities }: Pro
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function update<K extends keyof VendorProfileInput>(key: K, value: VendorProfileInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -61,16 +62,18 @@ export function ProfileForm({ vendorCompanyId, vendor, categories, cities }: Pro
 
   async function handleSave() {
     setSaving(true);
-    await updateVendorProfile(vendorCompanyId, form);
+    setError(null);
+    const result = await updateVendorProfile(vendorCompanyId, form);
     setSaving(false);
-    setSaved(true);
+    if (result?.error) setError(result.error);
+    else setSaved(true);
   }
 
   return (
     <div className="flex flex-col gap-6">
       <Card className="flex flex-col gap-4">
         <div>
-          <Label htmlFor="ownerEmail">Owner Email (login)</Label>
+          <Label htmlFor="ownerEmail">Login Name</Label>
           <Input id="ownerEmail" value={vendor.ownerEmail} disabled />
         </div>
         <div>
@@ -92,11 +95,11 @@ export function ProfileForm({ vendorCompanyId, vendor, categories, cities }: Pro
           </Select>
         </div>
         <div>
-          <Label htmlFor="ownerName">Owner Name</Label>
+          <Label htmlFor="ownerName">Contact Person Name</Label>
           <Input id="ownerName" value={form.ownerName} onChange={(e) => update("ownerName", e.target.value)} />
         </div>
         <div>
-          <Label htmlFor="ownerPhone">Owner Phone</Label>
+          <Label htmlFor="ownerPhone">Contact Person Phone</Label>
           <Input
             id="ownerPhone"
             type="tel"
@@ -116,11 +119,12 @@ export function ProfileForm({ vendorCompanyId, vendor, categories, cities }: Pro
 
       <Card className="flex flex-col gap-4">
         <div>
-          <Label>Service Categories</Label>
+          <Label>Service Categories (up to 5)</Label>
           <CheckboxGroup
             options={categories.map((c) => ({ id: c.id, label: c.name }))}
             selected={form.categoryIds}
             onChange={(ids) => update("categoryIds", ids)}
+            max={5}
           />
         </div>
         <div>
@@ -167,6 +171,7 @@ export function ProfileForm({ vendorCompanyId, vendor, categories, cities }: Pro
           {saving ? "Saving…" : "Save changes"}
         </Button>
         {saved && <span className="text-[13px] text-status-success">Saved.</span>}
+        {error && <span className="text-[13px] text-status-error">{error}</span>}
       </div>
     </div>
   );

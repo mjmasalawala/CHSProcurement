@@ -22,8 +22,12 @@ export interface VendorProfileInput {
 export async function updateVendorProfile(
   vendorCompanyId: string,
   input: VendorProfileInput,
-): Promise<void> {
+): Promise<{ error: string } | undefined> {
   await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.EDIT_COMPANY_PROFILE);
+
+  if (input.categoryIds.length > 5) {
+    return { error: "You can select up to 5 service categories." };
+  }
 
   await prisma.vendorCompany.update({
     where: { id: vendorCompanyId },
