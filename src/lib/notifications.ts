@@ -5,9 +5,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Falls back to Resend's shared sandbox sender, which only delivers to the
 // account owner's own verified address (SUPPORT_EMAIL) — set RESEND_FROM_EMAIL
-// to a verified-domain address (e.g. "ProSoc <notifications@yourdomain.com>")
-// once a sending domain is verified in Resend, to unlock real delivery.
-const FROM = process.env.RESEND_FROM_EMAIL ?? "ProSoc <onboarding@resend.dev>";
+// to a verified-domain address once a sending domain is verified in Resend,
+// to unlock real delivery. RESEND_FROM_EMAIL is just a bare address (no
+// display name), so always wrap it with the ProSoc name here.
+const FROM = `ProSoc <${process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"}>`;
 
 /**
  * The Resend SDK does NOT throw on API-level failures (invalid/unverified
