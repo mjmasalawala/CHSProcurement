@@ -12,7 +12,7 @@ export async function approveSociety(societyId: string): Promise<{ inviteUrl: st
 
   const society = await prisma.society.update({
     where: { id: societyId },
-    data: { status: "ACTIVE" },
+    data: { status: "ACTIVE", approvedAt: new Date() },
   });
 
   const { url } = await createInvite({

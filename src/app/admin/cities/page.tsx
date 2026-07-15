@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requirePagePermission } from "@/lib/admin-auth";
+import { Badge } from "@/components/ui/badge";
 import { AddCityForm, ToggleActiveButton } from "./controls";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,9 @@ export default async function CitiesPage() {
           >
             <div>
               <p className="text-[15px] font-medium text-text-primary">{city.name}</p>
-              <p className="text-[13px] text-text-secondary">{city.active ? "Active" : "Inactive"}</p>
+              <Badge tone={city.active ? "success" : "neutral"} className="mt-1">
+                {city.active ? "Active" : "Inactive"}
+              </Badge>
             </div>
             <ToggleActiveButton id={city.id} active={city.active} />
           </div>

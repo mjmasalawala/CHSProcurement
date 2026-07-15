@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requirePagePermission } from "@/lib/admin-auth";
+import { Badge } from "@/components/ui/badge";
 import { AddCategoryForm, ToggleActiveButton, RenameCategoryButton } from "./controls";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +25,9 @@ export default async function CategoriesPage() {
           >
             <div>
               <p className="text-[15px] font-medium text-text-primary">{category.name}</p>
-              <p className="text-[13px] text-text-secondary">
+              <Badge tone={category.active ? "success" : "neutral"} className="mt-1">
                 {category.active ? "Active" : "Inactive"}
-              </p>
+              </Badge>
             </div>
             <div className="flex items-center gap-2">
               <RenameCategoryButton id={category.id} name={category.name} />

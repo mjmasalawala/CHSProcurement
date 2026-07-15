@@ -191,6 +191,10 @@ model VendorCompany {
   societiesServiced String[]     @default([])
   status            EntityStatus @default(PENDING_VERIFICATION)
   rejectionReason   String?
+  // Stamped when status flips to ACTIVE (admin/vendors/[id]/actions.ts) —
+  // drives the admin dashboard's "approvals over time" chart. Null for
+  // vendors still pending or rejected without ever being approved.
+  approvedAt        DateTime?
 
   // Standard tier (Section 4.2) — schema-only, no v1 GUI. Nullable so
   // exposing them later needs no migration.
@@ -232,6 +236,10 @@ model Society {
   secretaryEmail     String
   status             EntityStatus @default(PENDING_VERIFICATION)
   rejectionReason    String?
+  // Stamped when status flips to ACTIVE (admin/societies/[id]/actions.ts) —
+  // drives the admin dashboard's "approvals over time" chart. Null for
+  // societies still pending or rejected without ever being approved.
+  approvedAt         DateTime?
   // Default ₹1,000, configurable per society (society spec Section 7).
   approvalThreshold  Int          @default(1000)
 

@@ -16,7 +16,7 @@ export async function approveVendor(vendorCompanyId: string): Promise<void> {
 
   const vendor = await prisma.vendorCompany.update({
     where: { id: vendorCompanyId },
-    data: { status: "ACTIVE" },
+    data: { status: "ACTIVE", approvedAt: new Date() },
   });
 
   await notifyApproval({
