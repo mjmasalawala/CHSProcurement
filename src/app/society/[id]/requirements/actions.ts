@@ -79,17 +79,25 @@ export async function createRequirement(
 
     const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
     const categoryNames = requirement.categories.map((c) => c.name).join(", ");
-    await Promise.all(
-      matched.map((v) =>
-        notifyRequirementMatched({
-          vendorEmail: v.ownerEmail,
-          vendorPhone: v.ownerPhone,
-          categoryName: categoryNames,
-          societyName: society.name,
-          reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
-        }),
-      ),
-    );
+    try {
+      await Promise.all(
+        matched.map((v) =>
+          notifyRequirementMatched({
+            vendorEmail: v.ownerEmail,
+            vendorPhone: v.ownerPhone,
+            categoryName: categoryNames,
+            societyName: society.name,
+            reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
+          }),
+        ),
+      );
+    } catch (err) {
+      // The Requirement and its invites are already committed — a
+      // notification failure (e.g. Resend sandbox rejecting an unverified
+      // recipient) shouldn't fail the whole action and leave the Manager
+      // thinking nothing happened.
+      console.error("Failed to notify matched vendors of new requirement:", err);
+    }
   }
 
   revalidatePath(`/society/${societyId}/requirements`);

@@ -5,15 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  acceptInviteExistingUser,
-  acceptInviteForCurrentSession,
-  acceptInviteNewUser,
-} from "./actions";
+import { acceptInviteExistingUser, acceptInviteForCurrentSession } from "./actions";
+import { InviteOnboardingWizard } from "./wizard";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid: "This invite link is invalid or has already been used.",
-  weak_password: "Password must be at least 8 characters.",
   invalid_password: "Incorrect password.",
 };
 
@@ -63,12 +59,15 @@ export default async function InvitePage({
   const { roleAssignment } = invite;
   const entityName = await getEntityName(roleAssignment.entityType, roleAssignment.entityId);
   const hasPassword = !!roleAssignment.user.passwordHash;
+  // Once someone has completed name + OTP-verified phone (any invite,
+  // ever), later invites skip straight to the simple password-confirm path
+  // — no need to redo onboarding for every new role/society they join.
+  const needsOnboarding = !roleAssignment.user.phoneVerifiedAt;
 
   const session = await auth();
   const isCurrentUser = session?.user.email === invite.email;
 
   const acceptForCurrentSession = acceptInviteForCurrentSession.bind(null, token);
-  const acceptNewUser = acceptInviteNewUser.bind(null, token);
   const acceptExistingUser = acceptInviteExistingUser.bind(null, token);
 
   return (
@@ -95,7 +94,13 @@ export default async function InvitePage({
               You&apos;ll be asked to log back in to pick up the new access.
             </p>
           </form>
-        ) : hasPassword ? (
+        ) : needsOnboarding ? (
+          <InviteOnboardingWizard
+            token={token}
+            hasPassword={hasPassword}
+            defaultName={roleAssignment.user.name ?? ""}
+          />
+        ) : (
           <form action={acceptExistingUser} className="flex flex-col gap-4">
             <div>
               <Label htmlFor="password">Password</Label>
@@ -103,16 +108,6 @@ export default async function InvitePage({
             </div>
             <Button type="submit" className="w-full">
               Log in &amp; accept
-            </Button>
-          </form>
-        ) : (
-          <form action={acceptNewUser} className="flex flex-col gap-4">
-            <div>
-              <Label htmlFor="password">Set a password</Label>
-              <Input id="password" name="password" type="password" minLength={8} required />
-            </div>
-            <Button type="submit" className="w-full">
-              Set password &amp; accept
             </Button>
           </form>
         )}

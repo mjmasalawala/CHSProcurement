@@ -154,13 +154,17 @@ export async function proposeRemoveMember(
   });
   const society = await prisma.society.findUniqueOrThrow({ where: { id: societyId } });
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  await notifyMemberRemovalProposed({
-    recipients: obs.map((ra) => ra.user.email),
-    societyName: society.name,
-    targetName,
-    proposerName: session.user.name ?? session.user.email ?? "An Office Bearer",
-    reviewUrl: `${base}/society/${societyId}/members`,
-  });
+  try {
+    await notifyMemberRemovalProposed({
+      recipients: obs.map((ra) => ra.user.email),
+      societyName: society.name,
+      targetName,
+      proposerName: session.user.name ?? session.user.email ?? "An Office Bearer",
+      reviewUrl: `${base}/society/${societyId}/members`,
+    });
+  } catch (err) {
+    console.error("Failed to notify Office Bearers of proposed member removal:", err);
+  }
 
   revalidatePath(`/society/${societyId}/members`);
 }
@@ -201,16 +205,24 @@ export async function decideRemoveMember(
 
   const proposer = await prisma.user.findUniqueOrThrow({ where: { id: change.proposedByUserId } });
   const society = await prisma.society.findUniqueOrThrow({ where: { id: societyId } });
-  await notifyMemberRemovalDecided({
-    proposerEmail: proposer.email,
-    societyName: society.name,
-    targetName: change.newValue,
-    approved: decision === "APPROVED",
-    deciderName: session.user.name ?? session.user.email ?? "an Office Bearer",
-  });
+  try {
+    await notifyMemberRemovalDecided({
+      proposerEmail: proposer.email,
+      societyName: society.name,
+      targetName: change.newValue,
+      approved: decision === "APPROVED",
+      deciderName: session.user.name ?? session.user.email ?? "an Office Bearer",
+    });
+  } catch (err) {
+    console.error("Failed to notify proposer of member removal decision:", err);
+  }
 
   if (decision === "APPROVED" && target) {
-    await notifyMemberRemoved({ email: target.user.email, societyName: society.name });
+    try {
+      await notifyMemberRemoved({ email: target.user.email, societyName: society.name });
+    } catch (err) {
+      console.error("Failed to notify removed member:", err);
+    }
   }
 
   revalidatePath(`/society/${societyId}/members`);

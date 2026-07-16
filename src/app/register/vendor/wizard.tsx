@@ -24,18 +24,21 @@ const TOTAL_STEPS = 6;
 interface Props {
   categories: { id: string; name: string }[];
   cities: { id: string; name: string }[];
+  // Prefills from a society's "Suggest a Vendor" invite link (?name=&email=&phone=)
+  // — whatever the suggesting society already knew about this vendor.
+  initial?: { name?: string; ownerEmail?: string; ownerPhone?: string };
 }
 
-export function VendorRegistrationWizard({ categories, cities }: Props) {
+export function VendorRegistrationWizard({ categories, cities, initial }: Props) {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<VendorRegistrationInput>({
-    name: "",
+    name: initial?.name ?? "",
     businessType: "",
     ownerName: "",
-    ownerEmail: "",
-    ownerPhone: "",
+    ownerEmail: initial?.ownerEmail ?? "",
+    ownerPhone: initial?.ownerPhone ?? "",
     registeredAddress: "",
     password: "",
     categoryIds: [],

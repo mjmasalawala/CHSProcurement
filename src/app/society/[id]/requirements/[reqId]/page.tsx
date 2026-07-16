@@ -154,6 +154,9 @@ export default async function SocietyRequirementDetailPage({
             vendorName: b.vendorCompany.name,
             totalAmount: b.totalAmount.toString(),
             bidValidity: formatDate(b.bidValidity),
+            paymentTerms: b.paymentTerms,
+            warrantyPeriod: b.warrantyPeriod,
+            completionTime: b.completionTime,
             notes: b.notes,
             lineItems: b.lineItems.map((li) => ({
               description: li.description,

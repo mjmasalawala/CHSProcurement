@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function ApprovalPanel({ societyId, requirementId, votes, canVote }: Props) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +34,12 @@ export function ApprovalPanel({ societyId, requirementId, votes, canVote }: Prop
     const result = await castQuotationVote(societyId, requirementId, decision);
     setSubmitting(false);
     if (result?.error) setError(result.error);
+    // castQuotationVote revalidates the server cache but this component is
+    // already mounted — without a refresh, a vote that finalizes the
+    // requirement (2nd approval) or returns it to the Manager (2nd
+    // rejection) leaves the page showing stale data: the Work Order card
+    // never appears, the vote list never shows the deciding vote.
+    else router.refresh();
   }
 
   return (

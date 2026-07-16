@@ -19,12 +19,18 @@ export async function approveVendor(vendorCompanyId: string): Promise<void> {
     data: { status: "ACTIVE", approvedAt: new Date() },
   });
 
-  await notifyApproval({
-    type: "Vendor",
-    name: vendor.name,
-    contactEmail: vendor.ownerEmail,
-    contactPhone: vendor.ownerPhone,
-  });
+  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  try {
+    await notifyApproval({
+      type: "Vendor",
+      name: vendor.name,
+      contactEmail: vendor.ownerEmail,
+      contactPhone: vendor.ownerPhone,
+      dashboardUrl: `${base}/vendor/${vendorCompanyId}/requirements`,
+    });
+  } catch (err) {
+    console.error("Failed to notify vendor of approval:", err);
+  }
 
   await syncVendorRequirementMatches(vendorCompanyId);
 
@@ -40,13 +46,17 @@ export async function rejectVendor(vendorCompanyId: string, reason: string): Pro
     data: { status: "REJECTED", rejectionReason: reason || null },
   });
 
-  await notifyRejection({
-    type: "Vendor",
-    name: vendor.name,
-    contactEmail: vendor.ownerEmail,
-    contactPhone: vendor.ownerPhone,
-    reason,
-  });
+  try {
+    await notifyRejection({
+      type: "Vendor",
+      name: vendor.name,
+      contactEmail: vendor.ownerEmail,
+      contactPhone: vendor.ownerPhone,
+      reason,
+    });
+  } catch (err) {
+    console.error("Failed to notify vendor of rejection:", err);
+  }
 
   revalidatePath(`/admin/vendors/${vendorCompanyId}`);
   revalidatePath("/admin/vendors");

@@ -35,13 +35,17 @@ export async function rejectSociety(societyId: string, reason: string): Promise<
     data: { status: "REJECTED", rejectionReason: reason || null },
   });
 
-  await notifyRejection({
-    type: "Society",
-    name: society.name,
-    contactEmail: society.secretaryEmail,
-    contactPhone: society.secretaryPhone,
-    reason,
-  });
+  try {
+    await notifyRejection({
+      type: "Society",
+      name: society.name,
+      contactEmail: society.secretaryEmail,
+      contactPhone: society.secretaryPhone,
+      reason,
+    });
+  } catch (err) {
+    console.error("Failed to notify society of rejection:", err);
+  }
 
   revalidatePath(`/admin/societies/${societyId}`);
   revalidatePath("/admin/societies");

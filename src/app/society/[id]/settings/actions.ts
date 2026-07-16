@@ -61,14 +61,18 @@ export async function proposeThresholdChange(
     include: { user: true },
   });
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  await notifyThresholdChangeProposed({
-    recipients: obs.map((ra) => ra.user.email),
-    societyName: society.name,
-    oldValue: String(society.approvalThreshold),
-    newValue: String(parsed),
-    proposerName: session.user.name ?? session.user.email ?? "An Office Bearer",
-    reviewUrl: `${base}/society/${societyId}/settings`,
-  });
+  try {
+    await notifyThresholdChangeProposed({
+      recipients: obs.map((ra) => ra.user.email),
+      societyName: society.name,
+      oldValue: String(society.approvalThreshold),
+      newValue: String(parsed),
+      proposerName: session.user.name ?? session.user.email ?? "An Office Bearer",
+      reviewUrl: `${base}/society/${societyId}/settings`,
+    });
+  } catch (err) {
+    console.error("Failed to notify Office Bearers of proposed threshold change:", err);
+  }
 
   revalidatePath(`/society/${societyId}/settings`);
 }
@@ -107,14 +111,18 @@ export async function decideThresholdChange(
 
   const proposer = await prisma.user.findUniqueOrThrow({ where: { id: change.proposedByUserId } });
   const society = await prisma.society.findUniqueOrThrow({ where: { id: societyId } });
-  await notifyThresholdChangeDecided({
-    proposerEmail: proposer.email,
-    societyName: society.name,
-    oldValue: change.oldValue,
-    newValue: change.newValue,
-    approved: decision === "APPROVED",
-    deciderName: session.user.name ?? session.user.email ?? "an Office Bearer",
-  });
+  try {
+    await notifyThresholdChangeDecided({
+      proposerEmail: proposer.email,
+      societyName: society.name,
+      oldValue: change.oldValue,
+      newValue: change.newValue,
+      approved: decision === "APPROVED",
+      deciderName: session.user.name ?? session.user.email ?? "an Office Bearer",
+    });
+  } catch (err) {
+    console.error("Failed to notify proposer of threshold change decision:", err);
+  }
 
   revalidatePath(`/society/${societyId}/settings`);
 }

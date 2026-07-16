@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +22,9 @@ interface BidCardData {
   vendorName: string;
   totalAmount: string;
   bidValidity: string;
+  paymentTerms: string | null;
+  warrantyPeriod: string | null;
+  completionTime: string | null;
   notes: string | null;
   lineItems: BidLineItem[];
 }
@@ -42,6 +46,7 @@ export function BidComparison({
   recommendationNote,
   canRecommend,
 }: Props) {
+  const router = useRouter();
   const lowestAmount = Math.min(...bids.map((b) => Number(b.totalAmount)));
   const [justifyingBidId, setJustifyingBidId] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
@@ -59,8 +64,16 @@ export function BidComparison({
     setError(null);
     const result = await recommendBid(societyId, requirementId, bidId, justification);
     setSubmitting(false);
-    if (result?.error) setError(result.error);
-    else setJustifyingBidId(null);
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
+    setJustifyingBidId(null);
+    // recommendBid can finalize immediately (below threshold) or move the
+    // requirement to AWAITING_APPROVAL — this page's Approval panel /
+    // Finalized card are server-rendered from requirement.status, so
+    // without a refresh they'd stay hidden until the next full navigation.
+    router.refresh();
   }
 
   return (
@@ -102,6 +115,26 @@ export function BidComparison({
                   </p>
                 ))}
               </div>
+
+              {(bid.paymentTerms || bid.warrantyPeriod || bid.completionTime) && (
+                <div className="mt-3 flex flex-col gap-0.5 border-t border-border-subtle pt-2">
+                  {bid.paymentTerms && (
+                    <p className="text-[13px] text-text-secondary">
+                      <span className="font-medium text-text-primary">Payment terms:</span> {bid.paymentTerms}
+                    </p>
+                  )}
+                  {bid.warrantyPeriod && (
+                    <p className="text-[13px] text-text-secondary">
+                      <span className="font-medium text-text-primary">Warranty:</span> {bid.warrantyPeriod}
+                    </p>
+                  )}
+                  {bid.completionTime && (
+                    <p className="text-[13px] text-text-secondary">
+                      <span className="font-medium text-text-primary">Time to complete:</span> {bid.completionTime}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {bid.notes && <p className="mt-2 text-[13px] text-text-secondary">Notes: {bid.notes}</p>}
 

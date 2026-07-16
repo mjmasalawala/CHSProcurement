@@ -17,12 +17,18 @@ export interface BidLineItemInput {
 export interface SubmitBidInput {
   lineItems: BidLineItemInput[];
   bidValidity: string;
+  paymentTerms: string;
+  warrantyPeriod: string;
+  completionTime: string;
   notes: string;
 }
 
 export interface BidDraftInput {
   lineItems: BidLineItemInput[];
   bidValidity: string;
+  paymentTerms: string;
+  warrantyPeriod: string;
+  completionTime: string;
   notes: string;
 }
 
@@ -113,11 +119,17 @@ export async function saveBidDraft(
       requirementId,
       vendorCompanyId,
       bidValidity: input.bidValidity,
+      paymentTerms: input.paymentTerms,
+      warrantyPeriod: input.warrantyPeriod,
+      completionTime: input.completionTime,
       notes: input.notes,
       lineItems: { create: input.lineItems },
     },
     update: {
       bidValidity: input.bidValidity,
+      paymentTerms: input.paymentTerms,
+      warrantyPeriod: input.warrantyPeriod,
+      completionTime: input.completionTime,
       notes: input.notes,
       lineItems: { deleteMany: {}, create: input.lineItems },
     },
@@ -180,6 +192,9 @@ export async function submitBid(
       submittedByUserId: session.user.id,
       totalAmount,
       bidValidity: new Date(input.bidValidity),
+      paymentTerms: input.paymentTerms || null,
+      warrantyPeriod: input.warrantyPeriod || null,
+      completionTime: input.completionTime || null,
       notes: input.notes || null,
       lineItems: { create: lineItems },
     },
@@ -187,6 +202,9 @@ export async function submitBid(
       submittedByUserId: session.user.id,
       totalAmount,
       bidValidity: new Date(input.bidValidity),
+      paymentTerms: input.paymentTerms || null,
+      warrantyPeriod: input.warrantyPeriod || null,
+      completionTime: input.completionTime || null,
       notes: input.notes || null,
       lineItems: { deleteMany: {}, create: lineItems },
     },

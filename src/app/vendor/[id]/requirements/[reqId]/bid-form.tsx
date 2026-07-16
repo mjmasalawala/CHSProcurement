@@ -22,6 +22,9 @@ const COLUMN_HEADER = "text-[12px] font-semibold text-text-secondary";
 
 interface DraftQuote {
   bidValidity: string;
+  paymentTerms: string;
+  warrantyPeriod: string;
+  completionTime: string;
   notes: string;
   lineItems: BidLineItemInput[];
 }
@@ -43,6 +46,9 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
     initial?.lineItems.length ? initial.lineItems : [{ ...EMPTY_LINE_ITEM }],
   );
   const [bidValidity, setBidValidity] = useState(initial?.bidValidity ?? "");
+  const [paymentTerms, setPaymentTerms] = useState(initial?.paymentTerms ?? "");
+  const [warrantyPeriod, setWarrantyPeriod] = useState(initial?.warrantyPeriod ?? "");
+  const [completionTime, setCompletionTime] = useState(initial?.completionTime ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -102,7 +108,14 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
   async function handleSaveDraft() {
     setSavingDraft(true);
     setDraftSaved(false);
-    const result = await saveBidDraft(vendorCompanyId, requirementId, { lineItems, bidValidity, notes });
+    const result = await saveBidDraft(vendorCompanyId, requirementId, {
+      lineItems,
+      bidValidity,
+      paymentTerms,
+      warrantyPeriod,
+      completionTime,
+      notes,
+    });
     setSavingDraft(false);
     if (result?.error) setError(result.error);
     else setDraftSaved(true);
@@ -112,7 +125,14 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const result = await submitBid(vendorCompanyId, requirementId, { lineItems, bidValidity, notes });
+    const result = await submitBid(vendorCompanyId, requirementId, {
+      lineItems,
+      bidValidity,
+      paymentTerms,
+      warrantyPeriod,
+      completionTime,
+      notes,
+    });
     setSubmitting(false);
     if (result?.error) setError(result.error);
     else setSubmitted(true);
@@ -227,6 +247,35 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
             value={bidValidity}
             onChange={(e) => setBidValidity(e.target.value)}
           />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <Label htmlFor="paymentTerms">Payment Terms (optional)</Label>
+            <Input
+              id="paymentTerms"
+              placeholder="e.g. 50% advance, 50% on completion"
+              value={paymentTerms}
+              onChange={(e) => setPaymentTerms(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="warrantyPeriod">Guarantee / Warranty Period (optional)</Label>
+            <Input
+              id="warrantyPeriod"
+              placeholder="e.g. 1 year"
+              value={warrantyPeriod}
+              onChange={(e) => setWarrantyPeriod(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="completionTime">Time to Complete Job (optional)</Label>
+            <Input
+              id="completionTime"
+              placeholder="e.g. 2 weeks"
+              value={completionTime}
+              onChange={(e) => setCompletionTime(e.target.value)}
+            />
+          </div>
         </div>
         <div>
           <Label htmlFor="notes">Notes / Terms (optional)</Label>

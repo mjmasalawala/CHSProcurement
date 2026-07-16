@@ -12,13 +12,19 @@ datasource db {
 
 // A login identity. Separate from role — see unified-platform-architecture.md Section 3.
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
   // Null if the user only ever signs in via Google.
-  passwordHash String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  passwordHash    String?
+  // Collected + OTP-verified during invite acceptance (invite/[token] —
+  // Vendor Owner registration sets name/phone directly at signup instead,
+  // so this is specifically for invited Manager/Office Bearer/Vendor Staff
+  // users). Both null until phoneVerifiedAt is stamped.
+  phone           String?
+  phoneVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   roleAssignments         RoleAssignment[]
   bids                    Bid[]
@@ -27,6 +33,26 @@ model User {
   quotationApprovals      QuotationApproval[]
   proposedChanges         ProposedChange[]     @relation("ProposedChangesProposer")
   approvedChanges         ProposedChange[]     @relation("ProposedChangesApprover")
+  vendorSuggestions       VendorSuggestion[]
+  phoneVerifications      PhoneVerification[]
+}
+
+// One-time code for the invite-acceptance flow's phone verification step
+// (invite/[token] — Set password -> Name & Phone -> Verify OTP). No SMS
+// provider is wired up yet (same placeholder as lib/sms.ts's sendSms) — the
+// code is logged server-side (`[sms:stub] ...`) instead of actually
+// delivered. A fresh row is created on every send/resend rather than
+// updating one in place, so an old code can't be replayed after a resend.
+model PhoneVerification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // Forgot-password flow (landing-page-and-auth-flow-spec.md) — same
@@ -250,11 +276,35 @@ model Society {
   bankIfsc                   String?
   bankAccountHolderName      String?
 
-  requirements    Requirement[]
-  proposedChanges ProposedChange[]
+  requirements      Requirement[]
+  proposedChanges   ProposedChange[]
+  vendorSuggestions VendorSuggestion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// A Society user's "here's a vendor you should invite" tip (society-portal
+// spec, Suggest a Vendor) — stored purely as a record of who suggested whom,
+// not linked to any resulting VendorCompany registration (the suggested
+// vendor registers independently through the normal flow, same as any other
+// vendor; there's no guarantee they use the same email, so auto-linking
+// would be unreliable).
+model VendorSuggestion {
+  id        String  @id @default(cuid())
+  societyId String
+  society   Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+
+  suggestedByUserId String
+  suggestedByUser   User   @relation(fields: [suggestedByUserId], references: [id])
+
+  vendorName  String
+  vendorPhone String?
+  vendorEmail String
+
+  createdAt DateTime @default(now())
+
+  @@index([societyId])
 }
 
 enum ProposedChangeStatus {
@@ -442,6 +492,9 @@ model Bid {
   submittedByUser   User          @relation(fields: [submittedByUserId], references: [id])
   totalAmount       Decimal       @db.Decimal(12, 2)
   bidValidity       DateTime
+  paymentTerms      String?
+  warrantyPeriod    String?
+  completionTime    String?
   notes             String?
   status            BidStatus     @default(SUBMITTED)
 
@@ -483,6 +536,9 @@ model BidDraft {
   vendorCompanyId String
   vendorCompany   VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
   bidValidity     String        @default("")
+  paymentTerms    String        @default("")
+  warrantyPeriod  String        @default("")
+  completionTime  String        @default("")
   notes           String        @default("")
 
   // Stamped the first time "Suggest line items" succeeds for this

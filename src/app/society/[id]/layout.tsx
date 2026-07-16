@@ -7,6 +7,11 @@ import { WorkspaceNav } from "@/components/ui/workspace-nav";
 const NAV_ITEMS = [
   { suffix: "", label: "Dashboard", permissions: [] },
   { suffix: "/requirements", label: "Requirements", permissions: [PERMISSIONS.CREATE_REQUIREMENT] },
+  // Reuses CREATE_REQUIREMENT rather than a dedicated permission — the same
+  // Manager/Office Bearer set who can raise a requirement can suggest a
+  // vendor; split it into its own permission later if that ever needs to
+  // diverge.
+  { suffix: "/suggest-vendor", label: "Ask a Vendor to Register", permissions: [PERMISSIONS.CREATE_REQUIREMENT] },
   { suffix: "/archive", label: "Archive", permissions: [PERMISSIONS.VIEW_ARCHIVE] },
   // Reachable by MANAGE_USERS (Secretary's invite/deactivate) OR either
   // member-removal permission (any Office Bearer's propose/decide) — see

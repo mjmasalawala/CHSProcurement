@@ -55,6 +55,34 @@ Review and approve: ${params.approveUrl}`,
   });
 }
 
+// Society "Suggest a Vendor" (society-portal-spec.md) — tells the suggested
+// vendor who pointed ProSoc at them and from which society, with a link
+// straight into the normal vendor registration flow (no special/prefilled
+// suggestion-only path — they register the same way as anyone else).
+export async function notifyVendorSuggested(params: {
+  vendorName: string;
+  vendorEmail: string;
+  vendorPhone?: string | null;
+  suggestedByName: string;
+  societyName: string;
+  registerUrl: string;
+}) {
+  const body = `${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on ProSoc — the platform housing societies use to find and hire vendors like you.
+
+Register here: ${params.registerUrl}`;
+
+  await Promise.all([
+    sendEmail({
+      to: params.vendorEmail,
+      subject: `${params.suggestedByName} suggested you register on ProSoc`,
+      text: `Hi ${params.vendorName},
+
+${body}`,
+    }),
+    sendSms({ to: params.vendorPhone, body: `ProSoc: ${body}` }),
+  ]);
+}
+
 // Note: while RESEND_API_KEY is sandboxed, this — like notifyRejection —
 // won't actually reach a real invitee's inbox until a sending domain is
 // verified (Resend only delivers to the account owner's own address).
@@ -348,8 +376,16 @@ export async function notifyApproval(params: {
   name: string;
   contactEmail: string;
   contactPhone?: string | null;
+  // Vendor-only — Society approval already points the Secretary at the
+  // platform via the separate activation invite email (createInvite), so
+  // this is just for the Vendor Owner's "check requirements" nudge.
+  dashboardUrl?: string;
 }) {
-  const body = `Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.`;
+  const body = `Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.${
+    params.dashboardUrl
+      ? ` Log in and check your dashboard for requirements you can quote on: ${params.dashboardUrl}`
+      : ""
+  }`;
 
   await Promise.all([
     sendEmail({

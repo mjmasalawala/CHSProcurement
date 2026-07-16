@@ -126,12 +126,16 @@ export async function recommendBid(
       include: { user: true },
     });
     const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    await notifyApprovalRequested({
-      recipients: obs.map((ra) => ra.user.email),
-      societyName: requirement.society.name,
-      requirementName: requirement.name,
-      reviewUrl: `${base}/society/${societyId}/requirements/${requirementId}`,
-    });
+    try {
+      await notifyApprovalRequested({
+        recipients: obs.map((ra) => ra.user.email),
+        societyName: requirement.society.name,
+        requirementName: requirement.name,
+        reviewUrl: `${base}/society/${societyId}/requirements/${requirementId}`,
+      });
+    } catch (err) {
+      console.error("Failed to notify Office Bearers that a quotation needs approval:", err);
+    }
   }
 
   revalidatePath(`/society/${societyId}/requirements/${requirementId}`);
@@ -208,12 +212,16 @@ export async function castQuotationVote(
     });
     if (manager) {
       const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-      await notifyReturnedToManager({
-        managerEmail: manager.user.email,
-        societyName: requirement.society.name,
-        requirementName: requirement.name,
-        reviewUrl: `${base}/society/${societyId}/requirements/${requirementId}`,
-      });
+      try {
+        await notifyReturnedToManager({
+          managerEmail: manager.user.email,
+          societyName: requirement.society.name,
+          requirementName: requirement.name,
+          reviewUrl: `${base}/society/${societyId}/requirements/${requirementId}`,
+        });
+      } catch (err) {
+        console.error("Failed to notify Manager that the requirement was returned:", err);
+      }
     }
   }
 

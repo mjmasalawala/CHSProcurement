@@ -32,12 +32,16 @@ export async function approveCategoryRequest(requestId: string): Promise<void> {
       data: { serviceCategories: { connect: { id: category.id } } },
     });
 
-    await notifyCategoryRequestDecided({
-      vendorEmail: vendor.ownerEmail,
-      vendorPhone: vendor.ownerPhone,
-      categoryName: request.name,
-      approved: true,
-    });
+    try {
+      await notifyCategoryRequestDecided({
+        vendorEmail: vendor.ownerEmail,
+        vendorPhone: vendor.ownerPhone,
+        categoryName: request.name,
+        approved: true,
+      });
+    } catch (err) {
+      console.error("Failed to notify vendor of category request approval:", err);
+    }
   }
 
   revalidatePath("/admin/category-requests");
@@ -54,12 +58,16 @@ export async function rejectCategoryRequest(requestId: string): Promise<void> {
   });
 
   if (request.vendorCompany) {
-    await notifyCategoryRequestDecided({
-      vendorEmail: request.vendorCompany.ownerEmail,
-      vendorPhone: request.vendorCompany.ownerPhone,
-      categoryName: request.name,
-      approved: false,
-    });
+    try {
+      await notifyCategoryRequestDecided({
+        vendorEmail: request.vendorCompany.ownerEmail,
+        vendorPhone: request.vendorCompany.ownerPhone,
+        categoryName: request.name,
+        approved: false,
+      });
+    } catch (err) {
+      console.error("Failed to notify vendor of category request rejection:", err);
+    }
   }
 
   revalidatePath("/admin/category-requests");

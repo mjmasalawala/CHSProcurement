@@ -51,6 +51,9 @@ interface WorkOrderPdfData {
   categoryName: string;
   description: string;
   bidValidity: Date;
+  paymentTerms: string | null;
+  warrantyPeriod: string | null;
+  completionTime: string | null;
   notes: string | null;
   lineItems: { description: string; quantity: string; unit: string; unitRate: string; amount: string }[];
   totalAmount: string;
@@ -125,6 +128,30 @@ function WorkOrderDocument({ data }: { data: WorkOrderPdfData }) {
           <Text>{formatDate(data.bidValidity)}</Text>
         </View>
 
+        {(data.paymentTerms || data.warrantyPeriod || data.completionTime) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Terms</Text>
+            {data.paymentTerms && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Payment terms</Text>
+                <Text style={styles.value}>{data.paymentTerms}</Text>
+              </View>
+            )}
+            {data.warrantyPeriod && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Warranty period</Text>
+                <Text style={styles.value}>{data.warrantyPeriod}</Text>
+              </View>
+            )}
+            {data.completionTime && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Time to complete</Text>
+                <Text style={styles.value}>{data.completionTime}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {data.notes && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Vendor notes / terms</Text>
@@ -165,6 +192,9 @@ export async function renderWorkOrderPdf(workOrderId: string): Promise<Buffer | 
     categoryName: workOrder.requirement.categories.map((c) => c.name).join(", "),
     description: workOrder.requirement.description,
     bidValidity: workOrder.bid.bidValidity,
+    paymentTerms: workOrder.bid.paymentTerms,
+    warrantyPeriod: workOrder.bid.warrantyPeriod,
+    completionTime: workOrder.bid.completionTime,
     notes: workOrder.bid.notes,
     lineItems: workOrder.bid.lineItems.map((li) => ({
       description: li.description,
