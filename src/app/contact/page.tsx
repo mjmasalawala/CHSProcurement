@@ -16,27 +16,12 @@ export default async function ContactPage({
   searchParams: Promise<{ sent?: string; error?: string }>;
 }) {
   const { sent, error } = await searchParams;
-  const supportEmail = process.env.SUPPORT_EMAIL;
 
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
       <Card className="w-full max-w-sm">
         <h1 className="mb-1 text-[28px] font-bold tracking-tight text-text-primary">Contact Us</h1>
-        <p className="mb-6 text-[13px] text-text-secondary">
-          Have a question or need help? Send us a message
-          {supportEmail ? (
-            <>
-              {" "}
-              or email us directly at{" "}
-              <a href={`mailto:${supportEmail}`} className="text-accent-primary underline">
-                {supportEmail}
-              </a>
-              .
-            </>
-          ) : (
-            "."
-          )}
-        </p>
+        <p className="mb-6 text-[13px] text-text-secondary">Have a question or need help? Send us a message.</p>
 
         {sent && (
           <p className="mb-4 text-[13px] text-status-success">

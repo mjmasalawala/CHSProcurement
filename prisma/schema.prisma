@@ -82,6 +82,10 @@ enum RoleName {
   CHAIRMAN
   SECRETARY
   TREASURER
+  // General Body member — a valid registrantRole for society self-registration
+  // (society-portal-spec.md registration flow), but never gets a RoleAssignment
+  // or portal login: holds no permissions and isn't an invitable role.
+  GB_MEMBER
   OPS_VENDOR_QUEUE
   OPS_SOCIETY_QUEUE
   SUPER_ADMIN
@@ -260,6 +264,14 @@ model Society {
   secretaryName      String
   secretaryPhone     String
   secretaryEmail     String
+  // Who the activation invite actually goes to, when it's someone other than
+  // the registrant — e.g. a GB Member registrant naming a Manager/OB member
+  // to run the account. Null means the invite goes to the registrant
+  // themselves (registrant is already Manager/Secretary/Treasurer/Chairman).
+  inviteeName        String?
+  inviteeRole        RoleName?
+  inviteePhone       String?
+  inviteeEmail       String?
   status             EntityStatus @default(PENDING_VERIFICATION)
   rejectionReason    String?
   // Stamped when status flips to ACTIVE (admin/societies/[id]/actions.ts) —

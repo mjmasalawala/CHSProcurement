@@ -40,6 +40,10 @@ export async function createInvite(params: {
   entityType: EntityType;
   entityId: string | null;
   role: RoleName;
+  // Society self-registration: overrides the generic invite copy with a
+  // "{proposer} has proposed registration of {society}…" framing, since the
+  // invitee isn't necessarily who submitted the registration.
+  registrationPitch?: { proposerName: string; proposerRoleLabel: string; societyName: string };
 }): Promise<{ token: string | null; url: string; emailError?: string }> {
   const existingUser = await prisma.user.findUnique({ where: { email: params.email } });
   const hasRealAccount = !!existingUser?.passwordHash;
@@ -98,7 +102,7 @@ export async function createInvite(params: {
 
   const url = `${base}/invite/${token}`;
   try {
-    await sendInvite({ email: params.email, role: params.role, entityName, url });
+    await sendInvite({ email: params.email, role: params.role, entityName, url, registrationPitch: params.registrationPitch });
   } catch (err) {
     console.error("createInvite: failed to send invite email", err);
     return { token, url, emailError: EMAIL_FAILURE_MESSAGE };

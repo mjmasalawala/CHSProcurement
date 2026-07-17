@@ -53,11 +53,11 @@ export default async function SocietyMembersPage({
     }),
   ]);
 
-  // Chairman/Treasurer are single-seat — the invite form disables re-inviting
-  // a post that already has an active holder (server-enforced too, see
-  // members/actions.ts).
+  // Chairman/Secretary/Treasurer are single-seat — the invite form disables
+  // re-inviting a post that already has an active holder (server-enforced
+  // too, see members/actions.ts).
   const occupiedRoles = members
-    .filter((m) => m.status === "ACTIVE" && (m.role === "CHAIRMAN" || m.role === "TREASURER"))
+    .filter((m) => m.status === "ACTIVE" && (m.role === "CHAIRMAN" || m.role === "SECRETARY" || m.role === "TREASURER"))
     .map((m) => m.role);
 
   const canManageUsers = assignment.permissions.includes(PERMISSIONS.MANAGE_USERS);
@@ -82,8 +82,7 @@ export default async function SocietyMembersPage({
       {canManageUsers && (
         <Card>
           <p className="mb-3 text-[13px] text-text-secondary">
-            Invite the Manager, Chairman, or Treasurer. The Secretary role is assigned once by ProSoc during
-            registration approval.
+            Invite the Manager, Chairman, Secretary, or Treasurer.
           </p>
           <InviteMemberForm societyId={id} occupiedRoles={occupiedRoles} />
         </Card>
@@ -126,7 +125,7 @@ export default async function SocietyMembersPage({
               {canManageUsers && ra.status === "PENDING" && (
                 <ResendInviteButton societyId={id} roleAssignmentId={ra.id} />
               )}
-              {canManageUsers && ra.role !== "SECRETARY" && ra.status !== "PENDING" && (
+              {canManageUsers && ra.status !== "PENDING" && (
                 <ToggleMemberButton societyId={id} roleAssignmentId={ra.id} active={ra.status === "ACTIVE"} />
               )}
               {canProposeRemoval && ra.status === "ACTIVE" && !pendingRemovalByTarget.has(ra.id) && (

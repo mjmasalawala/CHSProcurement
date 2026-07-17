@@ -89,6 +89,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.RECOMMEND_BID,
     PERMISSIONS.FINALIZE_BELOW_THRESHOLD,
     PERMISSIONS.VIEW_ARCHIVE,
+    PERMISSIONS.MANAGE_USERS,
   ],
   [RoleName.CHAIRMAN]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
@@ -97,6 +98,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.APPROVE_MEMBER_REMOVAL,
     PERMISSIONS.CREATE_REQUIREMENT,
     PERMISSIONS.VIEW_ARCHIVE,
+    PERMISSIONS.MANAGE_USERS,
   ],
   [RoleName.SECRETARY]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,
@@ -114,7 +116,13 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.APPROVE_MEMBER_REMOVAL,
     PERMISSIONS.CREATE_REQUIREMENT,
     PERMISSIONS.VIEW_ARCHIVE,
+    PERMISSIONS.MANAGE_USERS,
   ],
+  // Registration attribution only (society self-registration can name a GB
+  // Member as the registrant) — never invited, never gets a RoleAssignment,
+  // so this entry is inert by construction. Kept explicit rather than
+  // omitted so ROLE_DEFAULT_PERMISSIONS stays a total map over RoleName.
+  [RoleName.GB_MEMBER]: [],
   [RoleName.OPS_VENDOR_QUEUE]: [
     PERMISSIONS.VENDOR_QUEUE_ACCESS,
     PERMISSIONS.VENDOR_DIRECTORY_ACCESS,

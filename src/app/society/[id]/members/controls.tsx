@@ -17,6 +17,7 @@ const ROLE_OPTIONS: { value: RoleName; label: string }[] = [
   { value: "MANAGER", label: "Manager" },
   { value: "CHAIRMAN", label: "Chairman" },
   { value: "TREASURER", label: "Treasurer" },
+  { value: "SECRETARY", label: "Secretary" },
 ];
 
 export function InviteMemberForm({

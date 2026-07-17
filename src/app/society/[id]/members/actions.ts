@@ -14,17 +14,17 @@ import { OB_ROLES } from "@/lib/society-ob";
 import { revalidatePath } from "next/cache";
 import type { RoleName } from "@/generated/prisma/enums";
 
-// Secretary is invited once by ProSoc Ops on society approval (M3) and isn't
-// managed from here — this covers society-portal-spec.md Section 3's "the
-// Secretary then invites the Manager (if not already the registrant),
-// Chairman, and Treasurer."
-const INVITABLE_ROLES: RoleName[] = ["MANAGER", "CHAIRMAN", "TREASURER"];
+// The society-registration invite no longer always goes to the Secretary —
+// registration can name any Manager/Chairman/Treasurer/Secretary as the
+// activation invitee (register/society), so whoever's active needs to be
+// able to invite a Secretary too if one wasn't set up at registration time.
+const INVITABLE_ROLES: RoleName[] = ["MANAGER", "CHAIRMAN", "TREASURER", "SECRETARY"];
 
-// Chairman and Treasurer are single-seat posts — inviting a second person
-// while one is ACTIVE would leave two people holding the same OB vote.
-// Manager is exempt: a society can have more than one (society-portal-spec.md
-// Section 2).
-const SINGLE_SEAT_ROLES: RoleName[] = ["CHAIRMAN", "TREASURER"];
+// Chairman, Secretary and Treasurer are single-seat posts — inviting a
+// second person while one is ACTIVE would leave two people holding the same
+// OB vote. Manager is exempt: a society can have more than one
+// (society-portal-spec.md Section 2).
+const SINGLE_SEAT_ROLES: RoleName[] = ["CHAIRMAN", "SECRETARY", "TREASURER"];
 
 export async function inviteMember(
   societyId: string,
