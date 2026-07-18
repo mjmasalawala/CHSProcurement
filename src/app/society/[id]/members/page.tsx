@@ -13,6 +13,7 @@ import {
   ProposeRemovalButton,
   DecideRemovalPanel,
 } from "./controls";
+import { InviteNudgeModal } from "./invite-nudge-modal";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +26,13 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default async function SocietyMembersPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ nudge?: string }>;
 }) {
   const { id } = await params;
+  const { nudge } = await searchParams;
   // Reachable by whoever holds any one of these — MANAGE_USERS (Secretary,
   // for the invite form and Deactivate/Reactivate) or either member-removal
   // permission (any Office Bearer, for propose/decide). Each is checked
@@ -61,6 +65,7 @@ export default async function SocietyMembersPage({
     .map((m) => m.role);
 
   const canManageUsers = assignment.permissions.includes(PERMISSIONS.MANAGE_USERS);
+  const showInviteNudge = nudge === "invite" && canManageUsers;
   const canProposeRemoval = assignment.permissions.includes(PERMISSIONS.PROPOSE_MEMBER_REMOVAL);
   const canDecideRemoval = assignment.permissions.includes(PERMISSIONS.APPROVE_MEMBER_REMOVAL);
   const pendingRemovalByTarget = new Map(pendingRemovals.map((pc) => [pc.oldValue, pc]));
@@ -68,6 +73,8 @@ export default async function SocietyMembersPage({
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Members</h1>
+
+      {showInviteNudge && <InviteNudgeModal societyId={id} />}
 
       {obCount < MIN_ACTIVE_OFFICE_BEARERS && (
         <Card className="border-status-warning-border bg-status-warning-bg">

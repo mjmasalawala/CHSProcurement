@@ -30,9 +30,20 @@ async function markAccepted(inviteId: string, roleAssignmentId: string) {
   ]);
 }
 
-async function signInAndRedirect(email: string, password: string) {
+// First login into a Society role lands on Members instead of the generic
+// /app router, with a nudge to invite the rest of the committee — most
+// pressing right after society registration, when only one person (often
+// not the Secretary) has an account so far.
+function postAcceptRedirectPath(roleAssignment: { entityType: string; entityId: string | null }): string {
+  if (roleAssignment.entityType === "SOCIETY" && roleAssignment.entityId) {
+    return `/society/${roleAssignment.entityId}/members?nudge=invite`;
+  }
+  return "/app";
+}
+
+async function signInAndRedirect(email: string, password: string, redirectTo: string) {
   try {
-    await signIn("credentials", { email, password, redirectTo: "/app" });
+    await signIn("credentials", { email, password, redirectTo });
   } catch (err) {
     if (err instanceof AuthError) redirect("/login");
     throw err;
@@ -141,7 +152,7 @@ export async function verifyInvitePhoneCode(
   if ("error" in result) return result;
 
   await markAccepted(invite.id, invite.roleAssignmentId);
-  await signInAndRedirect(invite.email, password);
+  await signInAndRedirect(invite.email, password, postAcceptRedirectPath(invite.roleAssignment));
 }
 
 /** Existing account: verify their password, then re-establish a fresh session. */
@@ -158,7 +169,7 @@ export async function acceptInviteExistingUser(token: string, formData: FormData
   }
 
   await markAccepted(invite.id, invite.roleAssignmentId);
-  await signInAndRedirect(invite.email, password);
+  await signInAndRedirect(invite.email, password, postAcceptRedirectPath(invite.roleAssignment));
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 // invite-onboarding emails link to (register/society/actions.ts,
 // admin/societies/[id]/actions.ts). A separate vendor-facing FAQ will reuse
 // this same /faq route later (e.g. a tab or a second section further down).
-const FAQS: { id: string; question: string; answer: string }[] = [
+// answer is ReactNode (not just string) so an answer can hyperlink to the
+// page it's referring to instead of naming it as plain text.
+const FAQS: { id: string; question: string; answer: ReactNode }[] = [
   {
     id: "what-is-prosoc",
     question: "What is ProSoc?",
@@ -31,8 +34,18 @@ const FAQS: { id: string; question: string; answer: string }[] = [
   {
     id: "who-can-register",
     question: "Who can register our society — does it have to be the Secretary?",
-    answer:
-      "No. Any Manager, Office Bearer (Chairman, Secretary, or Treasurer), or General Body Member can submit the registration. If a General Body Member registers, they'll be asked to name a Manager or Office Bearer to actually manage the account, since a General Body Member doesn't get platform access themselves. We always keep the Secretary's contact details on file too, even if they're not the one setting things up.",
+    answer: (
+      <>
+        No. Any Manager, Office Bearer (Chairman, Secretary, or Treasurer), or General Body Member can{" "}
+        <Link href="/register/society" className="text-accent-primary underline">
+          submit the registration
+        </Link>
+        . If a General Body Member registers, they&apos;ll be asked to name a Manager or Office Bearer to
+        actually manage the account, since a General Body Member doesn&apos;t get platform access
+        themselves. We always keep the Secretary&apos;s contact details on file too, even if they&apos;re
+        not the one setting things up.
+      </>
+    ),
   },
   {
     id: "after-registration",
@@ -53,6 +66,23 @@ const FAQS: { id: string; question: string; answer: string }[] = [
       "ProSoc automatically invites every vendor whose service category and city match your requirement — you don't have to search for or add them yourself. Vendors submit quotes without seeing what anyone else has bid, so the comparison your Manager sees is based purely on price, line items, and terms.",
   },
   {
+    id: "existing-vendor",
+    question: "What if I want an existing vendor's quote on the platform?",
+    answer: (
+      <>
+        Use the{" "}
+        <Link href="/app" className="text-accent-primary underline">
+          &quot;Ask a Vendor to Register&quot;
+        </Link>{" "}
+        page (in your society portal) to invite them onto ProSoc. Once they register, they&apos;ll be sent
+        your requirement and can submit a quote for it alongside every other matched vendor.
+        <br />
+        <br />
+        Note: you&apos;ll need to be logged in to your society account to do this.
+      </>
+    ),
+  },
+  {
     id: "transparency",
     question: "Is the process transparent for our committee?",
     answer:
@@ -67,7 +97,15 @@ const FAQS: { id: string; question: string; answer: string }[] = [
   {
     id: "support",
     question: "Who do we contact if we have a question or run into an issue?",
-    answer: "Reach out any time through the Contact Us page and we'll get back to you.",
+    answer: (
+      <>
+        Reach out any time through the{" "}
+        <Link href="/contact" className="text-accent-primary underline">
+          Contact Us page
+        </Link>{" "}
+        and we&apos;ll get back to you.
+      </>
+    ),
   },
 ];
 
