@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -241,16 +242,11 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
       <Card className="flex flex-col gap-4">
         <div>
           <Label htmlFor="bidValidity">Quote Validity (date)</Label>
-          <Input
-            id="bidValidity"
-            type="date"
-            value={bidValidity}
-            onChange={(e) => setBidValidity(e.target.value)}
-          />
+          <DateInput id="bidValidity" value={bidValidity} onChange={setBidValidity} className="w-2/5" />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="paymentTerms">Payment Terms (optional)</Label>
+            <Label htmlFor="paymentTerms">Payment Terms</Label>
             <Input
               id="paymentTerms"
               placeholder="e.g. 50% advance, 50% on completion"
@@ -259,7 +255,7 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
             />
           </div>
           <div>
-            <Label htmlFor="warrantyPeriod">Guarantee / Warranty Period (optional)</Label>
+            <Label htmlFor="warrantyPeriod">Guarantee / Warranty Period</Label>
             <Input
               id="warrantyPeriod"
               placeholder="e.g. 1 year"
@@ -268,7 +264,7 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
             />
           </div>
           <div>
-            <Label htmlFor="completionTime">Time to Complete Job (optional)</Label>
+            <Label htmlFor="completionTime">Time to Complete Job</Label>
             <Input
               id="completionTime"
               placeholder="e.g. 2 weeks"
@@ -278,7 +274,7 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
           </div>
         </div>
         <div>
-          <Label htmlFor="notes">Notes / Terms (optional)</Label>
+          <Label htmlFor="notes">Notes / Terms</Label>
           <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
       </Card>

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyPagePermission } from "@/lib/society-auth";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -96,8 +97,8 @@ export default async function SocietyArchivePage({
           ))}
         </Select>
         <Input name="vendor" placeholder="Vendor name" defaultValue={vendor ?? ""} />
-        <Input name="from" type="date" defaultValue={from ?? ""} />
-        <Input name="to" type="date" defaultValue={to ?? ""} />
+        <DateInput name="from" defaultValue={from ?? ""} />
+        <DateInput name="to" defaultValue={to ?? ""} />
         <Button type="submit" className="col-span-2 sm:col-span-5">
           Filter
         </Button>

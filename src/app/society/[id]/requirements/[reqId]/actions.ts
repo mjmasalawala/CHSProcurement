@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { finalizeRequirement } from "@/lib/work-order";
-import { notifyApprovalRequested, notifyReturnedToManager } from "@/lib/notifications";
+import { matchVendors } from "@/lib/matching";
+import { notifyApprovalRequested, notifyReturnedToManager, notifyRequirementMatched } from "@/lib/notifications";
 import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { formatDate } from "@/lib/date";
 import { revalidatePath } from "next/cache";
@@ -28,6 +29,79 @@ export async function updateRequirementName(
   if (!requirement || requirement.societyId !== societyId) return { error: "Requirement not found." };
 
   await prisma.requirement.update({ where: { id: requirementId }, data: { name: trimmed } });
+  revalidatePath(`/society/${societyId}/requirements/${requirementId}`);
+  revalidatePath(`/society/${societyId}/requirements`);
+}
+
+/**
+ * Reopens a requirement that closed with fewer than 3 quotes by pushing its
+ * deadline out, then re-runs the matching engine — a vendor who registered,
+ * or edited their profile, after the original deadline passed would
+ * otherwise never get invited even though they now qualify.
+ */
+export async function extendRequirementDeadline(
+  societyId: string,
+  requirementId: string,
+  newDeadline: string,
+): Promise<{ error: string } | undefined> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.CREATE_REQUIREMENT);
+
+  const requirement = await prisma.requirement.findUnique({
+    where: { id: requirementId },
+    include: { categories: true, bids: { select: { id: true } }, invites: { select: { vendorCompanyId: true } } },
+  });
+  if (!requirement || requirement.societyId !== societyId) return { error: "Requirement not found." };
+  if (requirement.status !== "OPEN") return { error: "This requirement can no longer be extended." };
+  if (requirement.bidDeadline.getTime() > Date.now()) {
+    return { error: "This requirement's deadline hasn't passed yet." };
+  }
+  if (requirement.bids.length >= 3) {
+    return { error: "This requirement already has 3 quotes — it can't be extended further." };
+  }
+
+  const deadline = new Date(newDeadline);
+  if (!newDeadline || Number.isNaN(deadline.getTime()) || deadline.getTime() <= Date.now()) {
+    return { error: "Enter a valid deadline in the future." };
+  }
+
+  await prisma.requirement.update({ where: { id: requirementId }, data: { bidDeadline: deadline } });
+
+  const society = await prisma.society.findUniqueOrThrow({
+    where: { id: societyId },
+    select: { name: true, cityId: true },
+  });
+  const alreadyInvited = new Set(requirement.invites.map((inv) => inv.vendorCompanyId));
+  const matched = await matchVendors(
+    requirement.categories.map((c) => c.id),
+    society.cityId,
+  );
+  const newlyMatched = matched.filter((v) => !alreadyInvited.has(v.id));
+
+  if (newlyMatched.length > 0) {
+    await prisma.requirementInvite.createMany({
+      data: newlyMatched.map((v) => ({ requirementId, vendorCompanyId: v.id })),
+      skipDuplicates: true,
+    });
+
+    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const categoryNames = requirement.categories.map((c) => c.name).join(", ");
+    try {
+      await Promise.all(
+        newlyMatched.map((v) =>
+          notifyRequirementMatched({
+            vendorEmail: v.ownerEmail,
+            vendorPhone: v.ownerPhone,
+            categoryName: categoryNames,
+            societyName: society.name,
+            reviewUrl: `${base}/vendor/${v.id}/requirements/${requirementId}`,
+          }),
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to notify newly matched vendors after deadline extension:", err);
+    }
+  }
+
   revalidatePath(`/society/${societyId}/requirements/${requirementId}`);
   revalidatePath(`/society/${societyId}/requirements`);
 }

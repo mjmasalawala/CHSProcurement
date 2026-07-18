@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { WizardShell } from "@/components/ui/wizard-shell";
 import { Input } from "@/components/ui/input";
+import { DateTimeInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { CheckboxGroup } from "@/components/ui/checkbox-group";
 import { Textarea } from "@/components/ui/textarea";
@@ -119,11 +120,10 @@ export function RequirementWizard({ societyId, categories }: Props) {
         >
           <div>
             <Label htmlFor="bidDeadline">Vendors must submit quotes before</Label>
-            <Input
+            <DateTimeInput
               id="bidDeadline"
-              type="datetime-local"
               value={form.bidDeadline}
-              onChange={(e) => update("bidDeadline", e.target.value)}
+              onChange={(v) => update("bidDeadline", v)}
             />
             <p className="mt-1 text-[13px] text-text-secondary">
               Vendors will be matched with you automatically. They will need to submit their quotes by the

@@ -7,10 +7,11 @@ import { OB_ROLES } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
-import { formatDate, formatDateTime } from "@/lib/date";
+import { formatDate, formatDateTime, formatDuration } from "@/lib/date";
 import { BidComparison } from "./bid-comparison";
 import { ApprovalPanel } from "./approval-panel";
 import { EditableProjectName } from "./editable-name";
+import { ExtendDeadlineButton } from "./extend-deadline";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ export default async function SocietyRequirementDetailPage({
   const canRecommend = assignment.permissions.includes(PERMISSIONS.RECOMMEND_BID);
   const canVote = assignment.permissions.includes(PERMISSIONS.APPROVE_REJECT_QUOTATION);
   const canEditName = assignment.permissions.includes(PERMISSIONS.CREATE_REQUIREMENT);
+  const bidByVendorId = new Map(requirement.bids.map((b) => [b.vendorCompanyId, b.createdAt]));
 
   const obAssignments =
     requirement.status === "AWAITING_APPROVAL"
@@ -94,10 +96,49 @@ export default async function SocietyRequirementDetailPage({
         <p className="text-[13px] font-medium text-text-primary">
           Quote deadline: {formatDateTime(requirement.bidDeadline)} {closed && "(closed)"}
         </p>
-        <p className="text-[13px] text-text-secondary">
-          {requirement.invites.length} vendors matched and invited:{" "}
-          {requirement.invites.map((inv) => inv.vendorCompany.name).join(", ") || "none"}
-        </p>
+        <details className="group text-[13px] text-text-secondary">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+            <span>
+              {requirement.invites.length} vendor{requirement.invites.length === 1 ? "" : "s"} matched and invited
+            </span>
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              className="h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform group-open:rotate-180"
+            >
+              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </summary>
+          {requirement.invites.length === 0 ? (
+            <p className="mt-2 text-text-tertiary">No vendors matched yet.</p>
+          ) : (
+            <table className="mt-2 w-full text-left">
+              <thead>
+                <tr className="border-b border-border-subtle text-[11px] uppercase tracking-wide text-text-tertiary">
+                  <th className="py-1.5 pr-3 font-semibold">Vendor</th>
+                  <th className="py-1.5 pr-3 font-semibold">Matched</th>
+                  <th className="py-1.5 pr-3 font-semibold">Time given</th>
+                  <th className="py-1.5 font-semibold">Quoted</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requirement.invites.map((inv) => {
+                  const windowEnd = closed ? requirement.bidDeadline : new Date();
+                  const givenMs = Math.max(0, windowEnd.getTime() - inv.createdAt.getTime());
+                  const bidAt = bidByVendorId.get(inv.vendorCompanyId);
+                  return (
+                    <tr key={inv.id} className="border-b border-border-subtle last:border-0">
+                      <td className="py-1.5 pr-3 font-medium text-text-primary">{inv.vendorCompany.name}</td>
+                      <td className="whitespace-nowrap py-1.5 pr-3">{formatDate(inv.createdAt)}</td>
+                      <td className="whitespace-nowrap py-1.5 pr-3">{formatDuration(givenMs)}</td>
+                      <td className="whitespace-nowrap py-1.5">{bidAt ? formatDate(bidAt) : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </details>
       </Card>
 
       {requirement.status === "RETURNED_TO_MANAGER" && (
@@ -142,33 +183,43 @@ export default async function SocietyRequirementDetailPage({
         <p className="text-[13px] text-text-secondary">
           Quotes stay blind until the deadline — check back once it closes to compare.
         </p>
-      ) : requirement.bids.length === 0 ? (
-        <p className="text-[13px] text-text-secondary">No quotes were submitted for this requirement.</p>
-      ) : requirement.status === "FINALIZED" ? null : (
-        <BidComparison
-          societyId={id}
-          requirementId={reqId}
-          canRecommend={canRecommend}
-          bids={requirement.bids.map((b) => ({
-            id: b.id,
-            vendorName: b.vendorCompany.name,
-            totalAmount: b.totalAmount.toString(),
-            bidValidity: formatDate(b.bidValidity),
-            paymentTerms: b.paymentTerms,
-            warrantyPeriod: b.warrantyPeriod,
-            completionTime: b.completionTime,
-            notes: b.notes,
-            lineItems: b.lineItems.map((li) => ({
-              description: li.description,
-              quantity: li.quantity.toString(),
-              unit: li.unit,
-              unitRate: li.unitRate.toString(),
-              amount: li.amount.toString(),
-            })),
-          }))}
-          recommendedBidId={requirement.recommendedBidId}
-          recommendationNote={requirement.recommendationNote}
-        />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {requirement.bids.length === 0 && (
+            <p className="text-[13px] text-text-secondary">No quotes were submitted for this requirement.</p>
+          )}
+
+          {requirement.bids.length > 0 && requirement.status !== "FINALIZED" && (
+            <BidComparison
+              societyId={id}
+              requirementId={reqId}
+              canRecommend={canRecommend}
+              bids={requirement.bids.map((b) => ({
+                id: b.id,
+                vendorName: b.vendorCompany.name,
+                totalAmount: b.totalAmount.toString(),
+                bidValidity: formatDate(b.bidValidity),
+                paymentTerms: b.paymentTerms,
+                warrantyPeriod: b.warrantyPeriod,
+                completionTime: b.completionTime,
+                notes: b.notes,
+                lineItems: b.lineItems.map((li) => ({
+                  description: li.description,
+                  quantity: li.quantity.toString(),
+                  unit: li.unit,
+                  unitRate: li.unitRate.toString(),
+                  amount: li.amount.toString(),
+                })),
+              }))}
+              recommendedBidId={requirement.recommendedBidId}
+              recommendationNote={requirement.recommendationNote}
+            />
+          )}
+
+          {canEditName && requirement.status === "OPEN" && requirement.bids.length < 3 && (
+            <ExtendDeadlineButton societyId={id} requirementId={reqId} />
+          )}
+        </div>
       )}
     </div>
   );

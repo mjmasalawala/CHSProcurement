@@ -15,3 +15,15 @@ export function formatDateTime(date: Date | string): string {
   const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
   return `${formatDate(d)}, ${time}`;
 }
+
+// Coarse elapsed/remaining-time phrasing (e.g. "2 days", "18 hours") — for
+// contexts like "given X to quote", where a precise duration is noise.
+export function formatDuration(ms: number): string {
+  const minutes = Math.round(ms / (60 * 1000));
+  if (minutes < 1) return "less than a minute";
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"}`;
+}
