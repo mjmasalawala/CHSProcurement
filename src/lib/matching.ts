@@ -52,6 +52,13 @@ export async function syncVendorRequirementMatches(vendorCompanyId: string): Pro
   const requirements = await prisma.requirement.findMany({
     where: {
       status: "OPEN",
+      // status alone doesn't mean still quotable — it only flips off "OPEN"
+      // on a manual workflow transition (see isClosed() at
+      // vendor/[id]/requirements/[reqId]/page.tsx), not when bidDeadline
+      // passes. Without this, a vendor who edits their profile long after a
+      // requirement's deadline gets invited to something they can never
+      // quote on.
+      bidDeadline: { gt: new Date() },
       categories: { some: { id: { in: categoryIds } } },
       society: { cityId: { in: cityIds } },
       invites: { none: { vendorCompanyId } },

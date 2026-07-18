@@ -43,6 +43,7 @@ async function main() {
   }
   const mumbai = await prisma.city.findUniqueOrThrow({ where: { name: "Mumbai" } });
   const plumbing = await prisma.category.findUniqueOrThrow({ where: { name: "Plumbing" } });
+  const electrical = await prisma.category.findUniqueOrThrow({ where: { name: "Electrical" } });
 
   const vendorCompany = await prisma.vendorCompany.upsert({
     where: { ownerEmail: "owner@example.com" },
@@ -56,6 +57,22 @@ async function main() {
       registeredAddress: "1 Seed Street, Mumbai",
       status: "ACTIVE",
       serviceCategories: { connect: { id: plumbing.id } },
+      citiesServed: { connect: { id: mumbai.id } },
+    },
+  });
+
+  const vendorCompanyTwo = await prisma.vendorCompany.upsert({
+    where: { ownerEmail: "owner2@example.com" },
+    update: {},
+    create: {
+      name: "Seed Electrical Co",
+      businessType: "PROPRIETORSHIP",
+      ownerName: "Vendor Owner Two",
+      ownerPhone: "9000000010",
+      ownerEmail: "owner2@example.com",
+      registeredAddress: "4 Seed Street, Mumbai",
+      status: "ACTIVE",
+      serviceCategories: { connect: { id: electrical.id } },
       citiesServed: { connect: { id: mumbai.id } },
     },
   });
@@ -113,6 +130,24 @@ async function main() {
         create: {
           entityType: "VENDOR_COMPANY",
           entityId: vendorCompany.id,
+          role: RoleName.VENDOR_OWNER,
+          permissions: ROLE_DEFAULT_PERMISSIONS[RoleName.VENDOR_OWNER],
+        },
+      },
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "owner2@example.com" },
+    update: {},
+    create: {
+      email: "owner2@example.com",
+      name: "Vendor Owner Two",
+      passwordHash,
+      roleAssignments: {
+        create: {
+          entityType: "VENDOR_COMPANY",
+          entityId: vendorCompanyTwo.id,
           role: RoleName.VENDOR_OWNER,
           permissions: ROLE_DEFAULT_PERMISSIONS[RoleName.VENDOR_OWNER],
         },
@@ -329,7 +364,7 @@ async function main() {
   });
 
   console.log(
-    "Seeded: owner@example.com, manager@example.com, secretary1@example.com, chairman1@example.com, treasurer1@example.com, admin@example.com (password: password123)",
+    "Seeded: owner@example.com, owner2@example.com, manager@example.com, secretary1@example.com, chairman1@example.com, treasurer1@example.com, admin@example.com (password: password123)",
   );
 }
 
