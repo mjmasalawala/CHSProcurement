@@ -1,5 +1,11 @@
 import { Resend } from "resend";
-import { sendSms } from "@/lib/sms";
+// SMS notifications are disabled for now — MSG91 is wired up for phone-
+// verification OTPs only (lib/phone-verification.ts), since sending
+// anything else requires a separately DLT-registered template per message
+// (product decision, 2026-07-19). Every sendSms(...) call below is commented
+// out, not deleted, so re-enabling a given notification once its template is
+// approved is a one-line uncomment. Re-import when the first one comes back:
+// import { sendSms } from "@/lib/sms";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -177,21 +183,20 @@ export async function notifyVendorSuggested(params: {
   societyName: string;
   registerUrl: string;
 }) {
-  const smsBody = `${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on ProSoc. Register: ${params.registerUrl}`;
-
-  await Promise.all([
-    sendEmail({
-      to: params.vendorEmail,
-      subject: `${params.suggestedByName} suggested you register on ProSoc`,
-      heading: `You've been suggested as a vendor`,
-      paragraphs: [
-        `Hi ${params.vendorName},`,
-        `${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on ProSoc — the platform housing societies use to find and hire vendors like you.`,
-      ],
-      cta: { label: "Register on ProSoc", url: params.registerUrl },
-    }),
-    sendSms({ to: params.vendorPhone, body: `ProSoc: ${smsBody}` }),
-  ]);
+  await sendEmail({
+    to: params.vendorEmail,
+    subject: `${params.suggestedByName} suggested you register on ProSoc`,
+    heading: `You've been suggested as a vendor`,
+    paragraphs: [
+      `Hi ${params.vendorName},`,
+      `${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on ProSoc — the platform housing societies use to find and hire vendors like you.`,
+    ],
+    cta: { label: "Register on ProSoc", url: params.registerUrl },
+  });
+  // SMS intentionally not sent — MSG91 is OTP-only for now, no DLT template
+  // registered for this message yet (product decision, 2026-07-19). Once a
+  // template's approved, re-add:
+  // await sendSms({ to: params.vendorPhone, body: `ProSoc: ${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on ProSoc. Register: ${params.registerUrl}` });
 }
 
 // Note: while RESEND_API_KEY is sandboxed, this — like notifyRejection —
@@ -315,15 +320,14 @@ export async function notifyBidOutcome(params: {
     ? `Congratulations — your quote for "${params.requirementName}" was selected. Check My Quotes / History on ProSoc for the Work Order.`
     : `Your quote for "${params.requirementName}" was not selected this time. Check My Quotes / History on ProSoc for details.`;
 
-  await Promise.all([
-    sendEmail({
-      to: params.vendorEmail,
-      subject: params.won ? "You were selected on ProSoc" : "Quote outcome on ProSoc",
-      heading: params.won ? "You were selected!" : "Quote outcome",
-      paragraphs: [message],
-    }),
-    sendSms({ to: params.vendorPhone, body: `ProSoc: ${message}` }),
-  ]);
+  await sendEmail({
+    to: params.vendorEmail,
+    subject: params.won ? "You were selected on ProSoc" : "Quote outcome on ProSoc",
+    heading: params.won ? "You were selected!" : "Quote outcome",
+    paragraphs: [message],
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.vendorPhone, body: `ProSoc: ${message}` });
 }
 
 export async function notifyThresholdChangeProposed(params: {
@@ -456,21 +460,19 @@ export async function notifyRejection(params: {
   reason: string;
 }) {
   const reason = params.reason || "No reason provided.";
-  const smsBody = `Your ${params.type} registration for "${params.name}" was not approved. Reason: ${reason}`;
 
-  await Promise.all([
-    sendEmail({
-      to: params.contactEmail,
-      subject: `Your ${params.type} registration on ProSoc`,
-      heading: "Registration not approved",
-      paragraphs: [
-        `Your ${params.type} registration for "${params.name}" was not approved.`,
-        `Reason: ${reason}`,
-        `If you believe this was a mistake or would like to re-apply with corrected details, please get in touch with ProSoc support.`,
-      ],
-    }),
-    sendSms({ to: params.contactPhone, body: `ProSoc: ${smsBody}` }),
-  ]);
+  await sendEmail({
+    to: params.contactEmail,
+    subject: `Your ${params.type} registration on ProSoc`,
+    heading: "Registration not approved",
+    paragraphs: [
+      `Your ${params.type} registration for "${params.name}" was not approved.`,
+      `Reason: ${reason}`,
+      `If you believe this was a mistake or would like to re-apply with corrected details, please get in touch with ProSoc support.`,
+    ],
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.contactPhone, body: `ProSoc: Your ${params.type} registration for "${params.name}" was not approved. Reason: ${reason}` });
 }
 
 // M7 — registration confirmation (society-portal-spec.md /
@@ -483,15 +485,14 @@ export async function notifyRegistrationSubmitted(params: {
 }) {
   const body = `Your ${params.type} registration for "${params.name}" on ProSoc has been submitted and is pending verification. We'll notify you once it's reviewed.`;
 
-  await Promise.all([
-    sendEmail({
-      to: params.contactEmail,
-      subject: `Your ${params.type} registration was submitted`,
-      heading: "Registration submitted",
-      paragraphs: [body],
-    }),
-    sendSms({ to: params.contactPhone, body: `ProSoc: ${body}` }),
-  ]);
+  await sendEmail({
+    to: params.contactEmail,
+    subject: `Your ${params.type} registration was submitted`,
+    heading: "Registration submitted",
+    paragraphs: [body],
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.contactPhone, body: `ProSoc: ${body}` });
 }
 
 // M7 — registration approval (currently only wired for Vendors: Society
@@ -507,18 +508,15 @@ export async function notifyApproval(params: {
   // this is just for the Vendor Owner's "check requirements" nudge.
   dashboardUrl?: string;
 }) {
-  const smsBody = `Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.`;
-
-  await Promise.all([
-    sendEmail({
-      to: params.contactEmail,
-      subject: `Your ${params.type} registration was approved`,
-      heading: "Registration approved",
-      paragraphs: [`Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.`],
-      cta: params.dashboardUrl ? { label: "Go to your dashboard", url: params.dashboardUrl } : undefined,
-    }),
-    sendSms({ to: params.contactPhone, body: `ProSoc: ${smsBody}` }),
-  ]);
+  await sendEmail({
+    to: params.contactEmail,
+    subject: `Your ${params.type} registration was approved`,
+    heading: "Registration approved",
+    paragraphs: [`Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.`],
+    cta: params.dashboardUrl ? { label: "Go to your dashboard", url: params.dashboardUrl } : undefined,
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.contactPhone, body: `ProSoc: Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.` });
 }
 
 // Society registration confirmation to the registrant, sent only when the
@@ -554,18 +552,15 @@ export async function notifyRequirementMatched(params: {
   societyName: string;
   reviewUrl: string;
 }) {
-  const smsBody = `A new ${params.categoryName} requirement from ${params.societyName} matches your profile. Submit your quote: ${params.reviewUrl}`;
-
-  await Promise.all([
-    sendEmail({
-      to: params.vendorEmail,
-      subject: `New requirement matched: ${params.categoryName}`,
-      heading: "New requirement matched",
-      paragraphs: [`A new ${params.categoryName} requirement from ${params.societyName} matches your profile.`],
-      cta: { label: "Submit your quote", url: params.reviewUrl },
-    }),
-    sendSms({ to: params.vendorPhone, body: `ProSoc: ${smsBody}` }),
-  ]);
+  await sendEmail({
+    to: params.vendorEmail,
+    subject: `New requirement matched: ${params.categoryName}`,
+    heading: "New requirement matched",
+    paragraphs: [`A new ${params.categoryName} requirement from ${params.societyName} matches your profile.`],
+    cta: { label: "Submit your quote", url: params.reviewUrl },
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.vendorPhone, body: `ProSoc: A new ${params.categoryName} requirement from ${params.societyName} matches your profile. Submit your quote: ${params.reviewUrl}` });
 }
 
 // Used when a vendor becomes newly eligible for several open requirements at
@@ -580,20 +575,16 @@ export async function notifyVendorMatchedRequirements(params: {
 }) {
   const count = params.requirements.length;
 
-  await Promise.all([
-    sendEmail({
-      to: params.vendorEmail,
-      subject: `You've been matched with ${count} new requirement${count === 1 ? "" : "s"}`,
-      heading: "New requirements matched",
-      paragraphs: [`You've been matched with ${count} new requirement${count === 1 ? "" : "s"} that fit your profile:`],
-      list: params.requirements.map((r) => `${r.categoryName} for ${r.societyName}`),
-      cta: { label: "View your dashboard", url: params.dashboardUrl },
-    }),
-    sendSms({
-      to: params.vendorPhone,
-      body: `ProSoc: You've been matched with ${count} new requirement${count === 1 ? "" : "s"}. Check your dashboard: ${params.dashboardUrl}`,
-    }),
-  ]);
+  await sendEmail({
+    to: params.vendorEmail,
+    subject: `You've been matched with ${count} new requirement${count === 1 ? "" : "s"}`,
+    heading: "New requirements matched",
+    paragraphs: [`You've been matched with ${count} new requirement${count === 1 ? "" : "s"} that fit your profile:`],
+    list: params.requirements.map((r) => `${r.categoryName} for ${r.societyName}`),
+    cta: { label: "View your dashboard", url: params.dashboardUrl },
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.vendorPhone, body: `ProSoc: You've been matched with ${count} new requirement${count === 1 ? "" : "s"}. Check your dashboard: ${params.dashboardUrl}` });
 }
 
 // M7 — vendor-registration-portal-spec.md Section 9, "New category request
@@ -608,15 +599,14 @@ export async function notifyCategoryRequestDecided(params: {
     ? `Your requested category "${params.categoryName}" has been approved and added to your profile.`
     : `Your requested category "${params.categoryName}" was not approved.`;
 
-  await Promise.all([
-    sendEmail({
-      to: params.vendorEmail,
-      subject: `Category request ${params.approved ? "approved" : "rejected"}: ${params.categoryName}`,
-      heading: `Category request ${params.approved ? "approved" : "rejected"}`,
-      paragraphs: [body],
-    }),
-    sendSms({ to: params.vendorPhone, body: `ProSoc: ${body}` }),
-  ]);
+  await sendEmail({
+    to: params.vendorEmail,
+    subject: `Category request ${params.approved ? "approved" : "rejected"}: ${params.categoryName}`,
+    heading: `Category request ${params.approved ? "approved" : "rejected"}`,
+    paragraphs: [body],
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.vendorPhone, body: `ProSoc: ${body}` });
 }
 
 // M7 — society-portal-spec.md Section 9, "Requirement's bid deadline
@@ -692,16 +682,13 @@ export async function notifyBidDeadlineReminder(params: {
   requirementName: string;
   reviewUrl: string;
 }) {
-  const smsBody = `The quote deadline for "${params.requirementName}" closes within 24 hours. Submit your quote: ${params.reviewUrl}`;
-
-  await Promise.all([
-    sendEmail({
-      to: params.vendorEmail,
-      subject: "Quote deadline closing soon",
-      heading: "Quote deadline closing soon",
-      paragraphs: [`The quote deadline for "${params.requirementName}" closes within 24 hours.`],
-      cta: { label: "Submit your quote", url: params.reviewUrl },
-    }),
-    sendSms({ to: params.vendorPhone, body: `ProSoc: ${smsBody}` }),
-  ]);
+  await sendEmail({
+    to: params.vendorEmail,
+    subject: "Quote deadline closing soon",
+    heading: "Quote deadline closing soon",
+    paragraphs: [`The quote deadline for "${params.requirementName}" closes within 24 hours.`],
+    cta: { label: "Submit your quote", url: params.reviewUrl },
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.vendorPhone, body: `ProSoc: The quote deadline for "${params.requirementName}" closes within 24 hours. Submit your quote: ${params.reviewUrl}` });
 }

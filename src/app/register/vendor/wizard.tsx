@@ -10,6 +10,7 @@ import { CheckboxGroup } from "@/components/ui/checkbox-group";
 import { TagInput } from "@/components/ui/tag-input";
 import { Button } from "@/components/ui/button";
 import { registerVendor, type VendorRegistrationInput } from "./actions";
+import { isValidEmail } from "@/lib/validation";
 
 const BUSINESS_TYPES = [
   { value: "PROPRIETORSHIP", label: "Proprietorship" },
@@ -57,7 +58,7 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
 
   const canProceed = {
     1: !!(form.name && form.businessType && form.ownerName),
-    2: !!(form.ownerEmail && form.ownerPhone && form.registeredAddress && form.password.length >= 8),
+    2: !!(isValidEmail(form.ownerEmail) && form.ownerPhone && form.registeredAddress && form.password.length >= 8),
     3: form.categoryIds.length > 0,
     4: form.cityIds.length > 0,
     5: true,
@@ -134,6 +135,9 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
               value={form.ownerEmail}
               onChange={(e) => update("ownerEmail", e.target.value)}
             />
+            {form.ownerEmail && !isValidEmail(form.ownerEmail) && (
+              <p className="mt-1 text-[13px] text-status-error">Enter a valid email address.</p>
+            )}
           </div>
           <div>
             <Label htmlFor="ownerPhone">Owner Phone</Label>

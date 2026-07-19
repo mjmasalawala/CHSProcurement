@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { registerSociety } from "./actions";
 import { REGISTRANT_ROLES, INVITEE_ROLES, type SocietyRegistrationInput } from "./data";
+import { isValidEmail } from "@/lib/validation";
 
 const ROLE_LABELS: Record<string, string> = {
   MANAGER: "Manager",
@@ -80,9 +81,14 @@ export function SocietyRegistrationWizard({ cities }: Props) {
   const canProceed: Record<string, boolean> = {
     basics: !!(form.name && form.address && form.cityId),
     details: !!form.unitsCount,
-    registrant: !!(form.registrantRole && form.registrantName && form.registrantPhone && form.registrantEmail),
-    invitee: !!(form.inviteeRole && form.inviteeName && form.inviteePhone && form.inviteeEmail),
-    secretary: !!(form.secretaryName && form.secretaryPhone && form.secretaryEmail),
+    registrant: !!(
+      form.registrantRole &&
+      form.registrantName &&
+      form.registrantPhone &&
+      isValidEmail(form.registrantEmail)
+    ),
+    invitee: !!(form.inviteeRole && form.inviteeName && form.inviteePhone && isValidEmail(form.inviteeEmail)),
+    secretary: !!(form.secretaryName && form.secretaryPhone && isValidEmail(form.secretaryEmail)),
     review: true,
   };
 
@@ -96,12 +102,20 @@ export function SocietyRegistrationWizard({ cities }: Props) {
   async function handleSubmit() {
     setSubmitting(true);
     setError(null);
-    const result = await registerSociety(form);
-    if ("error" in result) {
-      setError(result.error);
+    try {
+      const result = await registerSociety(form);
+      if ("error" in result) {
+        setError(result.error);
+        setSubmitting(false);
+      } else {
+        setSubmitted(true);
+      }
+    } catch {
+      // Belt-and-suspenders: registerSociety shouldn't throw (notification
+      // failures are caught server-side), but if it ever does, don't leave
+      // the button stuck on "Submitting…" forever.
+      setError("Something went wrong. Please try again.");
       setSubmitting(false);
-    } else {
-      setSubmitted(true);
     }
   }
 
@@ -236,6 +250,9 @@ export function SocietyRegistrationWizard({ cities }: Props) {
               value={form.registrantEmail}
               onChange={(e) => update("registrantEmail", e.target.value)}
             />
+            {form.registrantEmail && !isValidEmail(form.registrantEmail) && (
+              <p className="mt-1 text-[13px] text-status-error">Enter a valid email address.</p>
+            )}
           </div>
         </WizardShell>
       )}
@@ -284,6 +301,9 @@ export function SocietyRegistrationWizard({ cities }: Props) {
               value={form.inviteeEmail}
               onChange={(e) => update("inviteeEmail", e.target.value)}
             />
+            {form.inviteeEmail && !isValidEmail(form.inviteeEmail) && (
+              <p className="mt-1 text-[13px] text-status-error">Enter a valid email address.</p>
+            )}
           </div>
         </WizardShell>
       )}
@@ -328,6 +348,9 @@ export function SocietyRegistrationWizard({ cities }: Props) {
               value={form.secretaryEmail}
               onChange={(e) => update("secretaryEmail", e.target.value)}
             />
+            {form.secretaryEmail && !isValidEmail(form.secretaryEmail) && (
+              <p className="mt-1 text-[13px] text-status-error">Enter a valid email address.</p>
+            )}
           </div>
         </WizardShell>
       )}

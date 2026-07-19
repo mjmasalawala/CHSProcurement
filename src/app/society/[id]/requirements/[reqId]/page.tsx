@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyAssignment } from "@/lib/society-auth";
@@ -30,6 +31,7 @@ export default async function SocietyRequirementDetailPage({
   // actions are separately gated by RECOMMEND_BID / APPROVE_REJECT_QUOTATION
   // at the action layer.
   const assignment = await requireSocietyAssignment(id, `/society/${id}/requirements/${reqId}`);
+  const session = await auth();
 
   const requirement = await prisma.requirement.findUnique({
     where: { id: reqId },
@@ -65,6 +67,7 @@ export default async function SocietyRequirementDetailPage({
     const vote = requirement.quotationApprovals.find((qa) => qa.officeBearerUserId === ra.userId);
     return { role: ra.role, name: ra.user.name ?? ra.user.email, decision: vote?.decision ?? null };
   });
+  const hasVoted = requirement.quotationApprovals.some((qa) => qa.officeBearerUserId === session?.user.id);
 
   return (
     <div className="flex flex-col gap-6">
@@ -176,7 +179,12 @@ export default async function SocietyRequirementDetailPage({
       )}
 
       {requirement.status === "AWAITING_APPROVAL" && (
-        <ApprovalPanel societyId={id} requirementId={reqId} votes={votes} canVote={canVote} />
+        <ApprovalPanel
+          societyId={id}
+          requirementId={reqId}
+          votes={votes}
+          canVote={canVote && !hasVoted}
+        />
       )}
 
       {!closed ? (

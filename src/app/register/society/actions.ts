@@ -55,21 +55,28 @@ export async function registerSociety(
   });
 
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  await Promise.all([
-    notifyNewRegistration({
-      type: "Society",
-      name: input.name,
-      contactName: input.registrantName,
-      contactEmail: input.registrantEmail,
-      approveUrl: `${base}/admin/societies/${society.id}`,
-    }),
-    notifyRegistrationSubmitted({
-      type: "Society",
-      name: input.name,
-      contactEmail: input.registrantEmail,
-      contactPhone: input.registrantPhone,
-    }),
-  ]);
+  try {
+    await Promise.all([
+      notifyNewRegistration({
+        type: "Society",
+        name: input.name,
+        contactName: input.registrantName,
+        contactEmail: input.registrantEmail,
+        approveUrl: `${base}/admin/societies/${society.id}`,
+      }),
+      notifyRegistrationSubmitted({
+        type: "Society",
+        name: input.name,
+        contactEmail: input.registrantEmail,
+        contactPhone: input.registrantPhone,
+      }),
+    ]);
+  } catch (err) {
+    // The Society is already committed — a notification failure (e.g.
+    // Resend sandbox rejecting an unverified recipient) shouldn't fail the
+    // whole action and leave the wizard stuck on "Submitting…" forever.
+    console.error("Failed to send society-registration notifications:", err);
+  }
 
   return { ok: true };
 }
