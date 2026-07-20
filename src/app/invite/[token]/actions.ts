@@ -117,7 +117,16 @@ export async function submitInviteProfile(
     data: { name: trimmedName },
   });
 
-  await sendPhoneVerificationCode(invite.roleAssignment.userId, trimmedPhone);
+  try {
+    await sendPhoneVerificationCode(invite.roleAssignment.userId, trimmedPhone);
+  } catch (err) {
+    // Unlike a post-completion notification, OTP delivery IS the action here
+    // — a WhatsApp send failure means the user genuinely has no code to
+    // enter, so this must surface as an error rather than silently letting
+    // them proceed to a step 3 they can't complete.
+    console.error("Failed to send invite phone verification code:", err);
+    return { error: "Couldn't send your verification code. Please try again." };
+  }
 
   return { ok: true };
 }
@@ -134,7 +143,12 @@ export async function resendInvitePhoneCode(token: string): Promise<{ error: str
   });
   if (!lastAttempt) return { error: "Enter your phone number again first." };
 
-  await sendPhoneVerificationCode(invite.roleAssignment.userId, lastAttempt.phone);
+  try {
+    await sendPhoneVerificationCode(invite.roleAssignment.userId, lastAttempt.phone);
+  } catch (err) {
+    console.error("Failed to resend invite phone verification code:", err);
+    return { error: "Couldn't send your verification code. Please try again." };
+  }
   return { ok: true };
 }
 

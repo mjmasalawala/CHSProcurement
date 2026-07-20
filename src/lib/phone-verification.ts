@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { sendSms } from "@/lib/sms";
+// OTP now goes over WhatsApp, not SMS — DLT entity/template registration for
+// SMS costs ~₹5000+GST and isn't happening right now, while WhatsApp
+// template approval is free and handled directly by Meta (product decision,
+// 2026-07-19). See lib/whatsapp.ts for the send + its own console-log
+// fallback until a Meta Business Platform number/template is configured.
+import { sendWhatsappOtp } from "@/lib/whatsapp";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -8,11 +13,9 @@ function generateCode(): string {
 }
 
 /**
- * Creates a fresh OTP row and "sends" it via sendSms — a placeholder until a
- * real SMS provider is wired up (see lib/sms.ts), so today this just logs
- * `[sms:stub] ...` to the server console. A new row on every call rather
- * than updating one in place, so requesting a new code invalidates any
- * earlier one instead of leaving it replayable.
+ * Creates a fresh OTP row and sends it over WhatsApp (lib/whatsapp.ts) — a
+ * new row on every call rather than updating one in place, so requesting a
+ * new code invalidates any earlier one instead of leaving it replayable.
  */
 export async function sendPhoneVerificationCode(userId: string, phone: string): Promise<void> {
   const code = generateCode();
@@ -20,10 +23,7 @@ export async function sendPhoneVerificationCode(userId: string, phone: string): 
     data: { userId, phone, code, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
   });
 
-  await sendSms({
-    to: phone,
-    body: `ProSoc: Your verification code is ${code}. It expires in 10 minutes.`,
-  });
+  await sendWhatsappOtp({ to: phone, code });
 }
 
 /**

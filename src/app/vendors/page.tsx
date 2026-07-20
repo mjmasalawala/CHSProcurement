@@ -91,6 +91,9 @@ export default function VendorsLandingPage() {
         <Link href="/register/vendor">
           <Button>Register Your Business</Button>
         </Link>
+        <Link href="/faq/vendors">
+          <Button variant="secondary">FAQ</Button>
+        </Link>
       </section>
     </main>
   );

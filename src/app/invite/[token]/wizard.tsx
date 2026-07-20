@@ -45,15 +45,20 @@ export function InviteOnboardingWizard({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const result = await submitInviteProfile(token, name, phone);
-    setSubmitting(false);
-    if ("error" in result) {
-      setError(result.error);
-      return;
+    try {
+      const result = await submitInviteProfile(token, name, phone);
+      setSubmitting(false);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setStep(3);
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+      startCooldownTimer();
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setSubmitting(false);
     }
-    setStep(3);
-    setCooldown(RESEND_COOLDOWN_SECONDS);
-    startCooldownTimer();
   }
 
   function startCooldownTimer() {
@@ -71,12 +76,17 @@ export function InviteOnboardingWizard({
   async function handleResend() {
     setSubmitting(true);
     setError(null);
-    const result = await resendInvitePhoneCode(token);
-    setSubmitting(false);
-    if ("error" in result) setError(result.error);
-    else {
-      setCooldown(RESEND_COOLDOWN_SECONDS);
-      startCooldownTimer();
+    try {
+      const result = await resendInvitePhoneCode(token);
+      setSubmitting(false);
+      if ("error" in result) setError(result.error);
+      else {
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+        startCooldownTimer();
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setSubmitting(false);
     }
   }
 
@@ -142,8 +152,8 @@ export function InviteOnboardingWizard({
           <div>
             <Label htmlFor="code">Verification code</Label>
             <p className="mb-1.5 text-[13px] text-text-secondary">
-              We sent a 6-digit code to {phone}. SMS delivery isn&apos;t connected yet — check the server
-              logs for the code.
+              We sent a 6-digit code to {phone} on WhatsApp. WhatsApp delivery isn&apos;t connected yet —
+              check the server logs for the code.
             </p>
             <Input
               id="code"

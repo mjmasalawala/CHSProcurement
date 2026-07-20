@@ -11,7 +11,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "2. How we use your information",
-    body: "We use your information to operate the ProSoc platform: matching requirements with eligible vendors, facilitating quotations and approvals, sending transactional notifications by email, verifying phone numbers via SMS one-time codes, and maintaining a permanent, auditable record of procurement activity on the platform.",
+    body: "We use your information to operate the ProSoc platform: matching requirements with eligible vendors, facilitating quotations and approvals, sending transactional notifications by email, verifying phone numbers via WhatsApp one-time codes, and maintaining a permanent, auditable record of procurement activity on the platform.",
   },
   {
     title: "3. Sharing of information",

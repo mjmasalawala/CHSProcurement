@@ -12,7 +12,8 @@ const LINK_GROUPS: { title: string; links: { label: string; href: string }[] }[]
     title: "Company",
     links: [
       { label: "About ProSoc", href: "/about" },
-      { label: "FAQ", href: "/faq" },
+      { label: "FAQ (Societies)", href: "/faq" },
+      { label: "FAQ (Vendors)", href: "/faq/vendors" },
       { label: "Contact Us", href: "/contact" },
     ],
   },
