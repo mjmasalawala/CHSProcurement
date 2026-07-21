@@ -7,6 +7,7 @@ import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { matchVendors } from "@/lib/matching";
 import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { notifyRequirementMatched } from "@/lib/notifications";
+import { checkRequirementCompleteness } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 
 export interface RequirementCreationInput {
@@ -14,6 +15,37 @@ export interface RequirementCreationInput {
   name: string;
   description: string;
   bidDeadline: string;
+}
+
+/**
+ * Soft completeness nudge (requirement-completeness brainstorm, 2026-07-21)
+ * — fires once when the wizard moves past the description step. Fails open:
+ * any error (AI outage, missing key) returns an empty list rather than
+ * throwing, so a flaky check never blocks requirement creation.
+ */
+export async function checkDescriptionCompleteness(
+  societyId: string,
+  categoryIds: string[],
+  description: string,
+): Promise<{ questions: string[] }> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.CREATE_REQUIREMENT);
+
+  if (!description.trim() || !categoryIds.length) return { questions: [] };
+
+  try {
+    const categories = await prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { name: true },
+    });
+    const questions = await checkRequirementCompleteness(
+      description,
+      categories.map((c) => c.name),
+    );
+    return { questions };
+  } catch (err) {
+    console.error("Requirement completeness check failed:", err);
+    return { questions: [] };
+  }
 }
 
 /**

@@ -78,7 +78,7 @@ export default async function RequirementDetailPage({
       </div>
 
       <Card className="flex flex-col gap-2">
-        <p className="text-[15px] text-text-primary">{requirement.description}</p>
+        <p className="text-[15px] whitespace-pre-line text-text-primary">{requirement.description}</p>
         <p className="text-[13px] font-medium text-text-primary">
           Quote deadline: {formatDateTime(requirement.bidDeadline)} {closed && "(closed)"}
         </p>

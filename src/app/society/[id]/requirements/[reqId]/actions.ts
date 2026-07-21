@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -11,9 +12,118 @@ import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@
 import { formatDate } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 
+export interface RequirementEditInput {
+  categoryIds: string[];
+  name: string;
+  description: string;
+  bidDeadline: string;
+}
+
+/**
+ * Full edit (name/categories/description/deadline) — distinct from the
+ * inline rename (updateRequirementName) and from ExtendDeadlineButton
+ * (which specifically reopens an already-closed requirement, without
+ * touching name/categories/description). Only allowed while the
+ * requirement is still OPEN and no vendor has quoted yet — a passed
+ * deadline doesn't lock it (0 quotes means nothing was priced against the
+ * old version), but once a Bid exists, it was priced against the
+ * requirement as originally written, so changing anything underneath it
+ * would invalidate that quote silently.
+ */
+export async function updateRequirement(
+  societyId: string,
+  requirementId: string,
+  input: RequirementEditInput,
+): Promise<{ error: string } | undefined> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.CREATE_REQUIREMENT);
+
+  const requirement = await prisma.requirement.findUnique({
+    where: { id: requirementId },
+    include: { bids: { select: { id: true } }, invites: { select: { vendorCompanyId: true } } },
+  });
+  if (!requirement || requirement.societyId !== societyId) return { error: "Requirement not found." };
+  if (requirement.status !== "OPEN") return { error: "This requirement can no longer be edited." };
+  if (requirement.bids.length > 0) {
+    return { error: "A vendor has already submitted a quote — this requirement can no longer be edited." };
+  }
+
+  if (
+    !input.categoryIds.length ||
+    !input.name.trim() ||
+    !input.description.trim() ||
+    !input.bidDeadline
+  ) {
+    return { error: "Project name, at least one category, description, and deadline are required." };
+  }
+
+  const bidDeadline = new Date(input.bidDeadline);
+  if (bidDeadline.getTime() <= Date.now()) {
+    return { error: "Bid deadline must be in the future." };
+  }
+
+  const society = await prisma.society.findUniqueOrThrow({
+    where: { id: societyId },
+    select: { name: true, cityId: true },
+  });
+
+  const updated = await prisma.requirement.update({
+    where: { id: requirementId },
+    data: {
+      categories: { set: input.categoryIds.map((id) => ({ id })) },
+      name: input.name.trim(),
+      description: input.description.trim(),
+      bidDeadline,
+    },
+    include: { categories: true },
+  });
+
+  // Categories may have changed — invite any newly-matching vendors, same
+  // as extendRequirementDeadline. Never un-invites: a vendor already
+  // notified stays invited even if a category they don't service was
+  // removed, rather than yanking access mid-flow.
+  const alreadyInvited = new Set(requirement.invites.map((inv) => inv.vendorCompanyId));
+  const matched = await matchVendors(
+    input.categoryIds,
+    society.cityId,
+  );
+  const newlyMatched = matched.filter((v) => !alreadyInvited.has(v.id));
+
+  if (newlyMatched.length > 0) {
+    await prisma.requirementInvite.createMany({
+      data: newlyMatched.map((v) => ({ requirementId, vendorCompanyId: v.id })),
+      skipDuplicates: true,
+    });
+
+    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const categoryNames = updated.categories.map((c) => c.name).join(", ");
+    try {
+      await Promise.all(
+        newlyMatched.map((v) =>
+          notifyRequirementMatched({
+            vendorEmail: v.ownerEmail,
+            vendorPhone: v.ownerPhone,
+            categoryName: categoryNames,
+            societyName: society.name,
+            reviewUrl: `${base}/vendor/${v.id}/requirements/${requirementId}`,
+          }),
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to notify newly matched vendors after requirement edit:", err);
+    }
+  }
+
+  revalidatePath(`/society/${societyId}/requirements/${requirementId}`);
+  revalidatePath(`/society/${societyId}/requirements`);
+  redirect(`/society/${societyId}/requirements/${requirementId}`);
+}
+
 /**
  * Inline rename from the requirement detail page — same permission as
  * raising the requirement (Manager or Office Bearer, CREATE_REQUIREMENT).
+ * Same locked-after-first-quote rule as updateRequirement, for consistency
+ * (the UI already hides the input once ineligible; this is the
+ * defense-in-depth check server-side).
  */
 export async function updateRequirementName(
   societyId: string,
@@ -25,8 +135,14 @@ export async function updateRequirementName(
   const trimmed = name.trim();
   if (!trimmed) return { error: "Project name can't be empty." };
 
-  const requirement = await prisma.requirement.findUnique({ where: { id: requirementId } });
+  const requirement = await prisma.requirement.findUnique({
+    where: { id: requirementId },
+    include: { bids: { select: { id: true } } },
+  });
   if (!requirement || requirement.societyId !== societyId) return { error: "Requirement not found." };
+  if (requirement.status !== "OPEN" || requirement.bids.length > 0) {
+    return { error: "This requirement can no longer be edited." };
+  }
 
   await prisma.requirement.update({ where: { id: requirementId }, data: { name: trimmed } });
   revalidatePath(`/society/${societyId}/requirements/${requirementId}`);

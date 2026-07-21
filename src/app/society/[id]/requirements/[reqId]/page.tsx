@@ -53,6 +53,13 @@ export default async function SocietyRequirementDetailPage({
   const canRecommend = assignment.permissions.includes(PERMISSIONS.RECOMMEND_BID);
   const canVote = assignment.permissions.includes(PERMISSIONS.APPROVE_REJECT_QUOTATION);
   const canEditName = assignment.permissions.includes(PERMISSIONS.CREATE_REQUIREMENT);
+  // Once a vendor has quoted, they priced against the requirement as it
+  // stood — editing name/categories/description/deadline underneath that
+  // quote would invalidate it silently, so editing (of any kind) locks the
+  // moment the first Bid lands. A passed deadline alone doesn't lock it —
+  // 0 quotes means nothing was priced against the old version. Mirrors the
+  // guard in updateRequirement.
+  const canEditRequirement = canEditName && requirement.status === "OPEN" && requirement.bids.length === 0;
   const bidByVendorId = new Map(requirement.bids.map((b) => [b.vendorCompanyId, b.createdAt]));
 
   const obAssignments =
@@ -84,9 +91,27 @@ export default async function SocietyRequirementDetailPage({
             societyId={id}
             requirementId={reqId}
             initialName={requirement.name}
-            canEdit={canEditName}
+            canEdit={canEditRequirement}
           />
           <Badge tone={statusTone(requirement.status)}>{statusLabel(requirement.status)}</Badge>
+          {canEditRequirement && (
+            <Link
+              href={`/society/${id}/requirements/${reqId}/edit`}
+              aria-label="Edit requirement"
+              title="Edit requirement"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-text-tertiary transition-colors hover:bg-background-tertiary hover:text-text-primary"
+            >
+              <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden>
+                <path
+                  d="M13.5 3.5L16.5 6.5M4 16L4.6 13.1C4.66 12.8 4.8 12.53 5.02 12.32L12.6 4.73C13 4.34 13.63 4.34 14.02 4.73L15.27 5.98C15.66 6.37 15.66 7 15.27 7.4L7.68 14.98C7.47 15.2 7.2 15.34 6.9 15.4L4 16Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Link>
+          )}
         </div>
         <p className="text-[13px] text-text-secondary">{requirement.categories.map((c) => c.name).join(", ")}</p>
         <p className="text-[13px] text-text-tertiary">
@@ -95,7 +120,7 @@ export default async function SocietyRequirementDetailPage({
       </div>
 
       <Card className="flex flex-col gap-2">
-        <p className="text-[15px] text-text-primary">{requirement.description}</p>
+        <p className="text-[15px] whitespace-pre-line text-text-primary">{requirement.description}</p>
         <p className="text-[13px] font-medium text-text-primary">
           Quote deadline: {formatDateTime(requirement.bidDeadline)} {closed && "(closed)"}
         </p>
