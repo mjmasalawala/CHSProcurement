@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { SearchInput } from "@/components/ui/search-input";
 import { formatDateTime } from "@/lib/date";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +22,36 @@ function statusFor(
 
 export default async function VendorRequirementsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { id } = await params;
   await requireVendorPagePermission(id, PERMISSIONS.VIEW_REQUIREMENTS_INBOX, `/vendor/${id}/requirements`);
 
+  const { q } = await searchParams;
+
+  const where: Prisma.RequirementInviteWhereInput = { vendorCompanyId: id };
+  if (q) {
+    where.OR = [
+      { requirement: { name: { contains: q, mode: "insensitive" } } },
+      { requirement: { description: { contains: q, mode: "insensitive" } } },
+      { requirement: { categories: { some: { name: { contains: q, mode: "insensitive" } } } } },
+      // Only matches the society's real name for invites already revealed —
+      // otherwise search would leak an unrevealed society's identity to a
+      // vendor who guesses its name, defeating the reveal gate.
+      {
+        AND: [
+          { contactRevealedAt: { not: null } },
+          { requirement: { society: { name: { contains: q, mode: "insensitive" } } } },
+        ],
+      },
+    ];
+  }
+
   const invites = await prisma.requirementInvite.findMany({
-    where: { vendorCompanyId: id },
+    where,
     include: {
       requirement: {
         include: {
@@ -44,10 +68,13 @@ export default async function VendorRequirementsPage({
     <div className="flex flex-col gap-6">
       <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Requirements Inbox</h1>
 
+      <SearchInput placeholder="Search by name, description, category, or society…" />
+
       {invites.length === 0 ? (
         <p className="text-[13px] text-text-secondary">
-          No requirements yet — you&apos;ll see requirements here once ProSoc&apos;s matching engine invites
-          you to quote.
+          {q
+            ? "No requirements match your search."
+            : "No requirements yet — you'll see requirements here once ProSoc's matching engine invites you to quote."}
         </p>
       ) : (
         <div className="flex flex-col gap-2">

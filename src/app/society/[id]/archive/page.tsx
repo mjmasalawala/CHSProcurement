@@ -23,6 +23,7 @@ const STATUS_OPTIONS: { value: RequirementStatus | ""; label: string }[] = [
 ];
 
 interface SearchParams {
+  q?: string;
   category?: string;
   status?: string;
   vendor?: string;
@@ -40,9 +41,17 @@ export default async function SocietyArchivePage({
   const { id } = await params;
   await requireSocietyPagePermission(id, PERMISSIONS.VIEW_ARCHIVE, `/society/${id}/archive`);
 
-  const { category, status, vendor, from, to } = await searchParams;
+  const { q, category, status, vendor, from, to } = await searchParams;
 
   const where: Prisma.RequirementWhereInput = { societyId: id };
+  if (q) {
+    where.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { categories: { some: { name: { contains: q, mode: "insensitive" } } } },
+      { bids: { some: { vendorCompany: { name: { contains: q, mode: "insensitive" } } } } },
+    ];
+  }
   if (category) where.categories = { some: { id: category } };
   if (status) where.status = status as RequirementStatus;
   if (vendor) where.bids = { some: { vendorCompany: { name: { contains: vendor, mode: "insensitive" } } } };
@@ -80,28 +89,31 @@ export default async function SocietyArchivePage({
         deleted from this view.
       </p>
 
-      <form className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <Select name="category" defaultValue={category ?? ""}>
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
-        <Select name="status" defaultValue={status ?? ""}>
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </Select>
-        <Input name="vendor" placeholder="Vendor name" defaultValue={vendor ?? ""} />
-        <DateInput name="from" defaultValue={from ?? ""} />
-        <DateInput name="to" defaultValue={to ?? ""} />
-        <Button type="submit" className="col-span-2 sm:col-span-5">
-          Filter
-        </Button>
+      <form className="flex flex-col gap-3">
+        <Input name="q" placeholder="Search by name, description, category, or vendor…" defaultValue={q ?? ""} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <Select name="category" defaultValue={category ?? ""}>
+            <option value="">All categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+          <Select name="status" defaultValue={status ?? ""}>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </Select>
+          <Input name="vendor" placeholder="Vendor name" defaultValue={vendor ?? ""} />
+          <DateInput name="from" defaultValue={from ?? ""} />
+          <DateInput name="to" defaultValue={to ?? ""} />
+          <Button type="submit" className="col-span-2 sm:col-span-5">
+            Filter
+          </Button>
+        </div>
       </form>
 
       {requirements.length === 0 ? (

@@ -4,7 +4,9 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyPagePermission } from "@/lib/society-auth";
 import { Button } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { SearchInput } from "@/components/ui/search-input";
 import { formatDateTime } from "@/lib/date";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -25,14 +27,28 @@ function statusFor(status: string, deadline: Date): { label: string; tone: Badge
 
 export default async function SocietyRequirementsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { id } = await params;
   await requireSocietyPagePermission(id, PERMISSIONS.CREATE_REQUIREMENT, `/society/${id}/requirements`);
 
+  const { q } = await searchParams;
+
+  const where: Prisma.RequirementWhereInput = { societyId: id };
+  if (q) {
+    where.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { categories: { some: { name: { contains: q, mode: "insensitive" } } } },
+      { bids: { some: { vendorCompany: { name: { contains: q, mode: "insensitive" } } } } },
+    ];
+  }
+
   const requirements = await prisma.requirement.findMany({
-    where: { societyId: id },
+    where,
     include: {
       categories: true,
       _count: { select: { invites: true, bids: true } },
@@ -49,8 +65,12 @@ export default async function SocietyRequirementsPage({
         </Link>
       </div>
 
+      <SearchInput placeholder="Search by name, description, category, or vendor…" />
+
       {requirements.length === 0 ? (
-        <p className="text-[13px] text-text-secondary">No requirements raised yet.</p>
+        <p className="text-[13px] text-text-secondary">
+          {q ? "No requirements match your search." : "No requirements raised yet."}
+        </p>
       ) : (
         <div className="flex flex-col gap-2">
           {requirements.map((req) => {

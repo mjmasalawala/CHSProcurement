@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import type { BidStatus } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import { Badge } from "@/components/ui/badge";
+import { SearchInput } from "@/components/ui/search-input";
 import { statusTone, statusLabel } from "@/lib/status-badge";
 import { formatDateTime } from "@/lib/date";
 
@@ -22,23 +24,41 @@ export default async function VendorBidsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
   const { id } = await params;
   const assignment = await requireVendorPagePermission(id, PERMISSIONS.VIEW_OWN_BIDS, `/vendor/${id}/bids`);
   const session = await auth();
 
-  const { status } = await searchParams;
+  const { status, q } = await searchParams;
   const activeTab = TABS.some((t) => t.value === status) ? (status as BidStatus | "ALL") : "ALL";
 
   const isOwner = assignment.role === "VENDOR_OWNER";
 
+  const where: Prisma.BidWhereInput = {
+    vendorCompanyId: id,
+    ...(activeTab === "ALL" ? {} : { status: activeTab }),
+    ...(isOwner ? {} : { submittedByUserId: session?.user.id }),
+  };
+  if (q) {
+    where.OR = [
+      { requirement: { name: { contains: q, mode: "insensitive" } } },
+      { requirement: { description: { contains: q, mode: "insensitive" } } },
+      { requirement: { categories: { some: { name: { contains: q, mode: "insensitive" } } } } },
+      // Same reveal-gating as the Requirements Inbox — only matches the
+      // society's real name if this vendor already revealed it on this
+      // requirement.
+      {
+        requirement: {
+          society: { name: { contains: q, mode: "insensitive" } },
+          invites: { some: { vendorCompanyId: id, contactRevealedAt: { not: null } } },
+        },
+      },
+    ];
+  }
+
   const bids = await prisma.bid.findMany({
-    where: {
-      vendorCompanyId: id,
-      ...(activeTab === "ALL" ? {} : { status: activeTab }),
-      ...(isOwner ? {} : { submittedByUserId: session?.user.id }),
-    },
+    where,
     include: {
       requirement: {
         include: {
@@ -61,7 +81,7 @@ export default async function VendorBidsPage({
         {TABS.map((tab) => (
           <Link
             key={tab.value}
-            href={`/vendor/${id}/bids?status=${tab.value}`}
+            href={`/vendor/${id}/bids?status=${tab.value}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
             className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
               activeTab === tab.value
                 ? "bg-accent-primary text-white shadow-xs"
@@ -73,8 +93,10 @@ export default async function VendorBidsPage({
         ))}
       </div>
 
+      <SearchInput placeholder="Search by name, description, category, or society…" />
+
       {bids.length === 0 ? (
-        <p className="text-[13px] text-text-secondary">No quotes here.</p>
+        <p className="text-[13px] text-text-secondary">{q ? "No quotes match your search." : "No quotes here."}</p>
       ) : (
         <div className="flex flex-col gap-2">
           {bids.map((bid) => {
