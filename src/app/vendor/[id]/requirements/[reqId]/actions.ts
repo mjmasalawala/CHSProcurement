@@ -33,6 +33,37 @@ export interface BidDraftInput {
 }
 
 /**
+ * Reveals the society's contact details for this requirement — redacted by
+ * default so a vendor has to take an explicit action before seeing them.
+ * Scoped to this one RequirementInvite (contactRevealedAt), not the vendor's
+ * relationship with the society overall, so a future requirement from the
+ * same society starts redacted again. Free for now; idempotent so a repeat
+ * click (e.g. after a refresh) is harmless.
+ */
+export async function revealRequirementContact(
+  vendorCompanyId: string,
+  requirementId: string,
+): Promise<{ error: string } | undefined> {
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.VIEW_REQUIREMENTS_INBOX);
+
+  const invite = await prisma.requirementInvite.findUnique({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+  });
+  if (!invite) return { error: "You were not invited to this requirement." };
+
+  if (!invite.contactRevealedAt) {
+    await prisma.requirementInvite.update({
+      where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+      data: { contactRevealedAt: new Date() },
+    });
+  }
+
+  revalidatePath(`/vendor/${vendorCompanyId}/requirements/${requirementId}`);
+  revalidatePath(`/vendor/${vendorCompanyId}/requirements`);
+  revalidatePath(`/vendor/${vendorCompanyId}/bids`);
+}
+
+/**
  * Drafts line items from the requirement's description via Claude
  * (lib/ai.ts) for the vendor to review/edit before submitting — never
  * suggests a price, only description/quantity/unit. Capped at once per

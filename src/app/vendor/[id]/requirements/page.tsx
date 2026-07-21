@@ -32,7 +32,7 @@ export default async function VendorRequirementsPage({
       requirement: {
         include: {
           categories: true,
-          society: { select: { name: true } },
+          society: { select: { name: true, city: { select: { name: true } } } },
           bids: { where: { vendorCompanyId: id }, select: { status: true } },
         },
       },
@@ -51,8 +51,10 @@ export default async function VendorRequirementsPage({
         </p>
       ) : (
         <div className="flex flex-col gap-2">
-          {invites.map(({ requirement: req }) => {
+          {invites.map((invite) => {
+            const req = invite.requirement;
             const status = statusFor(req.bidDeadline, req.bids[0]?.status ?? null);
+            const societyLabel = invite.contactRevealedAt ? req.society.name : `Society in ${req.society.city.name}`;
             return (
               <Link
                 key={req.id}
@@ -61,7 +63,7 @@ export default async function VendorRequirementsPage({
               >
                 <div>
                   <p className="text-[15px] font-semibold text-text-primary">
-                    {req.name} — {req.society.name}
+                    {req.name} — {societyLabel}
                   </p>
                   <p className="text-[13px] text-text-secondary">
                     {req.categories.map((c) => c.name).join(", ")} · {req.description.slice(0, 80)}

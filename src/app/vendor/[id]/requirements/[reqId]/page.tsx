@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
 import { formatDate, formatDateTime } from "@/lib/date";
 import { BidForm } from "./bid-form";
+import { ContactDetails } from "./contact-details";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,16 @@ export default async function RequirementDetailPage({
       requirement: {
         include: {
           categories: true,
-          society: { select: { name: true, address: true } },
+          society: {
+            select: {
+              name: true,
+              address: true,
+              registrantName: true,
+              registrantPhone: true,
+              registrantEmail: true,
+              city: { select: { name: true } },
+            },
+          },
           bids: { where: { vendorCompanyId: id }, include: { lineItems: true, workOrder: { select: { id: true } } } },
         },
       },
@@ -58,7 +68,8 @@ export default async function RequirementDetailPage({
 
       <div>
         <h1 className="text-[28px] font-bold tracking-tight text-text-primary">
-          {requirement.name} — {requirement.society.name}
+          {requirement.name} —{" "}
+          {invite.contactRevealedAt ? requirement.society.name : `Society in ${requirement.society.city.name}`}
         </h1>
         <p className="text-[13px] text-text-secondary">{requirement.categories.map((c) => c.name).join(", ")}</p>
         <p className="text-[13px] text-text-tertiary">
@@ -68,11 +79,20 @@ export default async function RequirementDetailPage({
 
       <Card className="flex flex-col gap-2">
         <p className="text-[15px] text-text-primary">{requirement.description}</p>
-        <p className="text-[13px] text-text-secondary">Location: {requirement.society.address}</p>
         <p className="text-[13px] font-medium text-text-primary">
           Quote deadline: {formatDateTime(requirement.bidDeadline)} {closed && "(closed)"}
         </p>
       </Card>
+
+      <ContactDetails
+        vendorCompanyId={id}
+        requirementId={reqId}
+        revealed={!!invite.contactRevealedAt}
+        address={requirement.society.address}
+        registrantName={requirement.society.registrantName}
+        registrantPhone={requirement.society.registrantPhone}
+        registrantEmail={requirement.society.registrantEmail}
+      />
 
       {closed ? (
         myBid ? (

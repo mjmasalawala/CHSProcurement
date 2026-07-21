@@ -18,11 +18,11 @@ const WHY_MISSING_OUT = [
 ];
 
 const HOW_IT_WORKS = [
-  { title: "Register once", body: "List your service categories, service areas, and KYC details." },
+  { title: "Register once", body: "List your service categories and service areas." },
   { title: "Get matched", body: "No cold calling. You're invited the moment a society raises a requirement in your category and city." },
-  { title: "Submit quotes", body: "Line-item quotes, not haggling over WhatsApp." },
-  { title: "Compete fairly", body: "Societies compare quality and price, not just who they already know." },
-  { title: "Build track record", body: "Every job, every quote, every Work Order becomes part of your permanent history on ProSoc." },
+  { title: "Submit quotes", body: "Line-item based quotes, no haggling over WhatsApp." },
+  { title: "Compete fairly", body: "Societies on ProSoc compare quality, price and terms, not just who they already know." },
+  { title: "Build track record", body: "Every job, every quote, every Work Order becomes part of your history and footprint on ProSoc." },
 ];
 
 export default function VendorsLandingPage() {
@@ -37,7 +37,7 @@ export default function VendorsLandingPage() {
         </h1>
         <p className="max-w-xl text-[18px] text-text-secondary">
           These societies raise materials, services and CapEx work every year — plumbing, painting,
-          waterproofing, CCTV, Fire Safety, Electrical, AMC renewals — and most of it still gets awarded through
+          waterproofing, CCTV, Solar, Fire Safety, Electrical, AMC renewals — and most of it still gets awarded through
           word-of-mouth. </p>
         
         <h2 className="max-w-2xl text-[20px] font-bold text-status-success sm:text-[24px]">ProSoc puts your business in front of societies actively looking for exactly
@@ -87,12 +87,12 @@ export default function VendorsLandingPage() {
         </div>
       </section>
 
-      <section className="flex flex-col items-center gap-4">
+      <section className="flex flex-row items-center gap-4">
         <Link href="/register/vendor">
           <Button>Register Your Business</Button>
         </Link>
         <Link href="/faq/vendors">
-          <Button variant="secondary">FAQ</Button>
+          <Button>Frequently Asked Questions</Button>
         </Link>
       </section>
     </main>

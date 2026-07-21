@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -66,6 +66,7 @@ function BaseDateInput({
   placeholder: string;
   format: (value: string) => string;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const isControlled = value !== undefined;
   const [internal, setInternal] = useState(defaultValue ?? value ?? "");
   const current = isControlled ? value : internal;
@@ -84,6 +85,7 @@ function BaseDateInput({
         <span className={formatted ? "text-text-primary" : "text-text-tertiary"}>{formatted || placeholder}</span>
       </div>
       <input
+        ref={inputRef}
         id={id}
         name={name}
         type={type}
@@ -93,6 +95,13 @@ function BaseDateInput({
           if (!isControlled) setInternal(e.target.value);
           onChange?.(e.target.value);
         }}
+        // The browser's own picker-opening hit-target is a small icon inside
+        // the native control, positioned wherever that browser puts it — not
+        // where our decorative CalendarIcon sits. Relying on the user
+        // clicking that exact spot is what made the picker feel flaky/slow
+        // to open; calling showPicker() imperatively on any click inside the
+        // box opens it reliably regardless of where the click lands.
+        onClick={(e) => e.currentTarget.showPicker?.()}
         min={min}
         max={max}
         required={required}

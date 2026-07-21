@@ -40,7 +40,13 @@ export default async function VendorBidsPage({
       ...(isOwner ? {} : { submittedByUserId: session?.user.id }),
     },
     include: {
-      requirement: { include: { categories: true, society: { select: { name: true } } } },
+      requirement: {
+        include: {
+          categories: true,
+          society: { select: { name: true, city: { select: { name: true } } } },
+          invites: { where: { vendorCompanyId: id }, select: { contactRevealedAt: true } },
+        },
+      },
       submittedByUser: { select: { name: true, email: true } },
       workOrder: { select: { id: true } },
     },
@@ -71,14 +77,18 @@ export default async function VendorBidsPage({
         <p className="text-[13px] text-text-secondary">No quotes here.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {bids.map((bid) => (
+          {bids.map((bid) => {
+            const societyLabel = bid.requirement.invites[0]?.contactRevealedAt
+              ? bid.requirement.society.name
+              : `Society in ${bid.requirement.society.city.name}`;
+            return (
             <div
               key={bid.id}
               className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs transition-shadow hover:shadow-sm"
             >
               <Link href={`/vendor/${id}/requirements/${bid.requirementId}`} className="flex-1">
                 <p className="text-[15px] font-semibold text-text-primary">
-                  {bid.requirement.categories.map((c) => c.name).join(", ")} — {bid.requirement.society.name}
+                  {bid.requirement.categories.map((c) => c.name).join(", ")} — {societyLabel}
                 </p>
                 <p className="text-[13px] text-text-secondary">
                   ₹{bid.totalAmount.toString()} · submitted by {bid.submittedByUser.name ?? bid.submittedByUser.email}
@@ -99,7 +109,8 @@ export default async function VendorBidsPage({
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

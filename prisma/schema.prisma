@@ -480,6 +480,12 @@ model RequirementInvite {
   vendorCompanyId String
   vendorCompany   VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
   createdAt       DateTime      @default(now())
+  // Set when the vendor clicks "Show Contact Details" on this requirement —
+  // scoped per invite (i.e. per requirement), not per society, so being
+  // matched again on a future requirement from the same society starts
+  // redacted again. Free today; this is the hook a future credit-spend gate
+  // attaches to without touching the matching/invite flow itself.
+  contactRevealedAt DateTime?
 
   @@unique([requirementId, vendorCompanyId])
 }
