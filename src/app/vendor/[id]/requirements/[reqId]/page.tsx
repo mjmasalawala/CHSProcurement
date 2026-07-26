@@ -52,10 +52,13 @@ export default async function RequirementDetailPage({
   const myBid = requirement.bids[0] ?? null;
   const closed = isClosed(requirement.bidDeadline);
 
-  const myDraft = await prisma.bidDraft.findUnique({
-    where: { requirementId_vendorCompanyId: { requirementId: reqId, vendorCompanyId: id } },
-    include: { lineItems: true },
-  });
+  const [myDraft, vendorCompany] = await Promise.all([
+    prisma.bidDraft.findUnique({
+      where: { requirementId_vendorCompanyId: { requirementId: reqId, vendorCompanyId: id } },
+      include: { lineItems: true },
+    }),
+    prisma.vendorCompany.findUniqueOrThrow({ where: { id }, select: { gstNumber: true } }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,6 +103,7 @@ export default async function RequirementDetailPage({
             <div className="flex items-center justify-between">
               <p className="text-[15px] font-semibold text-text-primary">
                 Your quote: ₹{Number(myBid.totalAmount).toFixed(2)}
+                {myBid.gstCompliant && " (+ GST)"}
               </p>
               <Badge tone={statusTone(myBid.status)}>{statusLabel(myBid.status)}</Badge>
             </div>
@@ -117,6 +121,11 @@ export default async function RequirementDetailPage({
                     <th className="pb-2 text-right text-[11px] font-semibold uppercase tracking-wide">
                       Amount (₹)
                     </th>
+                    {myBid.gstCompliant && (
+                      <th className="pb-2 pl-2 text-right text-[11px] font-semibold uppercase tracking-wide">
+                        GST
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -133,6 +142,11 @@ export default async function RequirementDetailPage({
                       <td className="py-2 text-right whitespace-nowrap font-medium text-text-primary">
                         {Number(li.amount).toFixed(2)}
                       </td>
+                      {myBid.gstCompliant && (
+                        <td className="py-2 pl-2 text-right whitespace-nowrap text-text-secondary">
+                          {li.gstRate?.toString() ?? "0"}% (₹{Number(li.gstAmount ?? 0).toFixed(2)})
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -144,6 +158,7 @@ export default async function RequirementDetailPage({
               {myBid.paymentTerms && <QuoteDetail label="Payment terms" value={myBid.paymentTerms} />}
               {myBid.warrantyPeriod && <QuoteDetail label="Warranty" value={myBid.warrantyPeriod} />}
               {myBid.completionTime && <QuoteDetail label="Time to complete" value={myBid.completionTime} />}
+              {myBid.gstCompliant && <QuoteDetail label="GSTIN" value={myBid.vendorGstNumberSnapshot ?? "—"} />}
             </div>
 
             {myBid.notes && (
@@ -152,60 +167,89 @@ export default async function RequirementDetailPage({
               </div>
             )}
 
-            {myBid.workOrder && (
+            <div className="flex flex-wrap gap-4 border-t border-border-subtle pt-3">
               <a
-                href={`/api/work-orders/${myBid.workOrder.id}/pdf`}
+                href={`/api/bids/${myBid.id}/pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block text-[13px] text-accent-primary underline"
+                className="text-[13px] font-medium text-accent-primary underline"
               >
-                Download Work Order PDF
+                Download Quote PDF
               </a>
-            )}
+              {myBid.workOrder && (
+                <a
+                  href={`/api/work-orders/${myBid.workOrder.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] font-medium text-accent-primary underline"
+                >
+                  Download Work Order PDF
+                </a>
+              )}
+            </div>
           </Card>
         ) : (
           <p className="text-[13px] text-text-secondary">Quote submission closed — you did not submit a quote.</p>
         )
       ) : (
-        <BidForm
-          vendorCompanyId={id}
-          requirementId={reqId}
-          existingBid={
-            myBid
-              ? {
-                  bidValidity: myBid.bidValidity.toISOString().slice(0, 10),
-                  paymentTerms: myBid.paymentTerms ?? "",
-                  warrantyPeriod: myBid.warrantyPeriod ?? "",
-                  completionTime: myBid.completionTime ?? "",
-                  notes: myBid.notes ?? "",
-                  lineItems: myBid.lineItems.map((li) => ({
-                    description: li.description,
-                    quantity: li.quantity.toString(),
-                    unit: li.unit,
-                    unitRate: li.unitRate.toString(),
-                  })),
-                }
-              : null
-          }
-          draft={
-            myDraft
-              ? {
-                  bidValidity: myDraft.bidValidity,
-                  paymentTerms: myDraft.paymentTerms,
-                  warrantyPeriod: myDraft.warrantyPeriod,
-                  completionTime: myDraft.completionTime,
-                  notes: myDraft.notes,
-                  lineItems: myDraft.lineItems.map((li) => ({
-                    description: li.description,
-                    quantity: li.quantity,
-                    unit: li.unit,
-                    unitRate: li.unitRate,
-                  })),
-                }
-              : null
-          }
-          suggestDisabled={!!myDraft?.suggestionGeneratedAt}
-        />
+        <>
+          {myBid && (
+            <a
+              href={`/api/bids/${myBid.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="self-start text-[13px] font-medium text-accent-primary underline"
+            >
+              Download your submitted quote PDF
+            </a>
+          )}
+          <BidForm
+            vendorCompanyId={id}
+            requirementId={reqId}
+            vendorGstNumber={vendorCompany.gstNumber}
+            existingBid={
+              myBid
+                ? {
+                    bidValidity: myBid.bidValidity.toISOString().slice(0, 10),
+                    paymentTerms: myBid.paymentTerms ?? "",
+                    warrantyPeriod: myBid.warrantyPeriod ?? "",
+                    completionTime: myBid.completionTime ?? "",
+                    notes: myBid.notes ?? "",
+                    gstCompliant: myBid.gstCompliant,
+                    gstNumber: myBid.vendorGstNumberSnapshot ?? "",
+                    lineItems: myBid.lineItems.map((li) => ({
+                      description: li.description,
+                      quantity: li.quantity.toString(),
+                      unit: li.unit,
+                      unitRate: li.unitRate.toString(),
+                      gstRate: li.gstRate?.toString() ?? "",
+                    })),
+                  }
+                : null
+            }
+            draft={
+              myDraft
+                ? {
+                    bidValidity: myDraft.bidValidity,
+                    paymentTerms: myDraft.paymentTerms,
+                    warrantyPeriod: myDraft.warrantyPeriod,
+                    completionTime: myDraft.completionTime,
+                    notes: myDraft.notes,
+                    gstCompliant: myDraft.gstCompliant,
+                    gstNumber: myDraft.gstNumber,
+                    lineItems: myDraft.lineItems.map((li) => ({
+                      description: li.description,
+                      quantity: li.quantity,
+                      unit: li.unit,
+                      unitRate: li.unitRate,
+                      gstRate: li.gstRate,
+                    })),
+                  }
+                : null
+            }
+            suggestDisabled={!!myDraft?.suggestionGeneratedAt}
+          />
+        </>
       )}
     </div>
   );

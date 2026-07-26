@@ -206,6 +206,17 @@ export function BidComparison({
                             </table>
                           </div>
 
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <a
+                              href={`/api/bids/${bid.id}/pdf`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[13px] font-medium text-accent-primary underline"
+                            >
+                              Download Quote PDF
+                            </a>
+                          </div>
+
                           {(bid.paymentTerms || bid.warrantyPeriod || bid.completionTime) && (
                             <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
                               {bid.paymentTerms && (

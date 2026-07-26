@@ -7,6 +7,12 @@ import { formatDate, formatDateTime } from "@/lib/date";
 // (react-pdf uses its own layout engine, not real CSS).
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#1a1a1a" },
+  // Same title-row treatment as bid-pdf.tsx's Quotation — a prominent
+  // document-type headline plus its reference number, for visual
+  // consistency across every PDF the platform generates.
+  titleRow: { marginBottom: 14 },
+  docTitle: { fontSize: 20, fontWeight: 700, letterSpacing: 1 },
+  docRef: { fontSize: 9, color: "#555555", marginTop: 2 },
   header: { marginBottom: 16, borderBottom: 1, borderBottomColor: "#cccccc", paddingBottom: 12 },
   title: { fontSize: 18, fontWeight: 700, marginBottom: 4 },
   meta: { fontSize: 9, color: "#555555" },
@@ -63,15 +69,16 @@ function WorkOrderDocument({ data }: { data: WorkOrderPdfData }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        <View style={styles.titleRow}>
+          <Text style={styles.docTitle}>WORK ORDER</Text>
+          <Text style={styles.docRef}>Work Order No: {data.workOrderNumber}</Text>
+        </View>
+
         <View style={styles.header}>
           <Text style={styles.title}>{data.societyNameSnapshot}</Text>
           <Text style={styles.meta}>{data.societyAddressSnapshot}</Text>
         </View>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Work Order No.</Text>
-          <Text style={styles.value}>{data.workOrderNumber}</Text>
-        </View>
         <View style={styles.row}>
           <Text style={styles.label}>Date Issued</Text>
           <Text style={styles.value}>{formatDate(data.createdAt)}</Text>

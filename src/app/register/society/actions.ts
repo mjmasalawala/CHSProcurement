@@ -40,6 +40,7 @@ export async function registerSociety(
       cityId: input.cityId,
       unitsCount: Number(input.unitsCount),
       registrationNumber: input.registrationNumber || null,
+      gstNumber: input.gstNumber.trim().toUpperCase() || null,
       registrantName: input.registrantName,
       registrantRole: input.registrantRole as RoleName,
       registrantPhone: input.registrantPhone,

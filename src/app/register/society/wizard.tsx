@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { registerSociety } from "./actions";
 import { REGISTRANT_ROLES, INVITEE_ROLES, type SocietyRegistrationInput } from "./data";
 import { isValidEmail } from "@/lib/validation";
+import { isValidGstin } from "@/lib/gst";
 
 const ROLE_LABELS: Record<string, string> = {
   MANAGER: "Manager",
@@ -51,6 +52,7 @@ export function SocietyRegistrationWizard({ cities }: Props) {
     cityId: "",
     unitsCount: "",
     registrationNumber: "",
+    gstNumber: "",
     registrantRole: "",
     registrantName: "",
     registrantPhone: "",
@@ -80,7 +82,7 @@ export function SocietyRegistrationWizard({ cities }: Props) {
 
   const canProceed: Record<string, boolean> = {
     basics: !!(form.name && form.address && form.cityId),
-    details: !!form.unitsCount,
+    details: !!form.unitsCount && (!form.gstNumber || isValidGstin(form.gstNumber)),
     registrant: !!(
       form.registrantRole &&
       form.registrantName &&
@@ -191,6 +193,19 @@ export function SocietyRegistrationWizard({ cities }: Props) {
               onChange={(e) => update("registrationNumber", e.target.value)}
               placeholder="Optional"
             />
+          </div>
+          <div>
+            <Label htmlFor="gstNumber">GST Number</Label>
+            <Input
+              id="gstNumber"
+              value={form.gstNumber}
+              onChange={(e) => update("gstNumber", e.target.value.toUpperCase())}
+              placeholder="Optional — needed if vendors send you GST-compliant quotes"
+              maxLength={15}
+            />
+            {form.gstNumber && !isValidGstin(form.gstNumber) && (
+              <p className="mt-1 text-[13px] text-status-error">Enter a valid 15-character GSTIN.</p>
+            )}
           </div>
         </WizardShell>
       )}
@@ -360,6 +375,7 @@ export function SocietyRegistrationWizard({ cities }: Props) {
           <ReviewRow label="Society" value={`${form.name} — ${cities.find((c) => c.id === form.cityId)?.name ?? ""}`} />
           <ReviewRow label="Address" value={form.address} />
           <ReviewRow label="Units" value={form.unitsCount} />
+          {form.gstNumber && <ReviewRow label="GST Number" value={form.gstNumber} />}
           <ReviewRow
             label="Registrant"
             value={`${form.registrantName} · ${ROLE_LABELS[form.registrantRole] ?? ""} · ${form.registrantEmail}`}

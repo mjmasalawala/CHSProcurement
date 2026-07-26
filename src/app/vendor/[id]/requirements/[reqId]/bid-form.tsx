@@ -9,16 +9,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { submitBid, suggestBidLineItems, saveBidDraft, type BidLineItemInput } from "./actions";
+import { isValidGstin, calcLineItemAmounts, calcQuoteTotals } from "@/lib/gst";
+import { submitBid, suggestBidLineItems, saveBidDraft, previewBidPdf, type BidLineItemInput } from "./actions";
 
 const UNITS = ["sqft", "sqm", "nos", "lump sum", "kg", "hour", "day", "month", "other"];
 
-const EMPTY_LINE_ITEM: BidLineItemInput = { description: "", quantity: "1", unit: "nos", unitRate: "" };
+const EMPTY_LINE_ITEM: BidLineItemInput = { description: "", quantity: "1", unit: "nos", unitRate: "", gstRate: "" };
 
 // Description gets the lion's share of the row so AI-suggested text isn't
 // clipped; Qty/Unit/Rate/Subtotal are fixed-width since their values are
-// always short. Trailing 28px column is the remove button.
-const LINE_ITEM_GRID = "grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_84px_108px_108px_108px_28px] sm:items-center sm:gap-3";
+// always short. Trailing 28px column is the remove button. A GST-compliant
+// quote inserts one extra fixed-width column for the per-line GST %.
+const LINE_ITEM_GRID =
+  "grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_84px_108px_108px_108px_28px] sm:items-center sm:gap-3";
+const LINE_ITEM_GRID_GST =
+  "grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_84px_108px_108px_84px_108px_28px] sm:items-center sm:gap-3";
 const COLUMN_HEADER = "text-[12px] font-semibold text-text-secondary";
 
 interface DraftQuote {
@@ -27,6 +32,8 @@ interface DraftQuote {
   warrantyPeriod: string;
   completionTime: string;
   notes: string;
+  gstCompliant: boolean;
+  gstNumber: string;
   lineItems: BidLineItemInput[];
 }
 
@@ -36,9 +43,19 @@ interface Props {
   existingBid: DraftQuote | null;
   draft: DraftQuote | null;
   suggestDisabled: boolean;
+  // Vendor's own GSTIN on file (VendorCompany.gstNumber), used to pre-fill
+  // the GST field the first time they mark a quote GST-compliant.
+  vendorGstNumber: string | null;
 }
 
-export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, suggestDisabled }: Props) {
+export function BidForm({
+  vendorCompanyId,
+  requirementId,
+  existingBid,
+  draft,
+  suggestDisabled,
+  vendorGstNumber,
+}: Props) {
   // A real submitted Bid always wins over a saved draft — the draft is only
   // there to survive a vendor navigating away before they've actually
   // submitted (prisma/schema.prisma BidDraft comment).
@@ -51,6 +68,8 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
   const [warrantyPeriod, setWarrantyPeriod] = useState(initial?.warrantyPeriod ?? "");
   const [completionTime, setCompletionTime] = useState(initial?.completionTime ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [gstCompliant, setGstCompliant] = useState(initial?.gstCompliant ?? false);
+  const [gstNumber, setGstNumber] = useState(initial?.gstNumber || vendorGstNumber || "");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -59,16 +78,19 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
   const [suggestUsed, setSuggestUsed] = useState(suggestDisabled);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
-  const total = useMemo(
-    () =>
-      lineItems.reduce((sum, li) => {
-        const qty = Number(li.quantity);
-        const rate = Number(li.unitRate);
-        return sum + (Number.isFinite(qty) && Number.isFinite(rate) ? qty * rate : 0);
-      }, 0),
-    [lineItems],
-  );
+  const { subtotal, totalGst, grandTotal } = useMemo(() => {
+    const computed = lineItems.map((li) => {
+      const quantity = Number(li.quantity);
+      const unitRate = Number(li.unitRate);
+      const gstRate = gstCompliant ? Number(li.gstRate) : null;
+      if (!Number.isFinite(quantity) || !Number.isFinite(unitRate)) return { amount: 0, gstAmount: 0 };
+      return calcLineItemAmounts({ quantity, unitRate, gstRate: Number.isFinite(gstRate) ? gstRate : null });
+    });
+    return calcQuoteTotals(computed.map((c) => ({ amount: c.amount, gstAmount: c.gstAmount ?? 0 })));
+  }, [lineItems, gstCompliant]);
 
   function updateLineItem(index: number, patch: Partial<BidLineItemInput>) {
     setLineItems((items) => items.map((li, i) => (i === index ? { ...li, ...patch } : li)));
@@ -102,21 +124,18 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
       setSuggestError("Couldn't draft any line items from the requirement description.");
       return;
     }
-    const suggested = result.lineItems.map((li) => ({ ...li, unitRate: "" }));
+    const suggested = result.lineItems.map((li) => ({ ...li, unitRate: "", gstRate: "" }));
     setLineItems((items) => (isBlankSingleRow ? suggested : [...items, ...suggested]));
+  }
+
+  function currentInput() {
+    return { lineItems, bidValidity, paymentTerms, warrantyPeriod, completionTime, notes, gstCompliant, gstNumber };
   }
 
   async function handleSaveDraft() {
     setSavingDraft(true);
     setDraftSaved(false);
-    const result = await saveBidDraft(vendorCompanyId, requirementId, {
-      lineItems,
-      bidValidity,
-      paymentTerms,
-      warrantyPeriod,
-      completionTime,
-      notes,
-    });
+    const result = await saveBidDraft(vendorCompanyId, requirementId, currentInput());
     setSavingDraft(false);
     if (result?.error) setError(result.error);
     else setDraftSaved(true);
@@ -126,18 +145,28 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const result = await submitBid(vendorCompanyId, requirementId, {
-      lineItems,
-      bidValidity,
-      paymentTerms,
-      warrantyPeriod,
-      completionTime,
-      notes,
-    });
+    const result = await submitBid(vendorCompanyId, requirementId, currentInput());
     setSubmitting(false);
     if (result?.error) setError(result.error);
     else setSubmitted(true);
   }
+
+  async function handlePreview() {
+    setPreviewing(true);
+    setPreviewError(null);
+    const result = await previewBidPdf(vendorCompanyId, requirementId, currentInput());
+    setPreviewing(false);
+    if ("error" in result) {
+      setPreviewError(result.error);
+      return;
+    }
+    const bytes = Uint8Array.from(atob(result.pdfBase64), (c) => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  const grid = gstCompliant ? LINE_ITEM_GRID_GST : LINE_ITEM_GRID;
+  const gstNumberValid = !gstCompliant || isValidGstin(gstNumber);
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -147,19 +176,20 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
         </h2>
 
         <div className="flex flex-col">
-          <div className={cn(LINE_ITEM_GRID, "hidden border-b border-border-subtle pb-2 sm:grid")}>
+          <div className={cn(grid, "hidden border-b border-border-subtle pb-2 sm:grid")}>
             <span className={COLUMN_HEADER}>Description</span>
             <span className={COLUMN_HEADER}>Qty</span>
             <span className={COLUMN_HEADER}>Unit</span>
             <span className={COLUMN_HEADER}>Rate (₹)</span>
+            {gstCompliant && <span className={COLUMN_HEADER}>GST %</span>}
             <span className={cn(COLUMN_HEADER, "text-right")}>Subtotal (₹)</span>
             <span />
           </div>
 
           {lineItems.map((li, i) => {
-            const subtotal = (Number(li.quantity) || 0) * (Number(li.unitRate) || 0);
+            const lineSubtotal = (Number(li.quantity) || 0) * (Number(li.unitRate) || 0);
             return (
-              <div key={i} className={cn(LINE_ITEM_GRID, "border-b border-border-subtle py-3 last:border-b-0")}>
+              <div key={i} className={cn(grid, "border-b border-border-subtle py-3 last:border-b-0")}>
                 <div className="col-span-2 sm:col-span-1">
                   <Label className="sm:hidden">Description</Label>
                   <Input
@@ -195,10 +225,24 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
                     onChange={(e) => updateLineItem(i, { unitRate: e.target.value })}
                   />
                 </div>
+                {gstCompliant && (
+                  <div>
+                    <Label className="sm:hidden">GST %</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      placeholder="0"
+                      value={li.gstRate}
+                      onChange={(e) => updateLineItem(i, { gstRate: e.target.value })}
+                    />
+                  </div>
+                )}
                 <div className="flex items-center justify-between sm:justify-end">
                   <span className="text-[13px] font-medium text-text-secondary sm:hidden">Subtotal</span>
                   <span className="text-[15px] font-semibold tabular-nums text-text-primary">
-                    ₹{subtotal.toFixed(2)}
+                    ₹{lineSubtotal.toFixed(2)}
                   </span>
                 </div>
                 <div className="col-span-2 flex justify-end sm:col-span-1 sm:justify-center">
@@ -234,9 +278,50 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
           {suggestError && <span className="text-[13px] text-status-error">{suggestError}</span>}
         </div>
 
-        <p className="text-right text-[18px] font-bold text-text-primary">
-          Total Quote Amount: ₹{total.toFixed(2)}
-        </p>
+        <div className="flex flex-col items-end gap-1 border-t border-border-subtle pt-3">
+          {gstCompliant ? (
+            <>
+              <p className="text-[13px] text-text-secondary">Subtotal: ₹{subtotal.toFixed(2)}</p>
+              <p className="text-[13px] text-text-secondary">Total GST: ₹{totalGst.toFixed(2)}</p>
+              <p className="text-[18px] font-bold text-text-primary">Grand Total: ₹{grandTotal.toFixed(2)}</p>
+            </>
+          ) : (
+            <p className="text-[18px] font-bold text-text-primary">Total Quote Amount: ₹{subtotal.toFixed(2)}</p>
+          )}
+        </div>
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <label className="flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={gstCompliant}
+            onChange={(e) => setGstCompliant(e.target.checked)}
+            className="mt-0.5 size-4 accent-accent-primary"
+          />
+          <span>
+            <span className="block text-[14px] font-medium text-text-primary">GST compliant quote</span>
+            <span className="block text-[13px] text-text-secondary">
+              Adds your GSTIN to the quote PDF and calculates GST per line item. Leave a line item&apos;s GST %
+              at 0 if it isn&apos;t taxable.
+            </span>
+          </span>
+        </label>
+        {gstCompliant && (
+          <div className="max-w-xs">
+            <Label htmlFor="gstNumber">Your GSTIN</Label>
+            <Input
+              id="gstNumber"
+              value={gstNumber}
+              onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+              placeholder="22AAAAA0000A1Z5"
+              maxLength={15}
+            />
+            {gstNumber && !gstNumberValid && (
+              <p className="mt-1 text-[13px] text-status-error">Enter a valid 15-character GSTIN.</p>
+            )}
+          </div>
+        )}
       </Card>
 
       <Card className="flex flex-col gap-4">
@@ -280,6 +365,7 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
       </Card>
 
       {error && <p className="text-[13px] text-status-error">{error}</p>}
+      {previewError && <p className="text-[13px] text-status-error">{previewError}</p>}
       {submitted && !error && <p className="text-[13px] text-status-success">Quote submitted.</p>}
       {draftSaved && <p className="text-[13px] text-status-success">Draft saved.</p>}
 
@@ -289,6 +375,9 @@ export function BidForm({ vendorCompanyId, requirementId, existingBid, draft, su
         </Button>
         <Button type="button" variant="secondary" onClick={handleSaveDraft} disabled={savingDraft}>
           {savingDraft ? "Saving…" : "Save Draft Quote"}
+        </Button>
+        <Button type="button" variant="secondary" onClick={handlePreview} disabled={previewing}>
+          {previewing ? "Preparing preview…" : "Preview PDF"}
         </Button>
       </div>
     </form>

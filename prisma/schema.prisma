@@ -281,6 +281,10 @@ model Society {
   // Default ₹1,000, configurable per society (society spec Section 7).
   approvalThreshold  Int          @default(1000)
 
+  // Captured at registration (optional) — shown as the "Bill To" GSTIN on a
+  // vendor's GST-compliant quote PDF, alongside the vendor's own.
+  gstNumber String?
+
   // Standard tier (Section 4.2) — schema-only, no v1 GUI.
   registrationCertificateUrl String?
   panNumber                  String?
@@ -516,6 +520,25 @@ model Bid {
   notes             String?
   status            BidStatus     @default(SUBMITTED)
 
+  // Globally unique, gapless-enough sequence used only to derive the quote
+  // PDF's human-readable reference (see quoteReference() in lib/bid-pdf.tsx)
+  // — e.g. sequenceNumber 42 in 2026 renders as "Q26-000042". A DB-level
+  // autoincrement rather than a formatted string column so there's no race
+  // condition between two vendors submitting at the same instant.
+  sequenceNumber Int @default(autoincrement())
+
+  // Quote-PDF GST compliance (product decision, 2026-07-23) — a per-quote
+  // choice, not tied to whether the vendor's profile has a GST number at
+  // all. Snapshotted (not read live off VendorCompany/Society) so the quote
+  // PDF stays exactly what was true when submitted, even if either party's
+  // GSTIN changes later — same rationale as WorkOrder's *Snapshot fields.
+  // The comparison/approval-threshold amount stays totalAmount (pre-tax)
+  // regardless of gstCompliant — GST is a pass-through add-on shown only on
+  // the PDF, not a factor in ranking vendors against each other.
+  gstCompliant             Boolean @default(false)
+  vendorGstNumberSnapshot  String?
+  societyGstNumberSnapshot String?
+
   lineItems      BidLineItem[]
   recommendedFor Requirement?  @relation("RequirementRecommendedBid")
   workOrder      WorkOrder?
@@ -537,6 +560,13 @@ model BidLineItem {
   unit        String
   unitRate    Decimal @db.Decimal(12, 2)
   amount      Decimal @db.Decimal(12, 2)
+  // Null unless the parent Bid is gstCompliant — a per-line-item rate (e.g.
+  // materials vs. labour can legitimately sit at different GST slabs), not
+  // one flat rate for the whole quote. gstAmount is precomputed at submit
+  // time (amount * gstRate/100), same "store the computed value" pattern as
+  // amount itself.
+  gstRate     Decimal? @db.Decimal(5, 2)
+  gstAmount   Decimal? @db.Decimal(12, 2)
 }
 
 // A vendor's in-progress quote for a Requirement, saved explicitly via the
@@ -558,6 +588,8 @@ model BidDraft {
   warrantyPeriod  String        @default("")
   completionTime  String        @default("")
   notes           String        @default("")
+  gstCompliant    Boolean       @default(false)
+  gstNumber       String        @default("")
 
   // Stamped the first time "Suggest line items" succeeds for this
   // requirement/vendor pair — its presence is what permanently disables the
@@ -580,4 +612,5 @@ model BidDraftLineItem {
   quantity    String
   unit        String
   unitRate    String
+  gstRate     String @default("")
 }

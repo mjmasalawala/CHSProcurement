@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorActionPermission } from "@/lib/vendor-auth";
 import { suggestLineItems } from "@/lib/ai";
+import { isValidGstin, calcLineItemAmounts } from "@/lib/gst";
+import { renderBidPdfPreview } from "@/lib/bid-pdf";
 import { revalidatePath } from "next/cache";
 
 export interface BidLineItemInput {
@@ -12,6 +14,9 @@ export interface BidLineItemInput {
   quantity: string;
   unit: string;
   unitRate: string;
+  // Empty string when not entered — only meaningful (and required) when
+  // gstCompliant is true.
+  gstRate: string;
 }
 
 export interface SubmitBidInput {
@@ -21,6 +26,8 @@ export interface SubmitBidInput {
   warrantyPeriod: string;
   completionTime: string;
   notes: string;
+  gstCompliant: boolean;
+  gstNumber: string;
 }
 
 export interface BidDraftInput {
@@ -30,6 +37,8 @@ export interface BidDraftInput {
   warrantyPeriod: string;
   completionTime: string;
   notes: string;
+  gstCompliant: boolean;
+  gstNumber: string;
 }
 
 /**
@@ -154,6 +163,8 @@ export async function saveBidDraft(
       warrantyPeriod: input.warrantyPeriod,
       completionTime: input.completionTime,
       notes: input.notes,
+      gstCompliant: input.gstCompliant,
+      gstNumber: input.gstNumber,
       lineItems: { create: input.lineItems },
     },
     update: {
@@ -161,6 +172,8 @@ export async function saveBidDraft(
       paymentTerms: input.paymentTerms,
       warrantyPeriod: input.warrantyPeriod,
       completionTime: input.completionTime,
+      gstCompliant: input.gstCompliant,
+      gstNumber: input.gstNumber,
       notes: input.notes,
       lineItems: { deleteMany: {}, create: input.lineItems },
     },
@@ -188,9 +201,17 @@ export async function submitBid(
   });
   if (!invited) return { error: "You were not invited to bid on this requirement." };
 
-  const requirement = await prisma.requirement.findUniqueOrThrow({ where: { id: requirementId } });
+  const requirement = await prisma.requirement.findUniqueOrThrow({
+    where: { id: requirementId },
+    select: { bidDeadline: true, society: { select: { gstNumber: true } } },
+  });
   if (requirement.bidDeadline.getTime() <= Date.now()) {
     return { error: "Bidding has closed for this requirement." };
+  }
+
+  const gstNumber = input.gstNumber.trim().toUpperCase();
+  if (input.gstCompliant && !isValidGstin(gstNumber)) {
+    return { error: "Enter a valid 15-character GSTIN for a GST-compliant quote." };
   }
 
   const lineItems = input.lineItems
@@ -198,12 +219,16 @@ export async function submitBid(
     .map((li) => {
       const quantity = Number(li.quantity);
       const unitRate = Number(li.unitRate);
+      const gstRate = input.gstCompliant ? Number(li.gstRate) : null;
+      const { amount, gstAmount } = calcLineItemAmounts({ quantity, unitRate, gstRate });
       return {
         description: li.description.trim(),
         quantity,
         unit: li.unit,
         unitRate,
-        amount: quantity * unitRate,
+        amount,
+        gstRate,
+        gstAmount,
       };
     });
 
@@ -211,9 +236,19 @@ export async function submitBid(
   if (lineItems.some((li) => !Number.isFinite(li.quantity) || !Number.isFinite(li.unitRate))) {
     return { error: "Quantity and rate must be numbers." };
   }
+  if (
+    input.gstCompliant &&
+    lineItems.some((li) => li.gstRate === null || !Number.isFinite(li.gstRate) || li.gstRate < 0 || li.gstRate > 100)
+  ) {
+    return { error: "Enter a GST % between 0 and 100 for every line item." };
+  }
   if (!input.bidValidity) return { error: "Bid validity date is required." };
 
   const totalAmount = lineItems.reduce((sum, li) => sum + li.amount, 0);
+
+  if (input.gstCompliant) {
+    await prisma.vendorCompany.update({ where: { id: vendorCompanyId }, data: { gstNumber } });
+  }
 
   await prisma.bid.upsert({
     where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
@@ -227,6 +262,9 @@ export async function submitBid(
       warrantyPeriod: input.warrantyPeriod || null,
       completionTime: input.completionTime || null,
       notes: input.notes || null,
+      gstCompliant: input.gstCompliant,
+      vendorGstNumberSnapshot: input.gstCompliant ? gstNumber : null,
+      societyGstNumberSnapshot: input.gstCompliant ? requirement.society.gstNumber : null,
       lineItems: { create: lineItems },
     },
     update: {
@@ -237,6 +275,9 @@ export async function submitBid(
       warrantyPeriod: input.warrantyPeriod || null,
       completionTime: input.completionTime || null,
       notes: input.notes || null,
+      gstCompliant: input.gstCompliant,
+      vendorGstNumberSnapshot: input.gstCompliant ? gstNumber : null,
+      societyGstNumberSnapshot: input.gstCompliant ? requirement.society.gstNumber : null,
       lineItems: { deleteMany: {}, create: lineItems },
     },
   });
@@ -244,4 +285,67 @@ export async function submitBid(
   revalidatePath(`/vendor/${vendorCompanyId}/requirements/${requirementId}`);
   revalidatePath(`/vendor/${vendorCompanyId}/requirements`);
   revalidatePath(`/vendor/${vendorCompanyId}/bids`);
+}
+
+/**
+ * Renders a PDF from the current (unsaved) form state so a vendor can see
+ * exactly what their quote will look like before submitting — same
+ * validation as submitBid, but never writes anything. Returns base64 since
+ * a server action can't stream a raw Buffer back to the client; the caller
+ * decodes it into a Blob to open in a new tab.
+ */
+export async function previewBidPdf(
+  vendorCompanyId: string,
+  requirementId: string,
+  input: SubmitBidInput,
+): Promise<{ pdfBase64: string } | { error: string }> {
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID);
+
+  const invited = await prisma.requirementInvite.findUnique({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+  });
+  if (!invited) return { error: "You were not invited to bid on this requirement." };
+
+  const gstNumber = input.gstNumber.trim().toUpperCase();
+  if (input.gstCompliant && !isValidGstin(gstNumber)) {
+    return { error: "Enter a valid 15-character GSTIN for a GST-compliant quote." };
+  }
+
+  const lineItems = input.lineItems
+    .filter((li) => li.description.trim())
+    .map((li) => ({
+      description: li.description.trim(),
+      quantity: Number(li.quantity),
+      unit: li.unit,
+      unitRate: Number(li.unitRate),
+      gstRate: input.gstCompliant ? Number(li.gstRate) : null,
+    }));
+
+  if (lineItems.length === 0) return { error: "Add at least one line item." };
+  if (lineItems.some((li) => !Number.isFinite(li.quantity) || !Number.isFinite(li.unitRate))) {
+    return { error: "Quantity and rate must be numbers." };
+  }
+  if (
+    input.gstCompliant &&
+    lineItems.some((li) => li.gstRate === null || !Number.isFinite(li.gstRate) || li.gstRate < 0 || li.gstRate > 100)
+  ) {
+    return { error: "Enter a GST % between 0 and 100 for every line item." };
+  }
+  if (!input.bidValidity) return { error: "Bid validity date is required." };
+
+  const pdf = await renderBidPdfPreview({
+    vendorCompanyId,
+    requirementId,
+    bidValidity: new Date(input.bidValidity),
+    gstCompliant: input.gstCompliant,
+    vendorGstNumber: input.gstCompliant ? gstNumber : null,
+    lineItems,
+    paymentTerms: input.paymentTerms || null,
+    warrantyPeriod: input.warrantyPeriod || null,
+    completionTime: input.completionTime || null,
+    notes: input.notes || null,
+  });
+  if (!pdf) return { error: "Couldn't generate a preview. Please try again." };
+
+  return { pdfBase64: pdf.toString("base64") };
 }

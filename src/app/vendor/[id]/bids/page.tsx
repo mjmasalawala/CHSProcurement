@@ -119,6 +119,14 @@ export default async function VendorBidsPage({
               </Link>
               <div className="flex flex-col items-end gap-1.5">
                 <Badge tone={statusTone(bid.status)}>{statusLabel(bid.status)}</Badge>
+                <a
+                  href={`/api/bids/${bid.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] font-medium text-accent-primary underline"
+                >
+                  Quote PDF
+                </a>
                 {bid.workOrder && (
                   <a
                     href={`/api/work-orders/${bid.workOrder.id}/pdf`}

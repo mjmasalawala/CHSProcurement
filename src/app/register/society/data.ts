@@ -20,6 +20,7 @@ export interface SocietyRegistrationInput {
   cityId: string;
   unitsCount: string;
   registrationNumber: string;
+  gstNumber: string;
   registrantRole: RegistrantRole | "";
   registrantName: string;
   registrantPhone: string;
