@@ -20,7 +20,7 @@ export default async function LoginPage({
     <main className="flex flex-1 items-center justify-center px-6 py-24">
       <Card className="w-full max-w-sm">
         <h1 className="mb-1 text-[28px] font-bold tracking-tight text-text-primary">Log in</h1>
-        <p className="mb-6 text-[13px] text-text-secondary">ProSoc platform login</p>
+        <p className="mb-6 text-[13px] text-text-secondary">Wisesoc platform login</p>
 
         {error && (
           <p className="mb-4 text-[13px] text-status-error">

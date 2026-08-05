@@ -1,41 +1,41 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms and Conditions — ProSoc",
+  title: "Terms and Conditions — Wisesoc",
 };
 
 const SECTIONS: { title: string; body: string }[] = [
   {
     title: "1. Acceptance of terms",
-    body: "By registering for or using ProSoc, you agree to be bound by these Terms and Conditions. If you do not agree, you may not use the platform.",
+    body: "By registering for or using Wisesoc, you agree to be bound by these Terms and Conditions. If you do not agree, you may not use the platform.",
   },
   {
     title: "2. Eligibility and accounts",
-    body: "ProSoc is available to housing societies and vendors operating in India. You are responsible for the accuracy of the information you submit during registration and for maintaining the confidentiality of your account credentials.",
+    body: "Wisesoc is available to housing societies and vendors operating in India. You are responsible for the accuracy of the information you submit during registration and for maintaining the confidentiality of your account credentials.",
   },
   {
-    title: "3. Role of ProSoc",
-    body: "ProSoc provides a platform that matches Societies with eligible Vendors and facilitates structured quotations and approvals. ProSoc is not a party to any contract formed between a Society and a Vendor, and does not guarantee the quality, timeliness, or outcome of any work performed.",
+    title: "3. Role of Wisesoc",
+    body: "Wisesoc provides a platform that matches Societies with eligible Vendors and facilitates structured quotations and approvals. Wisesoc is not a party to any contract formed between a Society and a Vendor, and does not guarantee the quality, timeliness, or outcome of any work performed.",
   },
   {
     title: "4. Vendor conduct",
-    body: "Vendors agree to submit accurate quotations and to perform any work awarded to them in accordance with applicable law and professional standards. ProSoc may suspend or remove a Vendor from the platform for misconduct, misrepresentation, or repeated complaints.",
+    body: "Vendors agree to submit accurate quotations and to perform any work awarded to them in accordance with applicable law and professional standards. Wisesoc may suspend or remove a Vendor from the platform for misconduct, misrepresentation, or repeated complaints.",
   },
   {
     title: "5. Society conduct",
-    body: "Societies agree to use the platform's approval workflow in good faith and to honor Work Orders issued through ProSoc. Societies are responsible for the decisions made by their Managers and Office Bearers on the platform.",
+    body: "Societies agree to use the platform's approval workflow in good faith and to honor Work Orders issued through Wisesoc. Societies are responsible for the decisions made by their Managers and Office Bearers on the platform.",
   },
   {
     title: "6. Fees",
-    body: "Any fees applicable to using ProSoc will be communicated separately and are subject to change with notice.",
+    body: "Any fees applicable to using Wisesoc will be communicated separately and are subject to change with notice.",
   },
   {
     title: "7. Limitation of liability",
-    body: "To the maximum extent permitted by law, ProSoc is not liable for any indirect, incidental, or consequential damages arising from your use of the platform, or from the acts or omissions of any Society or Vendor using the platform.",
+    body: "To the maximum extent permitted by law, Wisesoc is not liable for any indirect, incidental, or consequential damages arising from your use of the platform, or from the acts or omissions of any Society or Vendor using the platform.",
   },
   {
     title: "8. Changes to these terms",
-    body: "We may update these Terms and Conditions from time to time. Continued use of ProSoc after changes take effect constitutes acceptance of the revised terms.",
+    body: "We may update these Terms and Conditions from time to time. Continued use of Wisesoc after changes take effect constitutes acceptance of the revised terms.",
   },
 ];
 

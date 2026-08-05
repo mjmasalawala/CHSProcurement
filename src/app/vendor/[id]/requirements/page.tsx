@@ -109,7 +109,7 @@ export default async function VendorRequirementsPage({
             ? "No missed invites — nice work."
             : q
               ? "No requirements match your search."
-              : "No requirements yet — you'll see requirements here once ProSoc's matching engine invites you to quote."}
+              : "No requirements yet — you'll see requirements here once Wisesoc's matching engine invites you to quote."}
         </p>
       ) : (
         <div className="flex flex-col gap-2">

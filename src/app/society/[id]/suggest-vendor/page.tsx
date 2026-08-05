@@ -26,7 +26,7 @@ export default async function SuggestVendorPage({
       <div>
         <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Ask a Vendor to Register</h1>
         <p className="text-[13px] text-text-secondary">
-          Know a vendor who should be on ProSoc? We&apos;ll email them an invite from you to register.
+          Know a vendor who should be on Wisesoc? We&apos;ll email them an invite from you to register.
         </p>
       </div>
 

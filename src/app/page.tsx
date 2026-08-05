@@ -24,7 +24,7 @@ export default async function Home() {
             Fair, transparent, system-matched quotations for your housing society
           </h1>
           <p className="max-w-xl text-[15px] text-text-secondary">
-            ProSoc replaces the informal &quot;get three quotes&quot; process with a matched vendor
+            Wisesoc replaces the informal &quot;get three quotes&quot; process with a matched vendor
             pool, blind quoting, and a co-approval workflow — with a full, searchable record of
             every transaction.
           </p>

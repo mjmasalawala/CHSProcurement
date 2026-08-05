@@ -3,15 +3,15 @@ import Link from "next/link";
 import { FaqList, type Faq } from "@/components/faq-list";
 
 export const metadata: Metadata = {
-  title: "FAQ for Vendors — ProSoc",
+  title: "FAQ for Vendors — Wisesoc",
 };
 
 const FAQS: Faq[] = [
   {
-    id: "what-is-prosoc",
-    question: "What is ProSoc?",
+    id: "what-is-wisesoc",
+    question: "What is Wisesoc?",
     answer:
-      "ProSoc is a platform that connects housing societies with vendors for repair, maintenance, and capital expenditure work. Societies raise requirements, ProSoc matches them with vendors in the right category and city, and vendors submit structured quotes to compete for the work.",
+      "Wisesoc is a platform that connects housing societies with vendors for repair, maintenance, and capital expenditure work. Societies raise requirements, Wisesoc matches them with vendors in the right category and city, and vendors submit structured quotes to compete for the work.",
   },
   {
     id: "how-to-register",
@@ -32,13 +32,13 @@ const FAQS: Faq[] = [
     id: "how-matching-works",
     question: "How does vendor matching work?",
     answer:
-      "You're matched automatically. When a society raises a requirement in a category and city you've registered for, ProSoc invites you to quote — you don't need to search for work or ask anyone to add you. Adding more categories or cities to your profile widens the requirements you get matched to going forward.",
+      "You're matched automatically. When a society raises a requirement in a category and city you've registered for, Wisesoc invites you to quote — you don't need to search for work or ask anyone to add you. Adding more categories or cities to your profile widens the requirements you get matched to going forward.",
   },
   {
     id: "how-many-orders",
     question: "How many orders can I expect?",
     answer:
-      "That depends on your categories, the cities you serve, and how competitive your quotes are — ProSoc doesn't guarantee a fixed volume of work. What we do guarantee is visibility: you're automatically invited to every matching requirement raised on the platform in your categories and cities, instead of relying on word-of-mouth.",
+      "That depends on your categories, the cities you serve, and how competitive your quotes are — Wisesoc doesn't guarantee a fixed volume of work. What we do guarantee is visibility: you're automatically invited to every matching requirement raised on the platform in your categories and cities, instead of relying on word-of-mouth.",
   },
   {
     id: "how-to-quote",
@@ -54,9 +54,9 @@ const FAQS: Faq[] = [
   },
   {
     id: "cost",
-    question: "How much does ProSoc cost?",
+    question: "How much does Wisesoc cost?",
     answer:
-      "ProSoc is currently free for vendors to register and use. Currently, there's no subscription fee and no commission on the work you get through our platform.",
+      "Wisesoc is currently free for vendors to register and use. Currently, there's no subscription fee and no commission on the work you get through our platform.",
   },
   {
     id: "categories-cities",
@@ -72,13 +72,13 @@ const FAQS: Faq[] = [
   },
   {
     id: "track-record",
-    question: "Does ProSoc keep a record of my past work?",
+    question: "Does Wisesoc keep a record of my past work?",
     answer:
-      "Yes — every quote you submit and every Work Order you're awarded stays on your ProSoc history. Over time this becomes a track record that helps societies trust your bids. Your data is safe with ProSoc, we do not disclose your quotes or pricing to any other society or business.",
+      "Yes — every quote you submit and every Work Order you're awarded stays on your Wisesoc history. Over time this becomes a track record that helps societies trust your bids. Your data is safe with Wisesoc, we do not disclose your quotes or pricing to any other society or business.",
   },
   {
     id: "existing-society",
-    question: "A society I already work with wants me on ProSoc — what do I do?",
+    question: "A society I already work with wants me on Wisesoc — what do I do?",
     answer: (
       <>
         Ask them to invite you using the &quot;Ask a Vendor to Register&quot; option in their society
@@ -110,7 +110,7 @@ export default function VendorFaqPage() {
   return (
     <FaqList
       title="Frequently Asked Questions for Vendors"
-      description="Answers for vendors registering or working on ProSoc."
+      description="Answers for vendors registering or working on Wisesoc."
       faqs={FAQS}
     />
   );

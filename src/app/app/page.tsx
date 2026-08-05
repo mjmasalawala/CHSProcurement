@@ -53,7 +53,7 @@ export default async function AppHome() {
           <p className="mt-1 text-[13px] text-text-secondary">
             This can happen if you&apos;re a new account waiting on a registration approval or invite, or if
             you&apos;ve been removed from a Society/Vendor Company you previously had access to. If you believe
-            this is a mistake, get in touch with the relevant Society/Vendor or ProSoc support.
+            this is a mistake, get in touch with the relevant Society/Vendor or Wisesoc support.
           </p>
         </Card>
       )}

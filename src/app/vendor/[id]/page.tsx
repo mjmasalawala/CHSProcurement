@@ -121,10 +121,10 @@ export default async function VendorDashboardPage({
           </div>
           <p className="mt-1 text-[13px] text-text-secondary">
             {vendor.status === "PENDING_VERIFICATION"
-              ? "You can update your profile while ProSoc reviews your registration, but you won't be matched to requirements until approved."
+              ? "You can update your profile while Wisesoc reviews your registration, but you won't be matched to requirements until approved."
               : vendor.status === "REJECTED"
                 ? `Rejected${vendor.rejectionReason ? `: ${vendor.rejectionReason}` : "."}`
-                : "Your account is suspended — contact ProSoc support."}
+                : "Your account is suspended — contact Wisesoc support."}
           </p>
         </Card>
       )}

@@ -4,7 +4,7 @@ import { Footer } from "@/components/layout/footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ProSoc",
+  title: "Wisesoc",
   description: "Housing society R&M vendor marketplace",
 };
 

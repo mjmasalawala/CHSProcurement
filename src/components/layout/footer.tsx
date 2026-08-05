@@ -11,7 +11,7 @@ const LINK_GROUPS: { title: string; links: { label: string; href: string }[] }[]
   {
     title: "Company",
     links: [
-      { label: "About ProSoc", href: "/about" },
+      { label: "About Wisesoc", href: "/about" },
       { label: "FAQ (Societies)", href: "/faq" },
       { label: "FAQ (Vendors)", href: "/faq/vendors" },
       { label: "Contact Us", href: "/contact" },
@@ -31,7 +31,7 @@ export function Footer() {
     <footer className="border-t border-border-subtle px-6 py-10 text-[13px]">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 sm:flex-row sm:justify-between">
         <div>
-          <p className="text-[15px] font-bold text-text-primary">ProSoc</p>
+          <p className="text-[15px] font-bold text-text-primary">Wisesoc</p>
           <p className="mt-1 max-w-[220px] text-text-secondary">
             Fair, transparent procurement for housing societies.
           </p>
@@ -56,7 +56,7 @@ export function Footer() {
       </div>
 
       <p className="mx-auto mt-8 w-full max-w-4xl border-t border-border-subtle pt-6 text-center text-text-secondary">
-        © {new Date().getFullYear()} ProSoc · Fair, transparent procurement for housing societies
+        © {new Date().getFullYear()} Wisesoc · Fair, transparent procurement for housing societies
       </p>
     </footer>
   );

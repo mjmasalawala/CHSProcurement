@@ -128,7 +128,7 @@ export function SocietyRegistrationWizard({ cities }: Props) {
           Thanks — we&apos;ll review your registration
         </h1>
         <p className="text-[15px] text-text-secondary">
-          ProSoc will verify {form.name} and email the account activation link once approved.
+          Wisesoc will verify {form.name} and email the account activation link once approved.
         </p>
       </Card>
     );
@@ -282,7 +282,7 @@ export function SocietyRegistrationWizard({ cities }: Props) {
           nextDisabled={!canProceed.invitee}
         >
           <p className="text-[13px] text-text-secondary">
-            As a General Body Member you won&apos;t get a ProSoc login yourself — tell us who should
+            As a General Body Member you won&apos;t get a Wisesoc login yourself — tell us who should
             receive the activation invite to set up a password and run the account.
           </p>
           <div>

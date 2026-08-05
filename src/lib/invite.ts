@@ -23,7 +23,7 @@ const EMAIL_FAILURE_MESSAGE = "Email sending failed. Please contact support.";
  * before, not just a stub User row created by an earlier unaccepted
  * invite): a brand-new person gets the usual PENDING RoleAssignment + a
  * single-use token, flipped to ACTIVE by visiting /invite/[token] and
- * setting a password. Someone who already has working ProSoc credentials
+ * setting a password. Someone who already has working Wisesoc credentials
  * doesn't need to go through that again — their RoleAssignment activates
  * immediately and they're just emailed a plain /login link (product
  * decision, 2026-07-13).

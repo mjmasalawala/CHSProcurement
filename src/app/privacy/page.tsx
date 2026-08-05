@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — ProSoc",
+  title: "Privacy Policy — Wisesoc",
 };
 
 const SECTIONS: { title: string; body: string }[] = [
   {
     title: "1. Information we collect",
-    body: "When you register a Society or Vendor on ProSoc, we collect information such as your name, email address, phone number, address, and — for Vendors — business details, service categories, and service areas. We also collect information generated through your use of the platform, including requirements, quotations, approvals, and messages exchanged through the system.",
+    body: "When you register a Society or Vendor on Wisesoc, we collect information such as your name, email address, phone number, address, and — for Vendors — business details, service categories, and service areas. We also collect information generated through your use of the platform, including requirements, quotations, approvals, and messages exchanged through the system.",
   },
   {
     title: "2. How we use your information",
-    body: "We use your information to operate the ProSoc platform: matching requirements with eligible vendors, facilitating quotations and approvals, sending transactional notifications by email, verifying phone numbers via WhatsApp one-time codes, and maintaining a permanent, auditable record of procurement activity on the platform.",
+    body: "We use your information to operate the Wisesoc platform: matching requirements with eligible vendors, facilitating quotations and approvals, sending transactional notifications by email, verifying phone numbers via WhatsApp one-time codes, and maintaining a permanent, auditable record of procurement activity on the platform.",
   },
   {
     title: "3. Sharing of information",

@@ -240,7 +240,7 @@ async function main() {
     update: {},
     create: {
       email: "admin@example.com",
-      name: "ProSoc Super Admin",
+      name: "Wisesoc Super Admin",
       passwordHash,
       roleAssignments: {
         create: {

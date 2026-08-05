@@ -21,8 +21,8 @@ const HOW_IT_WORKS = [
   { title: "Register once", body: "List your service categories and service areas." },
   { title: "Get matched", body: "No cold calling. You're invited the moment a society raises a requirement in your category and city." },
   { title: "Submit quotes", body: "Line-item based quotes, no haggling over WhatsApp." },
-  { title: "Compete fairly", body: "Societies on ProSoc compare quality, price and terms, not just who they already know." },
-  { title: "Build track record", body: "Every job, every quote, every Work Order becomes part of your history and footprint on ProSoc." },
+  { title: "Compete fairly", body: "Societies on Wisesoc compare quality, price and terms, not just who they already know." },
+  { title: "Build track record", body: "Every job, every quote, every Work Order becomes part of your history and footprint on Wisesoc." },
 ];
 
 export default function VendorsLandingPage() {
@@ -40,7 +40,7 @@ export default function VendorsLandingPage() {
           waterproofing, CCTV, Solar, Fire Safety, Electrical, AMC renewals — and most of it still gets awarded through
           word-of-mouth. </p>
         
-        <h2 className="max-w-2xl text-[20px] font-bold text-status-success sm:text-[24px]">ProSoc puts your business in front of societies actively looking for exactly
+        <h2 className="max-w-2xl text-[20px] font-bold text-status-success sm:text-[24px]">Wisesoc puts your business in front of societies actively looking for exactly
         what you sell.</h2>
         
         {/* <Link href="/register/vendor">
@@ -75,7 +75,7 @@ export default function VendorsLandingPage() {
       </section>
 
       <section className="flex w-full max-w-4xl flex-col gap-6">
-        <h2 className="text-center text-[24px] font-semibold text-text-primary">How ProSoc helps</h2>
+        <h2 className="text-center text-[24px] font-semibold text-text-primary">How Wisesoc helps</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
           {HOW_IT_WORKS.map((step, i) => (
             <Card key={step.title} className="flex flex-col gap-2">

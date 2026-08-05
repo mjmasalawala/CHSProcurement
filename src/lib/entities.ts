@@ -28,6 +28,6 @@ export async function getEntityName(
       return society?.name ?? null;
     }
     case "PLATFORM":
-      return "ProSoc";
+      return "Wisesoc";
   }
 }

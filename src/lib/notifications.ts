@@ -13,8 +13,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // account owner's own verified address (SUPPORT_EMAIL) — set RESEND_FROM_EMAIL
 // to a verified-domain address once a sending domain is verified in Resend,
 // to unlock real delivery. RESEND_FROM_EMAIL is just a bare address (no
-// display name), so always wrap it with the ProSoc name here.
-const FROM = `ProSoc <${process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"}>`;
+// display name), so always wrap it with the Wisesoc name here.
+const FROM = `Wisesoc <${process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"}>`;
 
 function escapeHtml(value: string): string {
   return value
@@ -89,7 +89,7 @@ function renderEmailHtml(content: EmailContent): string {
   <body style="margin:0;padding:24px;background-color:#f4f4f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:520px;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e8e6e1;">
       <tr><td style="padding:20px 32px;background-color:#1f3d2c;">
-        <span style="font-size:16px;font-weight:700;color:#ffffff;letter-spacing:0.02em;">ProSoc</span>
+        <span style="font-size:16px;font-weight:700;color:#ffffff;letter-spacing:0.02em;">Wisesoc</span>
       </td></tr>
       <tr><td style="padding:28px 32px 32px;">
         <h1 style="margin:0 0 16px;font-size:19px;font-weight:700;color:#1f1f1f;">${escapeHtml(content.heading)}</h1>
@@ -163,7 +163,7 @@ export async function notifyNewRegistration(params: {
     subject: `New ${params.type} registration: ${params.name}`,
     heading: `New ${params.type} registration`,
     paragraphs: [
-      `A new ${params.type} has registered on ProSoc and is pending verification.`,
+      `A new ${params.type} has registered on Wisesoc and is pending verification.`,
       `Name: ${params.name}`,
       `Contact: ${params.contactName} <${params.contactEmail}>`,
     ],
@@ -172,7 +172,7 @@ export async function notifyNewRegistration(params: {
 }
 
 // Society "Suggest a Vendor" (society-portal-spec.md) — tells the suggested
-// vendor who pointed ProSoc at them and from which society, with a link
+// vendor who pointed Wisesoc at them and from which society, with a link
 // straight into the normal vendor registration flow (no special/prefilled
 // suggestion-only path — they register the same way as anyone else).
 export async function notifyVendorSuggested(params: {
@@ -185,18 +185,18 @@ export async function notifyVendorSuggested(params: {
 }) {
   await sendEmail({
     to: params.vendorEmail,
-    subject: `${params.suggestedByName} suggested you register on ProSoc`,
+    subject: `${params.suggestedByName} suggested you register on Wisesoc`,
     heading: `You've been suggested as a vendor`,
     paragraphs: [
       `Hi ${params.vendorName},`,
-      `${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on ProSoc — the platform housing societies use to find and hire vendors like you.`,
+      `${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on Wisesoc — the platform housing societies use to find and hire vendors like you.`,
     ],
-    cta: { label: "Register on ProSoc", url: params.registerUrl },
+    cta: { label: "Register on Wisesoc", url: params.registerUrl },
   });
   // SMS intentionally not sent — MSG91 is OTP-only for now, no DLT template
   // registered for this message yet (product decision, 2026-07-19). Once a
   // template's approved, re-add:
-  // await sendSms({ to: params.vendorPhone, body: `ProSoc: ${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on ProSoc. Register: ${params.registerUrl}` });
+  // await sendSms({ to: params.vendorPhone, body: `Wisesoc: ${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on Wisesoc. Register: ${params.registerUrl}` });
 }
 
 // Note: while RESEND_API_KEY is sandboxed, this — like notifyRejection —
@@ -217,20 +217,20 @@ export async function sendInvite(params: {
 
   const paragraphs = params.registrationPitch
     ? [
-        `${params.registrationPitch.proposerName} (${params.registrationPitch.proposerRoleLabel}) has proposed registration of ${params.registrationPitch.societyName} onto the free ProSoc platform for managing vendor quotes transparently and fairly.`,
+        `${params.registrationPitch.proposerName} (${params.registrationPitch.proposerRoleLabel}) has proposed registration of ${params.registrationPitch.societyName} onto the free Wisesoc platform for managing vendor quotes transparently and fairly.`,
         `Create a password and set up your Office Bearer team and Manager to explore the portal.`,
       ]
-    : [`Hi,`, `You've been invited to join ProSoc as ${params.role}${forWhat}.`];
+    : [`Hi,`, `You've been invited to join Wisesoc as ${params.role}${forWhat}.`];
 
   await sendEmail({
     to: params.email,
     subject: params.registrationPitch
-      ? `You're invited to set up ${params.registrationPitch.societyName} on ProSoc`
-      : `You've been invited to ProSoc as ${params.role}`,
-    heading: params.registrationPitch ? "Set up your society on ProSoc" : "You've been invited to ProSoc",
+      ? `You're invited to set up ${params.registrationPitch.societyName} on Wisesoc`
+      : `You've been invited to Wisesoc as ${params.role}`,
+    heading: params.registrationPitch ? "Set up your society on Wisesoc" : "You've been invited to Wisesoc",
     paragraphs,
     cta: { label: "Create your password", url: params.url },
-    secondaryLinks: params.registrationPitch ? [{ label: "the ProSoc FAQ", url: `${base}/faq` }] : undefined,
+    secondaryLinks: params.registrationPitch ? [{ label: "the Wisesoc FAQ", url: `${base}/faq` }] : undefined,
     footer: "This link expires in 7 days.",
   });
 }
@@ -239,9 +239,9 @@ export async function sendInvite(params: {
 export async function sendPasswordReset(params: { email: string; url: string }) {
   await sendEmail({
     to: params.email,
-    subject: "Reset your ProSoc password",
+    subject: "Reset your Wisesoc password",
     heading: "Reset your password",
-    paragraphs: ["We received a request to reset your ProSoc password."],
+    paragraphs: ["We received a request to reset your Wisesoc password."],
     cta: { label: "Reset your password", url: params.url },
     footer: "This link expires in 1 hour. If you didn't request this, you can ignore this email.",
   });
@@ -317,17 +317,17 @@ export async function notifyBidOutcome(params: {
   won: boolean;
 }) {
   const message = params.won
-    ? `Congratulations — your quote for "${params.requirementName}" was selected. Check My Quotes / History on ProSoc for the Work Order.`
-    : `Your quote for "${params.requirementName}" was not selected this time. Check My Quotes / History on ProSoc for details.`;
+    ? `Congratulations — your quote for "${params.requirementName}" was selected. Check My Quotes / History on Wisesoc for the Work Order.`
+    : `Your quote for "${params.requirementName}" was not selected this time. Check My Quotes / History on Wisesoc for details.`;
 
   await sendEmail({
     to: params.vendorEmail,
-    subject: params.won ? "You were selected on ProSoc" : "Quote outcome on ProSoc",
+    subject: params.won ? "You were selected on Wisesoc" : "Quote outcome on Wisesoc",
     heading: params.won ? "You were selected!" : "Quote outcome",
     paragraphs: [message],
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
-  // await sendSms({ to: params.vendorPhone, body: `ProSoc: ${message}` });
+  // await sendSms({ to: params.vendorPhone, body: `Wisesoc: ${message}` });
 }
 
 export async function notifyThresholdChangeProposed(params: {
@@ -417,20 +417,20 @@ export async function notifyMemberRemovalDecided(params: {
 }
 
 // Sent to the removed person themselves once the removal is approved — their
-// ProSoc login still exists (other role assignments, if any, are untouched),
+// Wisesoc login still exists (other role assignments, if any, are untouched),
 // they just lose access to this specific society.
 export async function notifyMemberRemoved(params: { email: string; societyName: string }) {
   await sendEmail({
     to: params.email,
-    subject: `Removed from ${params.societyName} on ProSoc`,
+    subject: `Removed from ${params.societyName} on Wisesoc`,
     heading: "You've been removed",
     paragraphs: [
-      `You've been removed from ${params.societyName} on ProSoc and no longer have access to that workspace. If you believe this was a mistake, please get in touch with the society directly.`,
+      `You've been removed from ${params.societyName} on Wisesoc and no longer have access to that workspace. If you believe this was a mistake, please get in touch with the society directly.`,
     ],
   });
 }
 
-// Fast-path invite: the invitee already has a real ProSoc account (a
+// Fast-path invite: the invitee already has a real Wisesoc account (a
 // passwordHash is set), so there's no password-setup step — just tell them
 // they've been added and point them at /login instead of an invite token.
 export async function notifyAddedToExistingAccount(params: {
@@ -442,9 +442,9 @@ export async function notifyAddedToExistingAccount(params: {
   const forWhat = params.entityName ? ` for ${params.entityName}` : "";
   await sendEmail({
     to: params.email,
-    subject: `You've been added to ProSoc as ${params.role}`,
-    heading: "You've been added to ProSoc",
-    paragraphs: [`You've been added as ${params.role}${forWhat} on ProSoc, using your existing account (${params.email}).`],
+    subject: `You've been added to Wisesoc as ${params.role}`,
+    heading: "You've been added to Wisesoc",
+    paragraphs: [`You've been added as ${params.role}${forWhat} on Wisesoc, using your existing account (${params.email}).`],
     cta: { label: "Log in", url: params.loginUrl },
   });
 }
@@ -463,16 +463,16 @@ export async function notifyRejection(params: {
 
   await sendEmail({
     to: params.contactEmail,
-    subject: `Your ${params.type} registration on ProSoc`,
+    subject: `Your ${params.type} registration on Wisesoc`,
     heading: "Registration not approved",
     paragraphs: [
       `Your ${params.type} registration for "${params.name}" was not approved.`,
       `Reason: ${reason}`,
-      `If you believe this was a mistake or would like to re-apply with corrected details, please get in touch with ProSoc support.`,
+      `If you believe this was a mistake or would like to re-apply with corrected details, please get in touch with Wisesoc support.`,
     ],
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
-  // await sendSms({ to: params.contactPhone, body: `ProSoc: Your ${params.type} registration for "${params.name}" was not approved. Reason: ${reason}` });
+  // await sendSms({ to: params.contactPhone, body: `Wisesoc: Your ${params.type} registration for "${params.name}" was not approved. Reason: ${reason}` });
 }
 
 // M7 — registration confirmation (society-portal-spec.md /
@@ -483,7 +483,7 @@ export async function notifyRegistrationSubmitted(params: {
   contactEmail: string;
   contactPhone?: string | null;
 }) {
-  const body = `Your ${params.type} registration for "${params.name}" on ProSoc has been submitted and is pending verification. We'll notify you once it's reviewed.`;
+  const body = `Your ${params.type} registration for "${params.name}" on Wisesoc has been submitted and is pending verification. We'll notify you once it's reviewed.`;
 
   await sendEmail({
     to: params.contactEmail,
@@ -492,7 +492,7 @@ export async function notifyRegistrationSubmitted(params: {
     paragraphs: [body],
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
-  // await sendSms({ to: params.contactPhone, body: `ProSoc: ${body}` });
+  // await sendSms({ to: params.contactPhone, body: `Wisesoc: ${body}` });
 }
 
 // M7 — registration approval (currently only wired for Vendors: Society
@@ -512,11 +512,11 @@ export async function notifyApproval(params: {
     to: params.contactEmail,
     subject: `Your ${params.type} registration was approved`,
     heading: "Registration approved",
-    paragraphs: [`Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.`],
+    paragraphs: [`Good news — your ${params.type} registration for "${params.name}" on Wisesoc has been approved and is now active.`],
     cta: params.dashboardUrl ? { label: "Go to your dashboard", url: params.dashboardUrl } : undefined,
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
-  // await sendSms({ to: params.contactPhone, body: `ProSoc: Good news — your ${params.type} registration for "${params.name}" on ProSoc has been approved and is now active.` });
+  // await sendSms({ to: params.contactPhone, body: `Wisesoc: Good news — your ${params.type} registration for "${params.name}" on Wisesoc has been approved and is now active.` });
 }
 
 // Society registration confirmation to the registrant, sent only when the
@@ -532,11 +532,11 @@ export async function notifySocietyRegistrationApprovedToRegistrant(params: {
 }) {
   await sendEmail({
     to: params.registrantEmail,
-    subject: `${params.societyName} was approved on ProSoc`,
+    subject: `${params.societyName} was approved on Wisesoc`,
     heading: "Your registration was approved",
     paragraphs: [
       `Hi ${params.registrantName},`,
-      `${params.societyName}'s registration on ProSoc has been approved. We've sent an activation invite to ${params.inviteeName} (${params.inviteeRoleLabel}) at ${params.inviteeEmail} to set up the account and password.`,
+      `${params.societyName}'s registration on Wisesoc has been approved. We've sent an activation invite to ${params.inviteeName} (${params.inviteeRoleLabel}) at ${params.inviteeEmail} to set up the account and password.`,
       `Once they've set things up, they can invite you and the rest of the committee from the Members page.`,
     ],
   });
@@ -560,7 +560,7 @@ export async function notifyRequirementMatched(params: {
     cta: { label: "Submit your quote", url: params.reviewUrl },
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
-  // await sendSms({ to: params.vendorPhone, body: `ProSoc: A new ${params.categoryName} requirement from ${params.societyName} matches your profile. Submit your quote: ${params.reviewUrl}` });
+  // await sendSms({ to: params.vendorPhone, body: `Wisesoc: A new ${params.categoryName} requirement from ${params.societyName} matches your profile. Submit your quote: ${params.reviewUrl}` });
 }
 
 // Used when a vendor becomes newly eligible for several open requirements at
@@ -584,7 +584,7 @@ export async function notifyVendorMatchedRequirements(params: {
     cta: { label: "View your dashboard", url: params.dashboardUrl },
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
-  // await sendSms({ to: params.vendorPhone, body: `ProSoc: You've been matched with ${count} new requirement${count === 1 ? "" : "s"}. Check your dashboard: ${params.dashboardUrl}` });
+  // await sendSms({ to: params.vendorPhone, body: `Wisesoc: You've been matched with ${count} new requirement${count === 1 ? "" : "s"}. Check your dashboard: ${params.dashboardUrl}` });
 }
 
 // M7 — vendor-registration-portal-spec.md Section 9, "New category request
@@ -606,7 +606,7 @@ export async function notifyCategoryRequestDecided(params: {
     paragraphs: [body],
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
-  // await sendSms({ to: params.vendorPhone, body: `ProSoc: ${body}` });
+  // await sendSms({ to: params.vendorPhone, body: `Wisesoc: ${body}` });
 }
 
 // M7 — society-portal-spec.md Section 9, "Requirement's bid deadline
@@ -690,5 +690,5 @@ export async function notifyBidDeadlineReminder(params: {
     cta: { label: "Submit your quote", url: params.reviewUrl },
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
-  // await sendSms({ to: params.vendorPhone, body: `ProSoc: The quote deadline for "${params.requirementName}" closes within 24 hours. Submit your quote: ${params.reviewUrl}` });
+  // await sendSms({ to: params.vendorPhone, body: `Wisesoc: The quote deadline for "${params.requirementName}" closes within 24 hours. Submit your quote: ${params.reviewUrl}` });
 }

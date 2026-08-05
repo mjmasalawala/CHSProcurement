@@ -6,7 +6,7 @@
 // Needs a WhatsApp Business Platform phone number + an approved message
 // template. Register the template body as close to this as your template
 // category allows:
-//   "Your ProSoc verification code is {{1}}. It expires in 10 minutes."
+//   "Your Wisesoc verification code is {{1}}. It expires in 10 minutes."
 // (Meta's "Authentication" template category has a more rigid, Meta-defined
 // body and adds its own security disclaimer/copy-code button — a "Utility"
 // category template gives full control over the wording above instead.

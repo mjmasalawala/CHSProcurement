@@ -7,7 +7,7 @@ import { REGISTRANT_ROLES, INVITEE_ROLES, type SocietyRegistrationInput } from "
 
 /**
  * No account is created here — the invitee (see below) only gets an
- * activation invite once ProSoc Ops approves this registration, per
+ * activation invite once Wisesoc Ops approves this registration, per
  * landing-page-and-auth-flow-spec.md Section 1/3. Registration is no longer
  * assumed to be filed by the Secretary — any Manager, Office Bearer, or
  * General Body Member can submit it, naming who should actually run the

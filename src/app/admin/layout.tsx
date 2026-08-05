@@ -35,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const navItems = visibleNav.map((item) => ({ href: item.href, label: item.label }));
 
   return (
-    <WorkspaceShell title="ProSoc Admin" basePath="/admin" items={navItems}>
+    <WorkspaceShell title="Wisesoc Admin" basePath="/admin" items={navItems}>
       {children}
     </WorkspaceShell>
   );

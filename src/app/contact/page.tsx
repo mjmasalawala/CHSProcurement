@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { submitContactMessage } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Contact Us — ProSoc",
+  title: "Contact Us — Wisesoc",
 };
 
 export default async function ContactPage({

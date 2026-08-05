@@ -108,7 +108,7 @@ enum RoleAssignmentStatus {
 // entityId is a loose reference by design (entityType tells you which table —
 // VendorCompany or Society — it points into; Prisma can't express a single FK
 // that targets either table, so referential integrity here is app-level, not
-// DB-level). PLATFORM roles (ProSoc Ops/Super Admin) have no entity, so
+// DB-level). PLATFORM roles (Wisesoc Ops/Super Admin) have no entity, so
 // entityId is null for those.
 model RoleAssignment {
   id          String               @id @default(cuid())
