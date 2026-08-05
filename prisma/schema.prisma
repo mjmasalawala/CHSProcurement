@@ -385,9 +385,11 @@ model Requirement {
   // Free text (e.g. "₹10,000 - ₹25,000") — optional, no fixed band list yet.
   budgetBand     String?
   bidDeadline    DateTime
-  // File upload storage isn't built (same "schema now, UI later" pattern as
-  // KYC document fields elsewhere) — populated by nothing yet, v1 GUI has no
-  // upload control.
+  // Optional photos (up to 5, see MAX_REQUIREMENT_PHOTOS) set at creation
+  // time via the wizard's photos step — Vercel Blob URLs, array order is
+  // display order. Visible to the society always; to vendors only once
+  // RequirementInvite.contactRevealedAt is set, same gate as the society's
+  // contact details, since photos can identify the building on their own.
   attachmentUrls String[]           @default([])
 
   status      RequirementStatus @default(OPEN)

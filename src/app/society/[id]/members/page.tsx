@@ -116,7 +116,7 @@ export default async function SocietyMembersPage({
         {members.map((ra) => (
           <div
             key={ra.id}
-            className="flex items-center justify-between rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs"
+            className="flex flex-col gap-3 rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
               <p className="text-[15px] font-semibold text-text-primary">{ra.user.name ?? ra.user.email}</p>
@@ -124,7 +124,7 @@ export default async function SocietyMembersPage({
                 {ra.user.email} · {ROLE_LABELS[ra.role] ?? ra.role}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {ra.status === "PENDING" && (
                 <p className="text-[13px] text-text-secondary">Invited — waiting for them to set a password</p>
               )}

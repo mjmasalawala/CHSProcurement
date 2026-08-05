@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorPagePermission } from "@/lib/vendor-auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RequirementPhotoGallery } from "@/components/requirement-photo-gallery";
 import { statusTone, statusLabel } from "@/lib/status-badge";
 import { formatDate, formatDateTime } from "@/lib/date";
 import { BidForm } from "./bid-form";
@@ -96,6 +97,8 @@ export default async function RequirementDetailPage({
         registrantPhone={requirement.society.registrantPhone}
         registrantEmail={requirement.society.registrantEmail}
       />
+
+      {invite.contactRevealedAt && <RequirementPhotoGallery urls={requirement.attachmentUrls} />}
 
       {closed ? (
         myBid ? (

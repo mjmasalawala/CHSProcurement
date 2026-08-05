@@ -19,8 +19,8 @@ export async function Header() {
 
       {session ? (
         <div className="flex items-center gap-4">
-          <div className="hidden text-right sm:block">
-            <p className="text-[13px] font-semibold text-text-primary">
+          <div className="text-right">
+            <p className="hidden text-[13px] font-semibold text-text-primary sm:block">
               {session.user.name ?? session.user.email}
             </p>
             {session.user.roleAssignments.length > 1 && (

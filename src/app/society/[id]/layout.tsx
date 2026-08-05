@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyAssignment } from "@/lib/society-auth";
-import { WorkspaceNav } from "@/components/ui/workspace-nav";
+import { WorkspaceShell } from "@/components/ui/workspace-shell";
 
 const NAV_ITEMS = [
   { suffix: "", label: "Dashboard", permissions: [] },
@@ -44,21 +44,8 @@ export default async function SocietyLayout({
   const navItems = visibleNav.map((item) => ({ href: `/society/${id}${item.suffix}`, label: item.label }));
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 md:flex-row md:gap-10">
-      <aside className="flex shrink-0 flex-col gap-5 md:w-56">
-        <div>
-          <p className="text-[16px] font-bold tracking-tight text-text-primary">{society.name}</p>
-          <p className="text-[13px] font-medium text-text-secondary">{assignment.role}</p>
-        </div>
-        <div className="md:hidden">
-          <WorkspaceNav basePath={`/society/${id}`} items={navItems} orientation="horizontal" />
-        </div>
-        <div className="hidden border-r border-border-subtle pr-4 md:block">
-          <WorkspaceNav basePath={`/society/${id}`} items={navItems} orientation="vertical" />
-        </div>
-      </aside>
-
-      <main className="min-w-0 flex-1">{children}</main>
-    </div>
+    <WorkspaceShell title={society.name} subtitle={assignment.role} basePath={`/society/${id}`} items={navItems}>
+      {children}
+    </WorkspaceShell>
   );
 }

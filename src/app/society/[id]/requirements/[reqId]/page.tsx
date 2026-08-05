@@ -7,6 +7,7 @@ import { requireSocietyAssignment } from "@/lib/society-auth";
 import { OB_ROLES } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RequirementPhotoGallery } from "@/components/requirement-photo-gallery";
 import { statusTone, statusLabel } from "@/lib/status-badge";
 import { formatDate, formatDateTime, formatDuration } from "@/lib/date";
 import { BidComparison } from "./bid-comparison";
@@ -140,34 +141,40 @@ export default async function SocietyRequirementDetailPage({
           {requirement.invites.length === 0 ? (
             <p className="mt-2 text-text-tertiary">No vendors matched yet.</p>
           ) : (
-            <table className="mt-2 w-full text-left">
-              <thead>
-                <tr className="border-b border-border-subtle text-[11px] uppercase tracking-wide text-text-tertiary">
-                  <th className="py-1.5 pr-3 font-semibold">Vendor</th>
-                  <th className="py-1.5 pr-3 font-semibold">Matched</th>
-                  <th className="py-1.5 pr-3 font-semibold">Time given</th>
-                  <th className="py-1.5 font-semibold">Quoted</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requirement.invites.map((inv) => {
-                  const windowEnd = closed ? requirement.bidDeadline : new Date();
-                  const givenMs = Math.max(0, windowEnd.getTime() - inv.createdAt.getTime());
-                  const bidAt = bidByVendorId.get(inv.vendorCompanyId);
-                  return (
-                    <tr key={inv.id} className="border-b border-border-subtle last:border-0">
-                      <td className="py-1.5 pr-3 font-medium text-text-primary">{inv.vendorCompany.name}</td>
-                      <td className="whitespace-nowrap py-1.5 pr-3">{formatDate(inv.createdAt)}</td>
-                      <td className="whitespace-nowrap py-1.5 pr-3">{formatDuration(givenMs)}</td>
-                      <td className="whitespace-nowrap py-1.5">{bidAt ? formatDate(bidAt) : "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="mt-2 w-full text-left">
+                <thead>
+                  <tr className="border-b border-border-subtle text-[11px] uppercase tracking-wide text-text-tertiary">
+                    <th className="py-1.5 pr-3 font-semibold">Vendor</th>
+                    <th className="py-1.5 pr-3 font-semibold">Matched</th>
+                    <th className="py-1.5 pr-3 font-semibold">Time given</th>
+                    <th className="py-1.5 font-semibold">Quoted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requirement.invites.map((inv) => {
+                    const windowEnd = closed ? requirement.bidDeadline : new Date();
+                    const givenMs = Math.max(0, windowEnd.getTime() - inv.createdAt.getTime());
+                    const bidAt = bidByVendorId.get(inv.vendorCompanyId);
+                    return (
+                      <tr key={inv.id} className="border-b border-border-subtle last:border-0">
+                        <td className="py-1.5 pr-3 font-medium text-text-primary whitespace-nowrap">
+                          {inv.vendorCompany.name}
+                        </td>
+                        <td className="whitespace-nowrap py-1.5 pr-3">{formatDate(inv.createdAt)}</td>
+                        <td className="whitespace-nowrap py-1.5 pr-3">{formatDuration(givenMs)}</td>
+                        <td className="whitespace-nowrap py-1.5">{bidAt ? formatDate(bidAt) : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </details>
       </Card>
+
+      <RequirementPhotoGallery urls={requirement.attachmentUrls} />
 
       {requirement.status === "RETURNED_TO_MANAGER" && (
         <Card className="border-status-warning-border bg-status-warning-bg">

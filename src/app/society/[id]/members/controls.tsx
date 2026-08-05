@@ -48,8 +48,12 @@ export function InviteMemberForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-end gap-2">
-      <Select value={role} onChange={(e) => setRole(e.target.value as RoleName)} className="w-36 shrink-0">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+      <Select
+        value={role}
+        onChange={(e) => setRole(e.target.value as RoleName)}
+        className="sm:w-36 sm:shrink-0"
+      >
         {ROLE_OPTIONS.map((r) => (
           <option key={r.value} value={r.value} disabled={occupiedRoles.includes(r.value)}>
             {r.label}
@@ -67,7 +71,7 @@ export function InviteMemberForm({
         />
         {error && <p className="mt-1 text-[13px] text-status-error">{error}</p>}
       </div>
-      <Button type="submit" disabled={submitting}>
+      <Button type="submit" disabled={submitting} className="sm:shrink-0">
         {submitting ? "Inviting…" : "Invite"}
       </Button>
     </form>

@@ -10,14 +10,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { descriptionPlaceholderFor } from "@/lib/requirement-placeholders";
 import { createRequirement, checkDescriptionCompleteness, type RequirementCreationInput } from "../actions";
+import { RequirementPhotosField } from "./photos-field";
 
-type Phase = "name" | "details" | "clarify" | "review" | "deadline";
+type Phase = "name" | "details" | "photos" | "clarify" | "review" | "deadline";
 
 // "clarify"/"review" only appear in the sequence once the completeness
 // check comes back with questions — computed fresh each time so a society
 // that goes back and re-answers doesn't end up on a stale sequence.
 function stepSequence(hasQuestions: boolean): Phase[] {
-  return hasQuestions ? ["name", "details", "clarify", "review", "deadline"] : ["name", "details", "deadline"];
+  return hasQuestions
+    ? ["name", "details", "photos", "clarify", "review", "deadline"]
+    : ["name", "details", "photos", "deadline"];
 }
 
 // datetime-local expects "YYYY-MM-DDTHH:mm" in local time, no timezone suffix.
@@ -53,6 +56,7 @@ export function RequirementWizard({ societyId, categories }: Props) {
     name: "",
     description: "",
     bidDeadline: defaultBidDeadline(),
+    photoUrls: [],
   });
   // The free-text description as the society originally typed it, before any
   // Q&A gets appended — kept separately so re-answering clarifying questions
@@ -77,14 +81,11 @@ export function RequirementWizard({ societyId, categories }: Props) {
     setBaseDescription(form.description);
     const result = await checkDescriptionCompleteness(societyId, form.categoryIds, form.description);
     setChecking(false);
+    setQuestions(result.questions);
     if (result.questions.length > 0) {
-      setQuestions(result.questions);
       setAnswers(new Array(result.questions.length).fill(""));
-      setPhase("clarify");
-    } else {
-      setQuestions([]);
-      setPhase("deadline");
     }
+    setPhase("photos");
   }
 
   function handleClarifyNext() {
@@ -157,12 +158,28 @@ export function RequirementWizard({ societyId, categories }: Props) {
         </WizardShell>
       )}
 
+      {phase === "photos" && (
+        <WizardShell
+          step={stepNumber}
+          totalSteps={totalSteps}
+          title="Add photos (optional)"
+          onBack={() => setPhase("details")}
+          onNext={() => setPhase(questions.length > 0 ? "clarify" : "deadline")}
+        >
+          <RequirementPhotosField
+            societyId={societyId}
+            value={form.photoUrls}
+            onChange={(urls) => update("photoUrls", urls)}
+          />
+        </WizardShell>
+      )}
+
       {phase === "clarify" && (
         <WizardShell
           step={stepNumber}
           totalSteps={totalSteps}
           title="A few more details"
-          onBack={() => setPhase("details")}
+          onBack={() => setPhase("photos")}
           onNext={handleClarifyNext}
         >
           <p className="text-[13px] text-text-secondary">
@@ -210,7 +227,7 @@ export function RequirementWizard({ societyId, categories }: Props) {
           step={stepNumber}
           totalSteps={totalSteps}
           title="Quote submission deadline"
-          onBack={() => setPhase(questions.length > 0 ? "review" : "details")}
+          onBack={() => setPhase(questions.length > 0 ? "review" : "photos")}
         >
           <div>
             <Label htmlFor="bidDeadline">Vendors must submit quotes before</Label>

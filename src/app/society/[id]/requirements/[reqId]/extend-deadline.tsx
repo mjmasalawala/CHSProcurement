@@ -36,7 +36,7 @@ export function ExtendDeadlineButton({ societyId, requirementId }: { societyId: 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-end gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-end">
       <div>
         <DateTimeInput
           value={deadline}
@@ -46,12 +46,14 @@ export function ExtendDeadlineButton({ societyId, requirementId }: { societyId: 
         />
         {error && <p className="mt-1 text-[13px] text-status-error">{error}</p>}
       </div>
-      <Button type="submit" disabled={submitting}>
-        {submitting ? "Saving…" : "Save new deadline"}
-      </Button>
-      <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-        Cancel
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : "Save new deadline"}
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
     </form>
   );
 }

@@ -18,7 +18,7 @@ export function CategoryRequestRow({
 
   if (resolved) {
     return (
-      <div className="flex items-center justify-between rounded-lg border border-border-subtle p-4">
+      <div className="flex flex-col gap-1 rounded-lg border border-border-subtle p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <p className="text-[15px] text-text-primary">{name}</p>
         <p className="text-[13px] text-text-secondary">{resolved}</p>
       </div>
@@ -26,7 +26,7 @@ export function CategoryRequestRow({
   }
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border-subtle p-4">
+    <div className="flex flex-col gap-3 rounded-lg border border-border-subtle p-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="text-[15px] font-medium text-text-primary">{name}</p>
         <p className="text-[13px] text-text-secondary">Requested by {vendorName ?? "—"}</p>

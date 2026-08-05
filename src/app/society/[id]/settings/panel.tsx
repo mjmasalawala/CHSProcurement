@@ -41,7 +41,7 @@ export function ThresholdCard({
       <p className="text-[13px] font-medium text-text-secondary">Approval threshold</p>
 
       {editing ? (
-        <form onSubmit={handleSubmit} className="flex items-end gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Input
               type="number"
@@ -53,21 +53,23 @@ export function ThresholdCard({
             />
             {error && <p className="mt-1 text-[13px] text-status-error">{error}</p>}
           </div>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Proposing…" : "Propose"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={submitting}
-            onClick={() => {
-              setEditing(false);
-              setValue(currentValue);
-              setError(null);
-            }}
-          >
-            Cancel
-          </Button>
+          <div className="flex gap-2">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Proposing…" : "Propose"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={submitting}
+              onClick={() => {
+                setEditing(false);
+                setValue(currentValue);
+                setError(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
         </form>
       ) : (
         <div className="flex items-center justify-between">

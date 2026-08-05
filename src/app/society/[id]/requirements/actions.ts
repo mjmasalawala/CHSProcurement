@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
@@ -8,6 +9,7 @@ import { matchVendors } from "@/lib/matching";
 import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { notifyRequirementMatched } from "@/lib/notifications";
 import { checkRequirementCompleteness } from "@/lib/ai";
+import { MAX_REQUIREMENT_PHOTOS } from "@/lib/requirement-photos";
 import { revalidatePath } from "next/cache";
 
 export interface RequirementCreationInput {
@@ -15,6 +17,19 @@ export interface RequirementCreationInput {
   name: string;
   description: string;
   bidDeadline: string;
+  photoUrls: string[];
+}
+
+/**
+ * Lets the wizard's photos step clean up a blob the Manager uploaded and
+ * then removed before ever submitting the requirement — otherwise every
+ * changed mind leaves an orphaned file in the store. Uploads abandoned by
+ * closing the tab entirely aren't covered; accepted as a minor, low-cost gap
+ * (requirement-photos brainstorm, 2026-07-29).
+ */
+export async function deleteUploadedRequirementPhoto(societyId: string, url: string): Promise<void> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.CREATE_REQUIREMENT);
+  await del(url);
 }
 
 /**
@@ -82,6 +97,10 @@ export async function createRequirement(
     return { error: "Bid deadline must be in the future." };
   }
 
+  if (input.photoUrls.length > MAX_REQUIREMENT_PHOTOS) {
+    return { error: `Up to ${MAX_REQUIREMENT_PHOTOS} photos are allowed.` };
+  }
+
   const society = await prisma.society.findUniqueOrThrow({
     where: { id: societyId },
     select: { name: true, cityId: true },
@@ -97,6 +116,7 @@ export async function createRequirement(
       // field kept for a possible future re-introduction.
       urgency: "ROUTINE",
       bidDeadline,
+      attachmentUrls: input.photoUrls,
     },
     include: { categories: true },
   });

@@ -65,7 +65,7 @@ export function RenameCategoryButton({ id, name }: { id: string; name: string })
 
   return (
     <form
-      className="flex items-start gap-2"
+      className="flex flex-col gap-2 sm:flex-row sm:items-start"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -76,24 +76,26 @@ export function RenameCategoryButton({ id, name }: { id: string; name: string })
         else setEditing(false);
       }}
     >
-      <div>
+      <div className="sm:flex-1">
         <Input value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
         {error && <p className="mt-1 text-[13px] text-status-error">{error}</p>}
       </div>
-      <Button type="submit" disabled={busy || !value.trim()}>
-        Save
-      </Button>
-      <Button
-        type="button"
-        variant="secondary"
-        disabled={busy}
-        onClick={() => {
-          setEditing(false);
-          setError(null);
-        }}
-      >
-        Cancel
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={busy || !value.trim()}>
+          Save
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={busy}
+          onClick={() => {
+            setEditing(false);
+            setError(null);
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
     </form>
   );
 }

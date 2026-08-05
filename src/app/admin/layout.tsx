@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { PERMISSIONS } from "@/lib/permissions";
-import { WorkspaceNav } from "@/components/ui/workspace-nav";
+import { WorkspaceShell } from "@/components/ui/workspace-shell";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", permission: null },
@@ -35,18 +35,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const navItems = visibleNav.map((item) => ({ href: item.href, label: item.label }));
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 md:flex-row md:gap-10">
-      <aside className="flex shrink-0 flex-col gap-5 md:w-56">
-        <p className="text-[16px] font-bold tracking-tight text-text-primary">ProSoc Admin</p>
-        <div className="md:hidden">
-          <WorkspaceNav basePath="/admin" items={navItems} orientation="horizontal" />
-        </div>
-        <div className="hidden border-r border-border-subtle pr-4 md:block">
-          <WorkspaceNav basePath="/admin" items={navItems} orientation="vertical" />
-        </div>
-      </aside>
-
-      <main className="min-w-0 flex-1">{children}</main>
-    </div>
+    <WorkspaceShell title="ProSoc Admin" basePath="/admin" items={navItems}>
+      {children}
+    </WorkspaceShell>
   );
 }

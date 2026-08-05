@@ -21,7 +21,7 @@ export default async function CategoriesPage() {
         {categories.map((category) => (
           <div
             key={category.id}
-            className="flex items-center justify-between rounded-lg border border-border-subtle p-4"
+            className="flex flex-col gap-3 rounded-lg border border-border-subtle p-4 sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
               <p className="text-[15px] font-medium text-text-primary">{category.name}</p>
@@ -29,7 +29,7 @@ export default async function CategoriesPage() {
                 {category.active ? "Active" : "Inactive"}
               </Badge>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <RenameCategoryButton id={category.id} name={category.name} />
               <ToggleActiveButton id={category.id} active={category.active} />
             </div>
