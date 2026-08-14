@@ -27,11 +27,16 @@ export async function POST(request: Request): Promise<NextResponse> {
           addRandomSuffix: true,
         };
       },
-      onUploadCompleted: async () => {},
+      // No onUploadCompleted — photo URLs are written to the Requirement row
+      // by createRequirement itself (from client-supplied state), not via
+      // this webhook. Omitting it also sidesteps Vercel Blob needing to
+      // compute a public callback URL, which fails on localhost (no
+      // VERCEL_URL) and was erroring in production too.
     });
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
+    console.error("requirement-photos upload token generation failed:", error);
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }

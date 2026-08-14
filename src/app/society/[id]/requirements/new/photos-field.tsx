@@ -46,17 +46,25 @@ export function RequirementPhotosField({ societyId, value, onChange }: Props) {
     setUploading(true);
     try {
       const uploaded = await Promise.all(
-        selected.map((file) =>
-          upload(`requirement-photos/${societyId}/${crypto.randomUUID()}-${file.name}`, file, {
+        selected.map((file) => {
+          // Storage pathname, not the display name — built from the file's
+          // extension only so spaces/unicode/special characters in the
+          // original filename (e.g. a Mac screenshot's "Screenshot 2026-08-05
+          // at 9.44.55 PM.png") can never cause an encoding mismatch between
+          // the client-token request and the upload request.
+          const dot = file.name.lastIndexOf(".");
+          const ext = dot >= 0 ? file.name.slice(dot) : "";
+          return upload(`requirement-photos/${societyId}/${crypto.randomUUID()}${ext}`, file, {
             access: "public",
             handleUploadUrl: "/api/requirement-photos/upload",
             clientPayload: societyId,
-          }),
-        ),
+          });
+        }),
       );
       onChange([...value, ...uploaded.map((b) => b.url)]);
-    } catch {
-      setError("Upload failed — please try again.");
+    } catch (err) {
+      console.error("Requirement photo upload failed:", err);
+      setError(err instanceof Error ? err.message : "Upload failed — please try again.");
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
