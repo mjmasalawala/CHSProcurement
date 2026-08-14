@@ -5,7 +5,7 @@ import { WizardShell } from "@/components/ui/wizard-shell";
 import { Input } from "@/components/ui/input";
 import { DateTimeInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
-import { CheckboxGroup } from "@/components/ui/checkbox-group";
+import { MultiSelectDropdown } from "@/components/ui/multi-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { descriptionPlaceholderFor } from "@/lib/requirement-placeholders";
@@ -137,10 +137,11 @@ export function RequirementWizard({ societyId, categories }: Props) {
         >
           <div>
             <Label htmlFor="categoryIds">Categories</Label>
-            <CheckboxGroup
+            <MultiSelectDropdown
               options={categories.map((c) => ({ id: c.id, label: c.name }))}
               selected={form.categoryIds}
               onChange={(ids) => update("categoryIds", ids)}
+              placeholder="Search categories…"
             />
             <p className="mt-1 text-[13px] text-text-secondary">
               Select every trade this project needs — vendors are matched if they service any one of them.

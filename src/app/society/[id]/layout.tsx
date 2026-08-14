@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   // Manager/Office Bearer set who can raise a requirement can suggest a
   // vendor; split it into its own permission later if that ever needs to
   // diverge.
-  { suffix: "/suggest-vendor", label: "Ask a Vendor to Register", permissions: [PERMISSIONS.CREATE_REQUIREMENT] },
+  { suffix: "/suggest-vendor", label: "Vendor Invite", permissions: [PERMISSIONS.CREATE_REQUIREMENT] },
   { suffix: "/archive", label: "Archive", permissions: [PERMISSIONS.VIEW_ARCHIVE] },
   // Reachable by MANAGE_USERS (Secretary's invite/deactivate) OR either
   // member-removal permission (any Office Bearer's propose/decide) — see
