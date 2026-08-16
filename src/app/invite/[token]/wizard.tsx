@@ -4,14 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  setInvitePassword,
-  submitInviteProfile,
-  resendInvitePhoneCode,
-  verifyInvitePhoneCode,
-} from "./actions";
-
-const RESEND_COOLDOWN_SECONDS = 30;
+import { setInvitePassword, submitInviteProfile } from "./actions";
 
 export function InviteOnboardingWizard({
   token,
@@ -26,10 +19,8 @@ export function InviteOnboardingWizard({
   const [password, setPassword] = useState("");
   const [name, setName] = useState(defaultName);
   const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
 
   async function handleStep1(e: React.FormEvent) {
     e.preventDefault();
@@ -45,64 +36,16 @@ export function InviteOnboardingWizard({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    try {
-      const result = await submitInviteProfile(token, name, phone);
-      setSubmitting(false);
-      if ("error" in result) {
-        setError(result.error);
-        return;
-      }
-      setStep(3);
-      setCooldown(RESEND_COOLDOWN_SECONDS);
-      startCooldownTimer();
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setSubmitting(false);
-    }
-  }
-
-  function startCooldownTimer() {
-    const timer = setInterval(() => {
-      setCooldown((s) => {
-        if (s <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-  }
-
-  async function handleResend() {
-    setSubmitting(true);
-    setError(null);
-    try {
-      const result = await resendInvitePhoneCode(token);
-      setSubmitting(false);
-      if ("error" in result) setError(result.error);
-      else {
-        setCooldown(RESEND_COOLDOWN_SECONDS);
-        startCooldownTimer();
-      }
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setSubmitting(false);
-    }
-  }
-
-  async function handleStep3(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    const result = await verifyInvitePhoneCode(token, code, password);
+    const result = await submitInviteProfile(token, name, phone, password);
     setSubmitting(false);
     if (result?.error) setError(result.error);
-    // On success the action redirects — nothing left to do here.
+    // On success the action redirects (throws internally) — no try/catch
+    // here, since catching would swallow that redirect.
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] font-medium text-text-secondary">Step {step} of 3</p>
+      <p className="text-[13px] font-medium text-text-secondary">Step {step} of 2</p>
 
       {error && <p className="text-[13px] text-status-error">{error}</p>}
 
@@ -142,40 +85,8 @@ export function InviteOnboardingWizard({
             />
           </div>
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? "Sending code…" : "Send verification code"}
+            {submitting ? "Finishing…" : "Finish"}
           </Button>
-        </form>
-      )}
-
-      {step === 3 && (
-        <form onSubmit={handleStep3} className="flex flex-col gap-4">
-          <div>
-            <Label htmlFor="code">Verification code</Label>
-            <p className="mb-1.5 text-[13px] text-text-secondary">
-              We sent a 6-digit code to {phone} on WhatsApp. WhatsApp delivery isn&apos;t connected yet —
-              check the server logs for the code.
-            </p>
-            <Input
-              id="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              required
-            />
-          </div>
-          <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? "Verifying…" : "Verify & finish"}
-          </Button>
-          <button
-            type="button"
-            disabled={submitting || cooldown > 0}
-            onClick={handleResend}
-            className="text-[13px] font-medium text-accent-primary underline disabled:cursor-not-allowed disabled:text-text-tertiary disabled:no-underline"
-          >
-            {cooldown > 0 ? `Resend code (${cooldown}s)` : "Resend code"}
-          </button>
         </form>
       )}
     </div>

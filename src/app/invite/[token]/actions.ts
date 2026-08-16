@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { sendPhoneVerificationCode, verifyPhoneVerificationCode } from "@/lib/phone-verification";
 
 async function loadInvite(token: string) {
   return prisma.invite.findUnique({
@@ -51,16 +50,17 @@ async function signInAndRedirect(email: string, password: string, redirectTo: st
 }
 
 /**
- * New-user (or not-yet-phone-verified) invite acceptance, step 1 of 3
- * (society-portal-spec.md / vendor-registration-portal-spec.md — invited
- * users provide a name and OTP-verified phone number, not just a
- * password). markAccepted/sign-in doesn't happen until step 3
- * (verifyInvitePhoneCode) succeeds, so an invite isn't "used up" by a user
- * who abandons partway through.
+ * New-user (or not-yet-onboarded) invite acceptance, step 1 of 2. Phone OTP
+ * verification (originally step 2 of 3) is skipped for now — no WhatsApp
+ * Business number/template is configured yet (see lib/whatsapp.ts), so
+ * there's no way to actually deliver a code. lib/phone-verification.ts and
+ * the PhoneVerification model are left in place, unused, to reconnect once
+ * a real send path exists; submitInviteProfile below saves the phone number
+ * as given and completes the invite immediately instead.
  *
  * Handles two cases with the same action: if no password is set yet, this
  * sets one; if a password already exists (the user set it in step 1 on a
- * previous visit, then refreshed/left before finishing steps 2-3), this
+ * previous visit, then refreshed/left before finishing step 2), this
  * verifies it instead of silently overwriting — a mismatched resubmission
  * is rejected rather than quietly resetting their credential.
  */
@@ -94,15 +94,19 @@ export async function setInvitePassword(
 }
 
 /**
- * Step 2: name + phone. Saves the name immediately (low-stakes), but the
- * phone isn't written to User until the OTP in step 3 confirms it's real —
- * see phone-verification.ts.
+ * Step 2 (final): name + phone. Saves both directly and completes the
+ * invite — no OTP round-trip (see the note above setInvitePassword).
+ * phoneVerifiedAt is still stamped, unverified, so this remains a one-time
+ * onboarding step rather than something every future invite re-asks (see
+ * needsOnboarding in page.tsx); it stops meaning "OTP-confirmed" until a
+ * real send path replaces this.
  */
 export async function submitInviteProfile(
   token: string,
   name: string,
   phone: string,
-): Promise<{ error: string } | { ok: true }> {
+  password: string,
+): Promise<{ error: string } | undefined> {
   const invite = await loadInvite(token);
   requireOpenInvite(invite, token);
   if (!invite) return { error: "This invite link is invalid or has already been used." };
@@ -114,56 +118,8 @@ export async function submitInviteProfile(
 
   await prisma.user.update({
     where: { id: invite.roleAssignment.userId },
-    data: { name: trimmedName },
+    data: { name: trimmedName, phone: trimmedPhone, phoneVerifiedAt: new Date() },
   });
-
-  try {
-    await sendPhoneVerificationCode(invite.roleAssignment.userId, trimmedPhone);
-  } catch (err) {
-    // Unlike a post-completion notification, OTP delivery IS the action here
-    // — a WhatsApp send failure means the user genuinely has no code to
-    // enter, so this must surface as an error rather than silently letting
-    // them proceed to a step 3 they can't complete.
-    console.error("Failed to send invite phone verification code:", err);
-    return { error: "Couldn't send your verification code. Please try again." };
-  }
-
-  return { ok: true };
-}
-
-/** Re-sends a fresh OTP to the phone number submitted in step 2. */
-export async function resendInvitePhoneCode(token: string): Promise<{ error: string } | { ok: true }> {
-  const invite = await loadInvite(token);
-  requireOpenInvite(invite, token);
-  if (!invite) return { error: "This invite link is invalid or has already been used." };
-
-  const lastAttempt = await prisma.phoneVerification.findFirst({
-    where: { userId: invite.roleAssignment.userId },
-    orderBy: { createdAt: "desc" },
-  });
-  if (!lastAttempt) return { error: "Enter your phone number again first." };
-
-  try {
-    await sendPhoneVerificationCode(invite.roleAssignment.userId, lastAttempt.phone);
-  } catch (err) {
-    console.error("Failed to resend invite phone verification code:", err);
-    return { error: "Couldn't send your verification code. Please try again." };
-  }
-  return { ok: true };
-}
-
-/** Step 3: OTP confirms the phone, then the invite is finally accepted and the user signed in. */
-export async function verifyInvitePhoneCode(
-  token: string,
-  code: string,
-  password: string,
-): Promise<{ error: string } | undefined> {
-  const invite = await loadInvite(token);
-  requireOpenInvite(invite, token);
-  if (!invite) return { error: "This invite link is invalid or has already been used." };
-
-  const result = await verifyPhoneVerificationCode(invite.roleAssignment.userId, code);
-  if ("error" in result) return result;
 
   await markAccepted(invite.id, invite.roleAssignmentId);
   await signInAndRedirect(invite.email, password, postAcceptRedirectPath(invite.roleAssignment));
