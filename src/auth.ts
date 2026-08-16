@@ -1,8 +1,10 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { IMPERSONATION_COOKIE, loadActiveImpersonation } from "@/lib/impersonation";
 
 /**
  * No database adapter on purpose: our schema is User + RoleAssignment (per
@@ -77,6 +79,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (token.userId) session.user.id = token.userId as string;
       session.user.roleAssignments = token.roleAssignments ?? [];
+
+      // Overlay an active impersonation on top of the real session, without
+      // ever touching the JWT itself — see src/lib/impersonation.ts. The
+      // cookie only carries an opaque pointer; the ImpersonationEvent row in
+      // the DB is what's actually authoritative (and instantly revocable).
+      const impersonationToken = (await cookies()).get(IMPERSONATION_COOKIE)?.value;
+      if (impersonationToken) {
+        const event = await loadActiveImpersonation(impersonationToken);
+        if (event) {
+          session.user.id = event.targetUser.id;
+          session.user.email = event.targetUser.email;
+          session.user.name = event.targetUser.name;
+          session.user.roleAssignments = event.targetUser.roleAssignments.map((ra) => ({
+            id: ra.id,
+            entityType: ra.entityType,
+            entityId: ra.entityId,
+            role: ra.role,
+            permissions: ra.permissions,
+          }));
+          session.impersonation = {
+            eventId: event.id,
+            reason: event.reason,
+            startedAt: event.startedAt.toISOString(),
+            adminUserId: event.adminUserId,
+            adminName: event.adminUser.name,
+            adminEmail: event.adminUser.email,
+          };
+        }
+      }
+
       return session;
     },
   },

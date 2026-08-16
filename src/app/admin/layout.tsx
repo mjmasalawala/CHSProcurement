@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   },
   { href: "/admin/categories", label: "Categories", permission: PERMISSIONS.TAXONOMY_MANAGEMENT },
   { href: "/admin/cities", label: "Cities", permission: PERMISSIONS.CITY_MANAGEMENT },
+  { href: "/admin/support", label: "Support", permission: PERMISSIONS.IMPERSONATE_USER },
 ] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     PERMISSIONS.SOCIETY_DIRECTORY_ACCESS,
     PERMISSIONS.TAXONOMY_MANAGEMENT,
     PERMISSIONS.CITY_MANAGEMENT,
+    PERMISSIONS.IMPERSONATE_USER,
   ].some((p) => perms.has(p));
   if (!hasAnyAdminAccess) redirect("/app");
 

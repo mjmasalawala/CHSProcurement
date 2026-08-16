@@ -66,9 +66,46 @@ export default async function AdminDashboardPage() {
   const avgResponse = vendorResponseStats ? averageResponseHours(vendorResponseStats) : null;
   const topVendors = vendorResponseStats ? topRespondingVendors(vendorResponseStats, 10) : [];
 
+  const tasks = [
+    pendingVendors !== null &&
+      pendingVendors > 0 && {
+        href: "/admin/vendors?status=PENDING_VERIFICATION",
+        label: `${pendingVendors} vendor${pendingVendors === 1 ? "" : "s"} waiting for review`,
+      },
+    pendingSocieties !== null &&
+      pendingSocieties > 0 && {
+        href: "/admin/societies?status=PENDING_VERIFICATION",
+        label: `${pendingSocieties} societ${pendingSocieties === 1 ? "y" : "ies"} waiting for review`,
+      },
+    pendingCategoryRequests !== null &&
+      pendingCategoryRequests > 0 && {
+        href: "/admin/category-requests",
+        label: `${pendingCategoryRequests} category request${pendingCategoryRequests === 1 ? "" : "s"} waiting for review`,
+      },
+  ].filter((t): t is { href: string; label: string } => Boolean(t));
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Dashboard</h1>
+
+      {tasks.length > 0 && (
+        <Card className="flex flex-col gap-3 border-status-warning/40 bg-status-warning/10">
+          <h2 className="text-[15px] font-semibold text-text-primary">Needs your attention</h2>
+          <ul className="flex flex-col gap-2">
+            {tasks.map((task) => (
+              <li key={task.href}>
+                <Link
+                  href={task.href}
+                  className="flex items-center justify-between rounded-lg bg-background-primary px-3 py-2 text-[13px] font-medium text-text-primary shadow-xs hover:shadow-sm"
+                >
+                  {task.label}
+                  <span className="text-accent-primary">Review →</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {pendingVendors !== null && (

@@ -34,6 +34,7 @@ export const PERMISSIONS = {
   SOCIETY_DIRECTORY_ACCESS: "society_directory_access",
   TAXONOMY_MANAGEMENT: "taxonomy_management",
   CITY_MANAGEMENT: "city_management",
+  IMPERSONATE_USER: "impersonate_user",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -138,7 +139,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.SOCIETY_DIRECTORY_ACCESS,
     PERMISSIONS.TAXONOMY_MANAGEMENT,
     PERMISSIONS.CITY_MANAGEMENT,
+    PERMISSIONS.IMPERSONATE_USER,
   ],
+  // Support-only role: just enough to look a user's account up and act as
+  // them for troubleshooting — none of SUPER_ADMIN's other admin permissions.
+  [RoleName.SUPPORT]: [PERMISSIONS.IMPERSONATE_USER],
 };
 
 /**

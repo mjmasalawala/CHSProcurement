@@ -35,6 +35,8 @@ model User {
   approvedChanges         ProposedChange[]     @relation("ProposedChangesApprover")
   vendorSuggestions       VendorSuggestion[]
   phoneVerifications      PhoneVerification[]
+  impersonationsStarted   ImpersonationEvent[] @relation("ImpersonationsStarted")
+  impersonationsReceived  ImpersonationEvent[] @relation("ImpersonationsReceived")
 }
 
 // One-time code for the invite-acceptance flow's phone verification step
@@ -69,6 +71,31 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 }
 
+// Support/Admin "act as another user" tooling (/support). Deliberately not
+// folded into the JWT session — the real admin's NextAuth session cookie is
+// never touched; a separate short-lived, unguessable `token` cookie points
+// at this row, and auth.ts's session callback overlays the target user onto
+// session.user only while the row is found, unexpired, and not ended. This
+// row is the single source of truth for both authorization (is this token
+// still live?) and the audit trail (who impersonated whom, when, and why) —
+// ending impersonation is just stamping endedAt, no cookie/token juggling.
+model ImpersonationEvent {
+  id            String    @id @default(cuid())
+  token         String    @unique
+  adminUserId   String
+  adminUser     User      @relation("ImpersonationsStarted", fields: [adminUserId], references: [id], onDelete: Cascade)
+  targetUserId  String
+  targetUser    User      @relation("ImpersonationsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+  reason        String
+  startedAt     DateTime  @default(now())
+  // Hard cap independent of an explicit "End" click — see startImpersonation.
+  expiresAt     DateTime
+  endedAt       DateTime?
+
+  @@index([token])
+  @@index([adminUserId])
+}
+
 enum EntityType {
   VENDOR_COMPANY
   SOCIETY
@@ -89,6 +116,9 @@ enum RoleName {
   OPS_VENDOR_QUEUE
   OPS_SOCIETY_QUEUE
   SUPER_ADMIN
+  // Impersonation only (src/lib/permissions.ts IMPERSONATE_USER) — deliberately
+  // narrower than SUPER_ADMIN, no other admin permissions by default.
+  SUPPORT
 }
 
 enum RoleAssignmentStatus {
