@@ -6,6 +6,31 @@ import { requireActionPermission } from "@/lib/admin-auth";
 import { resendInvite } from "@/lib/invite";
 import { revalidatePath } from "next/cache";
 
+const SEARCH_RESULT_LIMIT = 8;
+const SEARCH_MIN_QUERY_LENGTH = 2;
+
+/**
+ * Live search behind the "Resend activation email" dropdown — returns only
+ * whatever the current query matches (active societies by name), rather
+ * than shipping every active society to the browser up front for
+ * client-side filtering.
+ */
+export async function searchActiveSocieties(query: string): Promise<{ id: string; label: string }[]> {
+  await requireActionPermission(PERMISSIONS.SOCIETY_QUEUE_ACCESS);
+
+  const trimmed = query.trim();
+  if (trimmed.length < SEARCH_MIN_QUERY_LENGTH) return [];
+
+  const societies = await prisma.society.findMany({
+    where: { status: "ACTIVE", name: { contains: trimmed, mode: "insensitive" } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+    take: SEARCH_RESULT_LIMIT,
+  });
+
+  return societies.map((s) => ({ id: s.id, label: s.name }));
+}
+
 /**
  * Regenerates the activation email for a society picked by name from the
  * Societies list — for when the Secretary (or whoever was actually

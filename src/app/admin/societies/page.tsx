@@ -30,24 +30,17 @@ export default async function AdminSocietiesPage({
   const { status } = await searchParams;
   const activeTab = TABS.some((t) => t.value === status) ? (status as EntityStatus | "ALL") : "PENDING_VERIFICATION";
 
-  const [societies, activeSocieties] = await Promise.all([
-    prisma.society.findMany({
-      where: activeTab === "ALL" ? {} : { status: activeTab },
-      include: { city: true },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.society.findMany({
-      where: { status: "ACTIVE" },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const societies = await prisma.society.findMany({
+    where: activeTab === "ALL" ? {} : { status: activeTab },
+    include: { city: true },
+    orderBy: { createdAt: "asc" },
+  });
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Societies</h1>
 
-      <ResendActivationPanel societies={activeSocieties} />
+      <ResendActivationPanel />
 
       <div className="flex gap-1 border-b border-border-subtle pb-3">
         {TABS.map((tab) => (
