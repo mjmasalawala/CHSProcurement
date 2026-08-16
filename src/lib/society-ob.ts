@@ -16,3 +16,25 @@ export async function countActiveOfficeBearers(societyId: string): Promise<numbe
     where: { entityType: "SOCIETY", entityId: societyId, role: { in: [...OB_ROLES] }, status: "ACTIVE" },
   });
 }
+
+/**
+ * Which of the 3 OB roles have no ACTIVE or PENDING RoleAssignment yet —
+ * i.e. genuinely never invited, as opposed to invited-but-not-yet-accepted.
+ * Used to nudge whoever can invite (MANAGE_USERS) rather than re-prompting
+ * for a role that's already mid-invite.
+ */
+export async function getMissingOfficeBearerRoles(
+  societyId: string,
+): Promise<(typeof OB_ROLES)[number][]> {
+  const assignments = await prisma.roleAssignment.findMany({
+    where: {
+      entityType: "SOCIETY",
+      entityId: societyId,
+      role: { in: [...OB_ROLES] },
+      status: { in: ["ACTIVE", "PENDING"] },
+    },
+    select: { role: true },
+  });
+  const filled = new Set(assignments.map((a) => a.role));
+  return OB_ROLES.filter((r) => !filled.has(r));
+}

@@ -3,7 +3,14 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyAssignment } from "@/lib/society-auth";
+import { getMissingOfficeBearerRoles } from "@/lib/society-ob";
 import { Card } from "@/components/ui/card";
+
+const OB_ROLE_LABELS: Record<string, string> = {
+  CHAIRMAN: "Chairman",
+  SECRETARY: "Secretary",
+  TREASURER: "Treasurer",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +26,16 @@ export default async function SocietyDashboardPage({
   const canCreateRequirement = assignment.permissions.includes(PERMISSIONS.CREATE_REQUIREMENT);
   const canRecommendBid = assignment.permissions.includes(PERMISSIONS.RECOMMEND_BID);
   const isOfficeBearer = assignment.permissions.includes(PERMISSIONS.APPROVE_REJECT_QUOTATION);
+  const canManageUsers = assignment.permissions.includes(PERMISSIONS.MANAGE_USERS);
 
-  const [openRequirements, awaitingReview, pendingVotes, pendingThreshold, pendingRemovals] = await Promise.all([
+  const [
+    openRequirements,
+    awaitingReview,
+    pendingVotes,
+    pendingThreshold,
+    pendingRemovals,
+    missingObRoles,
+  ] = await Promise.all([
     canCreateRequirement
       ? prisma.requirement.count({ where: { societyId: id, bidDeadline: { gt: new Date() } } })
       : Promise.resolve(null),
@@ -60,13 +75,33 @@ export default async function SocietyDashboardPage({
           },
         })
       : Promise.resolve([]),
+    canManageUsers ? getMissingOfficeBearerRoles(id) : Promise.resolve([]),
   ]);
 
   const hasPendingTasks = pendingVotes.length > 0 || !!pendingThreshold || pendingRemovals.length > 0;
+  const showObNudge = canManageUsers && missingObRoles.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Dashboard</h1>
+
+      {showObNudge && (
+        <Link href={`/society/${id}/members`}>
+          <Card className="border-status-warning-border bg-status-warning-bg">
+            <p className="text-[13px] text-text-secondary">
+              You haven&apos;t invited a{" "}
+              {missingObRoles.map((role, i) => (
+                <span key={role}>
+                  {i > 0 && (i === missingObRoles.length - 1 ? " or " : ", ")}
+                  {OB_ROLE_LABELS[role]}
+                </span>
+              ))}{" "}
+              yet. Invite your Office Bearers so this society can approve requirements — click here to send
+              invites.
+            </p>
+          </Card>
+        </Link>
+      )}
 
       {hasPendingTasks && (
         <div className="flex flex-col gap-2">
@@ -115,7 +150,8 @@ export default async function SocietyDashboardPage({
           )}
         </div>
       ) : (
-        !hasPendingTasks && (
+        !hasPendingTasks &&
+        !showObNudge && (
           <Card>
             <p className="text-[15px] text-text-primary">Nothing needs your attention yet.</p>
           </Card>
