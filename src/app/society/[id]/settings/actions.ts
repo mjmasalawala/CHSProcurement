@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { notifyThresholdChangeProposed, notifyThresholdChangeDecided } from "@/lib/notifications";
 import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
+import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -60,7 +61,7 @@ export async function proposeThresholdChange(
     },
     include: { user: true },
   });
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   try {
     await notifyThresholdChangeProposed({
       recipients: obs.map((ra) => ra.user.email),

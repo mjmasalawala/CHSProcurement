@@ -10,6 +10,7 @@ import { matchVendors } from "@/lib/matching";
 import { notifyApprovalRequested, notifyReturnedToManager, notifyRequirementMatched } from "@/lib/notifications";
 import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { formatDate } from "@/lib/date";
+import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
 
 export interface RequirementEditInput {
@@ -94,7 +95,7 @@ export async function updateRequirement(
       skipDuplicates: true,
     });
 
-    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const base = getBaseUrl();
     const categoryNames = updated.categories.map((c) => c.name).join(", ");
     try {
       await Promise.all(
@@ -199,7 +200,7 @@ export async function extendRequirementDeadline(
       skipDuplicates: true,
     });
 
-    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const base = getBaseUrl();
     const categoryNames = requirement.categories.map((c) => c.name).join(", ");
     try {
       await Promise.all(
@@ -315,7 +316,7 @@ export async function recommendBid(
       },
       include: { user: true },
     });
-    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const base = getBaseUrl();
     try {
       await notifyApprovalRequested({
         recipients: obs.map((ra) => ra.user.email),
@@ -401,7 +402,7 @@ export async function castQuotationVote(
       include: { user: true },
     });
     if (manager) {
-      const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+      const base = getBaseUrl();
       try {
         await notifyReturnedToManager({
           managerEmail: manager.user.email,

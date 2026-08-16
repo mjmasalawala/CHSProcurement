@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { FinalizationMethod } from "@/generated/prisma/enums";
 import { notifyFinalized, notifyBidOutcome } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/base-url";
 
 /**
  * Shared finalization path for both the below-threshold auto-finalize case
@@ -67,7 +68,7 @@ export async function finalizeRequirement(params: {
     include: { user: true },
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   const reviewUrl = `${base}/society/${requirement.societyId}/requirements/${requirement.id}`;
 
   await notifyFinalized({

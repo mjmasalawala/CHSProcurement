@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import type { RoleName } from "@/generated/prisma/enums";
 import { notifyNewRegistration, notifyRegistrationSubmitted } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/base-url";
 import { REGISTRANT_ROLES, INVITEE_ROLES, type SocietyRegistrationInput } from "./data";
 
 /**
@@ -55,7 +56,7 @@ export async function registerSociety(
     },
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   try {
     await Promise.all([
       notifyNewRegistration({

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statusTone, statusLabel } from "@/lib/status-badge";
 import { ApproveRejectPanel } from "./panel";
+import { ResendInviteButton } from "./resend-invite-button";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,8 @@ export default async function AdminSocietyPage({ params }: { params: Promise<{ i
                   <th className="pb-2 pr-2 font-semibold uppercase tracking-wide text-[11px]">Role</th>
                   <th className="pb-2 pr-2 font-semibold uppercase tracking-wide text-[11px]">Name</th>
                   <th className="pb-2 pr-2 font-semibold uppercase tracking-wide text-[11px]">Email</th>
-                  <th className="pb-2 font-semibold uppercase tracking-wide text-[11px]">Status</th>
+                  <th className="pb-2 pr-2 font-semibold uppercase tracking-wide text-[11px]">Status</th>
+                  <th className="pb-2 font-semibold uppercase tracking-wide text-[11px]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -87,8 +89,13 @@ export default async function AdminSocietyPage({ params }: { params: Promise<{ i
                       {member.user.name ?? "—"}
                     </td>
                     <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{member.user.email}</td>
-                    <td className="py-2">
+                    <td className="py-2 pr-2">
                       <Badge tone={statusTone(member.status)}>{statusLabel(member.status)}</Badge>
+                    </td>
+                    <td className="py-2">
+                      {member.status === "PENDING" && (
+                        <ResendInviteButton societyId={society.id} roleAssignmentId={member.id} />
+                      )}
                     </td>
                   </tr>
                 ))}

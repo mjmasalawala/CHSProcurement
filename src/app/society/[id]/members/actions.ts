@@ -11,6 +11,7 @@ import {
   notifyMemberRemoved,
 } from "@/lib/notifications";
 import { OB_ROLES } from "@/lib/society-ob";
+import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
 import type { RoleName } from "@/generated/prisma/enums";
 
@@ -153,7 +154,7 @@ export async function proposeRemoveMember(
     include: { user: true },
   });
   const society = await prisma.society.findUniqueOrThrow({ where: { id: societyId } });
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   try {
     await notifyMemberRemovalProposed({
       recipients: obs.map((ra) => ra.user.email),

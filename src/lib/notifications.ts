@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { getBaseUrl } from "@/lib/base-url";
 // SMS notifications are disabled for now — MSG91 is wired up for phone-
 // verification OTPs only (lib/phone-verification.ts), since sending
 // anything else requires a separately DLT-registered template per message
@@ -213,7 +214,7 @@ export async function sendInvite(params: {
   registrationPitch?: { proposerName: string; proposerRoleLabel: string; societyName: string };
 }) {
   const forWhat = params.entityName ? ` for ${params.entityName}` : "";
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
 
   const paragraphs = params.registrationPitch
     ? [

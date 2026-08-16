@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { notifyVendorSuggested } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
 
 export interface VendorSuggestionInput {
@@ -50,7 +51,7 @@ export async function suggestVendor(
     },
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   const registerParams = new URLSearchParams({ name: vendorName, email: vendorEmail });
   if (vendorPhone) registerParams.set("phone", vendorPhone);
 

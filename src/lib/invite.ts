@@ -4,6 +4,7 @@ import type { EntityType, RoleName } from "@/generated/prisma/enums";
 import { ROLE_DEFAULT_PERMISSIONS } from "@/lib/permissions";
 import { getEntityName } from "@/lib/entities";
 import { sendInvite, notifyAddedToExistingAccount } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/base-url";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -54,7 +55,7 @@ export async function createInvite(params: {
       data: { email: params.email },
     }));
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   const entityName = await getEntityName(params.entityType, params.entityId);
 
   if (hasRealAccount) {
@@ -133,7 +134,7 @@ export async function resendInvite(roleAssignmentId: string): Promise<{ error: s
     data: { token, expiresAt: new Date(Date.now() + INVITE_TTL_MS) },
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   const url = `${base}/invite/${token}`;
   const entityName = await getEntityName(roleAssignment.entityType, roleAssignment.entityId);
   try {

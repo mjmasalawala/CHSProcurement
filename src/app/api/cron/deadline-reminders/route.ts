@@ -5,6 +5,7 @@ import {
   notifyBidsReadyForReview,
   notifyBidDeadlineReminder,
 } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/base-url";
 
 /**
  * Two time-based trigger events that can't fire from a user action
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   const now = new Date();
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
 
   const approaching = await prisma.requirement.findMany({
     where: {

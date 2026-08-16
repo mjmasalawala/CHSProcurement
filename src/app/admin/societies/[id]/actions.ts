@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireActionPermission } from "@/lib/admin-auth";
-import { createInvite } from "@/lib/invite";
+import { createInvite, resendInvite } from "@/lib/invite";
 import { notifyRejection, notifySocietyRegistrationApprovedToRegistrant } from "@/lib/notifications";
 import { revalidatePath } from "next/cache";
 
@@ -65,6 +65,25 @@ export async function approveSociety(societyId: string): Promise<{ inviteUrl: st
   revalidatePath(`/admin/societies/${societyId}`);
   revalidatePath("/admin/societies");
   return { inviteUrl: url };
+}
+
+/**
+ * Regenerates the activation/login email for a society Manager/Office
+ * Bearer whose invite is still sitting unaccepted (e.g. the original one
+ * from approveSociety got lost or spam-filtered) — same mechanism as the
+ * society's own Members page "Resend Invite" action, just reachable by
+ * Admin too since a society that never activates its account manager has
+ * no one on their side able to trigger it themselves.
+ */
+export async function resendSocietyMemberInvite(
+  societyId: string,
+  roleAssignmentId: string,
+): Promise<{ error: string } | undefined> {
+  await requireActionPermission(PERMISSIONS.SOCIETY_QUEUE_ACCESS);
+
+  const result = await resendInvite(roleAssignmentId);
+  revalidatePath(`/admin/societies/${societyId}`);
+  return result;
 }
 
 export async function rejectSociety(societyId: string, reason: string): Promise<void> {

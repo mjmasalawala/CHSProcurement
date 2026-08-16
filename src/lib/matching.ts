@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notifyVendorMatchedRequirements } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/base-url";
 
 /**
  * The matching engine, society-portal-spec.md Section 5 / architecture doc
@@ -76,7 +77,7 @@ export async function syncVendorRequirementMatches(vendorCompanyId: string): Pro
     skipDuplicates: true,
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   try {
     await notifyVendorMatchedRequirements({
       vendorEmail: vendor.ownerEmail,

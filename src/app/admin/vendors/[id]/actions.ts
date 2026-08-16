@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireActionPermission } from "@/lib/admin-auth";
 import { notifyApproval, notifyRejection } from "@/lib/notifications";
 import { syncVendorRequirementMatches } from "@/lib/matching";
+import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
 
 // The Vendor Owner already has a working login from registration (product
@@ -19,7 +20,7 @@ export async function approveVendor(vendorCompanyId: string): Promise<void> {
     data: { status: "ACTIVE", approvedAt: new Date() },
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   try {
     await notifyApproval({
       type: "Vendor",

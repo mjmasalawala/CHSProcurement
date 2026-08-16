@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { ROLE_DEFAULT_PERMISSIONS } from "@/lib/permissions";
 import { notifyNewRegistration, notifyRegistrationSubmitted } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/base-url";
 
 export interface VendorRegistrationInput {
   name: string;
@@ -92,7 +93,7 @@ export async function registerVendor(
     throw err;
   }
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   await Promise.all([
     notifyNewRegistration({
       type: "Vendor",

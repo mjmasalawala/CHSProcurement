@@ -10,6 +10,7 @@ import { MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/socie
 import { notifyRequirementMatched } from "@/lib/notifications";
 import { checkRequirementCompleteness } from "@/lib/ai";
 import { MAX_REQUIREMENT_PHOTOS } from "@/lib/requirement-photos";
+import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
 
 export interface RequirementCreationInput {
@@ -129,7 +130,7 @@ export async function createRequirement(
       data: matched.map((v) => ({ requirementId: requirement.id, vendorCompanyId: v.id })),
     });
 
-    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const base = getBaseUrl();
     const categoryNames = requirement.categories.map((c) => c.name).join(", ");
     try {
       await Promise.all(
