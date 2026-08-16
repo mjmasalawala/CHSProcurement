@@ -64,6 +64,9 @@ export async function registerSociety(
         name: input.name,
         contactName: input.registrantName,
         contactEmail: input.registrantEmail,
+        secretaryName,
+        secretaryEmail,
+        secretaryPhone,
         approveUrl: `${base}/admin/societies/${society.id}`,
       }),
       notifyRegistrationSubmitted({

@@ -154,6 +154,10 @@ export async function notifyNewRegistration(params: {
   name: string;
   contactName: string;
   contactEmail: string;
+  // Society only — Vendor registrations have no separate secretary contact.
+  secretaryName?: string;
+  secretaryEmail?: string;
+  secretaryPhone?: string;
   approveUrl: string;
 }) {
   const supportEmail = process.env.SUPPORT_EMAIL;
@@ -167,6 +171,9 @@ export async function notifyNewRegistration(params: {
       `A new ${params.type} has registered on Wisesoc and is pending verification.`,
       `Name: ${params.name}`,
       `Contact: ${params.contactName} <${params.contactEmail}>`,
+      ...(params.secretaryName
+        ? [`Secretary: ${params.secretaryName} <${params.secretaryEmail}> — ${params.secretaryPhone}`]
+        : []),
     ],
     cta: { label: "Review & Approve", url: params.approveUrl },
   });
