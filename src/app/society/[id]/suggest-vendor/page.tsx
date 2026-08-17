@@ -2,10 +2,25 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyPagePermission } from "@/lib/society-auth";
 import { Card } from "@/components/ui/card";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { formatDate } from "@/lib/date";
 import { SuggestVendorForm } from "./form";
 
 export const dynamic = "force-dynamic";
+
+type RegistrationStatus = "INVITED" | "UNDER_REVIEW" | "REGISTERED";
+
+const REGISTRATION_STATUS_LABEL: Record<RegistrationStatus, string> = {
+  INVITED: "Invited",
+  UNDER_REVIEW: "Under Review",
+  REGISTERED: "Registered",
+};
+
+const REGISTRATION_STATUS_TONE: Record<RegistrationStatus, BadgeTone> = {
+  INVITED: "neutral",
+  UNDER_REVIEW: "warning",
+  REGISTERED: "success",
+};
 
 export default async function SuggestVendorPage({
   params,
@@ -20,6 +35,24 @@ export default async function SuggestVendorPage({
     include: { suggestedByUser: true },
     orderBy: { createdAt: "desc" },
   });
+
+  const vendorCompanies = suggestions.length
+    ? await prisma.vendorCompany.findMany({
+        where: {
+          ownerEmail: { in: suggestions.map((s) => s.vendorEmail), mode: "insensitive" },
+        },
+        select: { ownerEmail: true, status: true },
+      })
+    : [];
+  const companyStatusByEmail = new Map(
+    vendorCompanies.map((c) => [c.ownerEmail.toLowerCase(), c.status]),
+  );
+
+  function registrationStatus(vendorEmail: string): RegistrationStatus {
+    const companyStatus = companyStatusByEmail.get(vendorEmail.toLowerCase());
+    if (!companyStatus) return "INVITED";
+    return companyStatus === "ACTIVE" ? "REGISTERED" : "UNDER_REVIEW";
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -47,21 +80,30 @@ export default async function SuggestVendorPage({
                   <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Email</th>
                   <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Phone</th>
                   <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Suggested by</th>
-                  <th className="pb-2 text-[11px] font-semibold uppercase tracking-wide">Date</th>
+                  <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Date</th>
+                  <th className="pb-2 text-[11px] font-semibold uppercase tracking-wide">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {suggestions.map((s) => (
-                  <tr key={s.id} className="border-b border-border-subtle last:border-0">
-                    <td className="py-2 pr-2 font-medium whitespace-nowrap text-text-primary">{s.vendorName}</td>
-                    <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{s.vendorEmail}</td>
-                    <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{s.vendorPhone ?? "—"}</td>
-                    <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">
-                      {s.suggestedByUser.name ?? s.suggestedByUser.email}
-                    </td>
-                    <td className="py-2 whitespace-nowrap text-text-secondary">{formatDate(s.createdAt)}</td>
-                  </tr>
-                ))}
+                {suggestions.map((s) => {
+                  const status = registrationStatus(s.vendorEmail);
+                  return (
+                    <tr key={s.id} className="border-b border-border-subtle last:border-0">
+                      <td className="py-2 pr-2 font-medium whitespace-nowrap text-text-primary">{s.vendorName}</td>
+                      <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{s.vendorEmail}</td>
+                      <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{s.vendorPhone ?? "—"}</td>
+                      <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">
+                        {s.suggestedByUser.name ?? s.suggestedByUser.email}
+                      </td>
+                      <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{formatDate(s.createdAt)}</td>
+                      <td className="py-2 whitespace-nowrap">
+                        <Badge tone={REGISTRATION_STATUS_TONE[status]}>
+                          {REGISTRATION_STATUS_LABEL[status]}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
