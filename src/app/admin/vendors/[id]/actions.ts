@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireActionPermission } from "@/lib/admin-auth";
-import { notifyApproval, notifyRejection } from "@/lib/notifications";
+import { notifyApproval, notifyRejection, notifyVendorStatusChanged } from "@/lib/notifications";
 import { syncVendorRequirementMatches } from "@/lib/matching";
 import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
@@ -58,6 +58,57 @@ export async function rejectVendor(vendorCompanyId: string, reason: string): Pro
   } catch (err) {
     console.error("Failed to notify vendor of rejection:", err);
   }
+
+  revalidatePath(`/admin/vendors/${vendorCompanyId}`);
+  revalidatePath("/admin/vendors");
+}
+
+// Reversible, unlike approve/reject: pulls an ACTIVE vendor out of new
+// matching (lib/matching.ts already filters status: "ACTIVE") without
+// touching its existing role assignments, bids, or open invites.
+export async function suspendVendor(vendorCompanyId: string): Promise<void> {
+  await requireActionPermission(PERMISSIONS.VENDOR_QUEUE_ACCESS);
+
+  const vendor = await prisma.vendorCompany.update({
+    where: { id: vendorCompanyId },
+    data: { status: "SUSPENDED" },
+  });
+
+  try {
+    await notifyVendorStatusChanged({
+      vendorName: vendor.name,
+      contactEmail: vendor.ownerEmail,
+      contactPhone: vendor.ownerPhone,
+      suspended: true,
+    });
+  } catch (err) {
+    console.error("Failed to notify vendor of suspension:", err);
+  }
+
+  revalidatePath(`/admin/vendors/${vendorCompanyId}`);
+  revalidatePath("/admin/vendors");
+}
+
+export async function reactivateVendor(vendorCompanyId: string): Promise<void> {
+  await requireActionPermission(PERMISSIONS.VENDOR_QUEUE_ACCESS);
+
+  const vendor = await prisma.vendorCompany.update({
+    where: { id: vendorCompanyId },
+    data: { status: "ACTIVE" },
+  });
+
+  try {
+    await notifyVendorStatusChanged({
+      vendorName: vendor.name,
+      contactEmail: vendor.ownerEmail,
+      contactPhone: vendor.ownerPhone,
+      suspended: false,
+    });
+  } catch (err) {
+    console.error("Failed to notify vendor of reactivation:", err);
+  }
+
+  await syncVendorRequirementMatches(vendorCompanyId);
 
   revalidatePath(`/admin/vendors/${vendorCompanyId}`);
   revalidatePath("/admin/vendors");

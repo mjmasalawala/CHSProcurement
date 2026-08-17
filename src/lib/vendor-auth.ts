@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import type { SessionRoleAssignment } from "@/types/next-auth";
 import type { Permission } from "@/lib/permissions";
 
@@ -41,10 +42,26 @@ export async function requireVendorPagePermission(
 export async function requireVendorActionPermission(
   vendorCompanyId: string,
   permission: Permission,
+  // Set for bid-authoring actions (submit/save-draft/AI-suggest/preview) so a
+  // suspended vendor can't act on in-flight requirements it's already
+  // invited to — plain permission checks above don't look at VendorCompany
+  // status, only at the caller's RoleAssignment.
+  options?: { requireActiveVendor?: boolean },
 ): Promise<SessionRoleAssignment> {
   const { assignment } = await resolveAssignment(vendorCompanyId);
   if (!assignment || !assignment.permissions.includes(permission)) {
     throw new Error("Not authorized.");
   }
+
+  if (options?.requireActiveVendor) {
+    const vendor = await prisma.vendorCompany.findUnique({
+      where: { id: vendorCompanyId },
+      select: { status: true },
+    });
+    if (vendor?.status !== "ACTIVE") {
+      throw new Error("This vendor account is suspended and can't bid on requirements.");
+    }
+  }
+
   return assignment;
 }

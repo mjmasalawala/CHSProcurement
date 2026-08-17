@@ -46,6 +46,10 @@ interface Props {
   // Vendor's own GSTIN on file (VendorCompany.gstNumber), used to pre-fill
   // the GST field the first time they mark a quote GST-compliant.
   vendorGstNumber: string | null;
+  // Set when the vendor company is suspended — the server actions already
+  // reject these calls, but disabling the fieldset keeps the vendor from
+  // hitting that error in the first place.
+  disabled?: boolean;
 }
 
 export function BidForm({
@@ -55,6 +59,7 @@ export function BidForm({
   draft,
   suggestDisabled,
   vendorGstNumber,
+  disabled = false,
 }: Props) {
   // A real submitted Bid always wins over a saved draft — the draft is only
   // there to survive a vendor navigating away before they've actually
@@ -170,6 +175,7 @@ export function BidForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <fieldset disabled={disabled} className="contents">
       <Card className="flex flex-col gap-3">
         <h2 className="text-[18px] font-semibold text-text-primary">
           {existingBid ? "Edit your quote" : "Submit a quote"}
@@ -380,6 +386,7 @@ export function BidForm({
           {previewing ? "Preparing preview…" : "Preview PDF"}
         </Button>
       </div>
+      </fieldset>
     </form>
   );
 }

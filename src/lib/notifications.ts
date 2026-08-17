@@ -662,6 +662,28 @@ export async function notifyBidsReadyForReview(params: {
   );
 }
 
+// Admin-initiated suspend/reactivate toggle (admin/vendors/[id]/actions.ts).
+export async function notifyVendorStatusChanged(params: {
+  vendorName: string;
+  contactEmail: string;
+  contactPhone?: string | null;
+  suspended: boolean;
+}) {
+  await sendEmail({
+    to: params.contactEmail,
+    subject: params.suspended ? "Your Wisesoc vendor account has been suspended" : "Your Wisesoc vendor account has been reactivated",
+    heading: params.suspended ? "Account suspended" : "Account reactivated",
+    paragraphs: params.suspended
+      ? [
+          `Your vendor account "${params.vendorName}" on Wisesoc has been suspended by an administrator. You won't be matched to new requirements while suspended.`,
+          `If you believe this is a mistake, please get in touch with Wisesoc support.`,
+        ]
+      : [`Good news — your vendor account "${params.vendorName}" on Wisesoc has been reactivated and is active again.`],
+  });
+  // SMS intentionally not sent — see notifyVendorSuggested above.
+  // await sendSms({ to: params.contactPhone, body: `Wisesoc: ...` });
+}
+
 // Contact Us form (public, unauthenticated) — forwards the message straight
 // to SUPPORT_EMAIL. No-op if SUPPORT_EMAIL isn't configured, same as
 // notifyNewRegistration above.

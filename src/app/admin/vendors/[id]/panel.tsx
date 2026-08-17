@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { approveVendor, rejectVendor } from "./actions";
+import { approveVendor, rejectVendor, suspendVendor, reactivateVendor } from "./actions";
 
 export function ApproveRejectPanel({
   vendorCompanyId,
@@ -33,6 +33,10 @@ export function ApproveRejectPanel({
         <p className="text-[15px] text-text-primary">Rejected.</p>
       </Card>
     );
+  }
+
+  if (status === "ACTIVE" || status === "SUSPENDED") {
+    return <SuspendReactivatePanel vendorCompanyId={vendorCompanyId} status={status} />;
   }
 
   if (status !== "PENDING_VERIFICATION") {
@@ -104,6 +108,55 @@ export function ApproveRejectPanel({
             </Button>
           </div>
         </div>
+      )}
+    </Card>
+  );
+}
+
+function SuspendReactivatePanel({
+  vendorCompanyId,
+  status,
+}: {
+  vendorCompanyId: string;
+  status: "ACTIVE" | "SUSPENDED";
+}) {
+  const [busy, setBusy] = useState(false);
+  const suspended = status === "SUSPENDED";
+
+  return (
+    <Card className="flex items-center justify-between gap-3">
+      <p className="text-[15px] text-text-primary">
+        {suspended
+          ? "This vendor is suspended — they won't be matched to new requirements."
+          : "This vendor is active."}
+      </p>
+      {suspended ? (
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await reactivateVendor(vendorCompanyId);
+            setBusy(false);
+          }}
+        >
+          Reactivate
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="danger"
+          disabled={busy}
+          onClick={async () => {
+            if (!confirm("Suspend this vendor? They'll stop being matched to new requirements until reactivated.")) return;
+            setBusy(true);
+            await suspendVendor(vendorCompanyId);
+            setBusy(false);
+          }}
+        >
+          Suspend
+        </Button>
       )}
     </Card>
   );

@@ -58,8 +58,9 @@ export default async function RequirementDetailPage({
       where: { requirementId_vendorCompanyId: { requirementId: reqId, vendorCompanyId: id } },
       include: { lineItems: true },
     }),
-    prisma.vendorCompany.findUniqueOrThrow({ where: { id }, select: { gstNumber: true } }),
+    prisma.vendorCompany.findUniqueOrThrow({ where: { id }, select: { gstNumber: true, status: true } }),
   ]);
+  const suspended = vendorCompany.status !== "ACTIVE";
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,10 +207,18 @@ export default async function RequirementDetailPage({
               Download your submitted quote PDF
             </a>
           )}
+          {suspended && (
+            <Card className="border-status-warning-border bg-status-warning-bg">
+              <p className="text-[13px] text-text-secondary">
+                Your vendor account is suspended — you can&apos;t submit or edit quotes until it&apos;s reactivated.
+              </p>
+            </Card>
+          )}
           <BidForm
             vendorCompanyId={id}
             requirementId={reqId}
             vendorGstNumber={vendorCompany.gstNumber}
+            disabled={suspended}
             existingBid={
               myBid
                 ? {

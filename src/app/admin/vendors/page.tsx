@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 const TABS: { value: EntityStatus | "ALL"; label: string }[] = [
   { value: "PENDING_VERIFICATION", label: "Pending" },
   { value: "ACTIVE", label: "Active" },
+  { value: "SUSPENDED", label: "Suspended" },
   { value: "REJECTED", label: "Rejected" },
   { value: "ALL", label: "All" },
 ];

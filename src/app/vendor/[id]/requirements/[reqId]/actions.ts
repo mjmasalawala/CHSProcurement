@@ -86,7 +86,7 @@ export async function suggestBidLineItems(
   vendorCompanyId: string,
   requirementId: string,
 ): Promise<{ lineItems: { description: string; quantity: string; unit: string }[] } | { error: string }> {
-  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID);
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID, { requireActiveVendor: true });
 
   const invited = await prisma.requirementInvite.findUnique({
     where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
@@ -146,7 +146,7 @@ export async function saveBidDraft(
   requirementId: string,
   input: BidDraftInput,
 ): Promise<{ error: string } | undefined> {
-  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID);
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID, { requireActiveVendor: true });
 
   const invited = await prisma.requirementInvite.findUnique({
     where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
@@ -192,7 +192,7 @@ export async function submitBid(
   requirementId: string,
   input: SubmitBidInput,
 ): Promise<{ error: string } | undefined> {
-  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID);
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID, { requireActiveVendor: true });
   const session = await auth();
   if (!session) return { error: "Not authorized." };
 
@@ -299,7 +299,7 @@ export async function previewBidPdf(
   requirementId: string,
   input: SubmitBidInput,
 ): Promise<{ pdfBase64: string } | { error: string }> {
-  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID);
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID, { requireActiveVendor: true });
 
   const invited = await prisma.requirementInvite.findUnique({
     where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
