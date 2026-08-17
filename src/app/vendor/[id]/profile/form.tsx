@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckboxGroup } from "@/components/ui/checkbox-group";
+import { MultiSelectDropdown } from "@/components/ui/multi-select";
 import { TagInput } from "@/components/ui/tag-input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,9 +36,13 @@ interface Props {
   };
   categories: { id: string; name: string }[];
   cities: { id: string; name: string }[];
+  // Lets admin/vendors/[id]/edit reuse this form against its own admin-gated
+  // server action instead of the vendor's self-service one — same input
+  // shape, different permission check and revalidated paths.
+  onSave?: (vendorCompanyId: string, input: VendorProfileInput) => Promise<{ error: string } | undefined>;
 }
 
-export function ProfileForm({ vendorCompanyId, vendor, categories, cities }: Props) {
+export function ProfileForm({ vendorCompanyId, vendor, categories, cities, onSave = updateVendorProfile }: Props) {
   const [form, setForm] = useState<VendorProfileInput>({
     name: vendor.name,
     businessType: vendor.businessType,
@@ -63,7 +67,7 @@ export function ProfileForm({ vendorCompanyId, vendor, categories, cities }: Pro
   async function handleSave() {
     setSaving(true);
     setError(null);
-    const result = await updateVendorProfile(vendorCompanyId, form);
+    const result = await onSave(vendorCompanyId, form);
     setSaving(false);
     if (result?.error) setError(result.error);
     else setSaved(true);
@@ -120,19 +124,21 @@ export function ProfileForm({ vendorCompanyId, vendor, categories, cities }: Pro
       <Card className="flex flex-col gap-4">
         <div>
           <Label>Service Categories (up to 5)</Label>
-          <CheckboxGroup
+          <MultiSelectDropdown
             options={categories.map((c) => ({ id: c.id, label: c.name }))}
             selected={form.categoryIds}
             onChange={(ids) => update("categoryIds", ids)}
             max={5}
+            placeholder="Search categories…"
           />
         </div>
         <div>
           <Label>Cities Served</Label>
-          <CheckboxGroup
+          <MultiSelectDropdown
             options={cities.map((c) => ({ id: c.id, label: c.name }))}
             selected={form.cityIds}
             onChange={(ids) => update("cityIds", ids)}
+            placeholder="Search cities…"
           />
         </div>
         <div>

@@ -28,16 +28,21 @@ export function MultiSelectDropdown({
   onChange,
   placeholder = "Search…",
   className,
+  max,
 }: {
   options: Option[];
   selected: string[];
   onChange: (selected: string[]) => void;
   placeholder?: string;
   className?: string;
+  // Once this many are selected, unselected options disable rather than
+  // toggling — mirrors CheckboxGroup's `max` (e.g. vendor categories capped at 5).
+  max?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const atMax = !!max && selected.length >= max;
 
   useEffect(() => {
     if (!open) return;
@@ -55,8 +60,12 @@ export function MultiSelectDropdown({
   const filtered = options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()));
 
   function toggle(id: string) {
-    if (selected.includes(id)) onChange(selected.filter((s) => s !== id));
-    else onChange([...selected, id]);
+    if (selected.includes(id)) {
+      onChange(selected.filter((s) => s !== id));
+      return;
+    }
+    if (atMax) return;
+    onChange([...selected, id]);
   }
 
   return (
@@ -91,8 +100,9 @@ export function MultiSelectDropdown({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder={selectedOptions.length === 0 ? placeholder : ""}
-          className="min-w-[100px] flex-1 border-0 bg-transparent px-1 py-0.5 text-[15px] text-text-primary outline-none placeholder:text-text-tertiary"
+          placeholder={selectedOptions.length === 0 ? placeholder : atMax ? "Limit reached" : ""}
+          disabled={atMax}
+          className="min-w-[100px] flex-1 border-0 bg-transparent px-1 py-0.5 text-[15px] text-text-primary outline-none placeholder:text-text-tertiary disabled:cursor-not-allowed"
         />
       </div>
 
@@ -103,14 +113,20 @@ export function MultiSelectDropdown({
           ) : (
             filtered.map((o) => {
               const isSelected = selected.includes(o.id);
+              const disabled = !isSelected && atMax;
               return (
                 <button
                   key={o.id}
                   type="button"
                   onClick={() => toggle(o.id)}
+                  disabled={disabled}
                   className={cn(
                     "flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] transition-colors hover:bg-background-tertiary",
-                    isSelected ? "font-medium text-accent-primary" : "text-text-primary",
+                    isSelected
+                      ? "font-medium text-accent-primary"
+                      : disabled
+                        ? "cursor-not-allowed text-text-tertiary hover:bg-transparent"
+                        : "text-text-primary",
                   )}
                 >
                   <span

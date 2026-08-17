@@ -1,12 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireActionPermission } from "@/lib/admin-auth";
 import { notifyApproval, notifyRejection, notifyVendorStatusChanged } from "@/lib/notifications";
 import { syncVendorRequirementMatches } from "@/lib/matching";
 import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
+import type { VendorProfileInput } from "@/app/vendor/[id]/profile/actions";
 
 // The Vendor Owner already has a working login from registration (product
 // decision — vendor login is immediate, unlike Society/Secretary), so
@@ -87,6 +89,41 @@ export async function suspendVendor(vendorCompanyId: string): Promise<void> {
 
   revalidatePath(`/admin/vendors/${vendorCompanyId}`);
   revalidatePath("/admin/vendors");
+}
+
+// Admin-side equivalent of vendor/[id]/profile/actions.ts's updateVendorProfile
+// — same input shape and validation (reuses ProfileForm), gated on the admin
+// permission instead of the vendor's own RoleAssignment.
+export async function updateVendorProfileAdmin(
+  vendorCompanyId: string,
+  input: VendorProfileInput,
+): Promise<{ error: string } | undefined> {
+  await requireActionPermission(PERMISSIONS.VENDOR_QUEUE_ACCESS);
+
+  if (input.categoryIds.length > 5) {
+    return { error: "You can select up to 5 service categories." };
+  }
+
+  await prisma.vendorCompany.update({
+    where: { id: vendorCompanyId },
+    data: {
+      name: input.name,
+      businessType: input.businessType as Prisma.VendorCompanyUpdateInput["businessType"],
+      ownerName: input.ownerName,
+      ownerPhone: input.ownerPhone,
+      registeredAddress: input.registeredAddress,
+      yearsInBusiness: input.yearsInBusiness ? Number(input.yearsInBusiness) : null,
+      description: input.description || null,
+      societiesServiced: input.societiesServiced,
+      serviceCategories: { set: input.categoryIds.map((id) => ({ id })) },
+      citiesServed: { set: input.cityIds.map((id) => ({ id })) },
+    },
+  });
+
+  await syncVendorRequirementMatches(vendorCompanyId);
+
+  revalidatePath(`/admin/vendors/${vendorCompanyId}`);
+  revalidatePath(`/admin/vendors/${vendorCompanyId}/edit`);
 }
 
 export async function reactivateVendor(vendorCompanyId: string): Promise<void> {

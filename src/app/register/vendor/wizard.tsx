@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckboxGroup } from "@/components/ui/checkbox-group";
+import { MultiSelectDropdown } from "@/components/ui/multi-select";
 import { TagInput } from "@/components/ui/tag-input";
 import { Button } from "@/components/ui/button";
 import { registerVendor, type VendorRegistrationInput } from "./actions";
@@ -186,11 +186,12 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
         >
           <div>
             <Label>Service Categories (up to 5)</Label>
-            <CheckboxGroup
+            <MultiSelectDropdown
               options={categories.map((c) => ({ id: c.id, label: c.name }))}
               selected={form.categoryIds}
               onChange={(ids) => update("categoryIds", ids)}
               max={5}
+              placeholder="Search categories…"
             />
           </div>
           <div>
@@ -216,10 +217,11 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
         >
           <div>
             <Label>Cities Served</Label>
-            <CheckboxGroup
+            <MultiSelectDropdown
               options={cities.map((c) => ({ id: c.id, label: c.name }))}
               selected={form.cityIds}
               onChange={(ids) => update("cityIds", ids)}
+              placeholder="Search cities…"
             />
           </div>
           <div>

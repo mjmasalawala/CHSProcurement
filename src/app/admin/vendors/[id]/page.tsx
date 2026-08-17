@@ -25,11 +25,19 @@ export default async function AdminVendorPage({ params }: { params: Promise<{ id
       <Link href="/admin/vendors" className="text-[13px] text-text-secondary underline hover:text-text-primary">
         ← Back to Vendors
       </Link>
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{vendor.name}</h1>
-        <Badge tone={statusTone(vendor.status)} className="w-fit">
-          {statusLabel(vendor.status)}
-        </Badge>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{vendor.name}</h1>
+          <Badge tone={statusTone(vendor.status)} className="w-fit">
+            {statusLabel(vendor.status)}
+          </Badge>
+        </div>
+        <Link
+          href={`/admin/vendors/${id}/edit`}
+          className="text-[13px] font-medium text-accent-primary underline hover:no-underline"
+        >
+          Edit profile
+        </Link>
       </div>
 
       <Card className="flex flex-col gap-3">
