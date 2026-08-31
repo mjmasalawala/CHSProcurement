@@ -6,6 +6,11 @@ import { WorkspaceShell } from "@/components/ui/workspace-shell";
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", permission: null },
   { href: "/admin/vendors", label: "Vendors", permission: PERMISSIONS.VENDOR_QUEUE_ACCESS },
+  {
+    href: "/admin/vendor-directory",
+    label: "Vendor Directory",
+    permission: PERMISSIONS.VENDOR_DIRECTORY_ACCESS,
+  },
   { href: "/admin/societies", label: "Societies", permission: PERMISSIONS.SOCIETY_QUEUE_ACCESS },
   {
     href: "/admin/category-requests",
