@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
-export type Faq = { id: string; question: string; answer: ReactNode };
+// answerText is the plain-text rendering of `answer` — needed because
+// `answer` can be JSX (inline links), but the FAQPage JSON-LD schema below
+// needs a plain string per question so AI answer engines and Google can
+// lift each Q&A pair directly instead of having to parse markup.
+export type Faq = { id: string; question: string; answer: ReactNode; answerText: string };
 
 export function FaqList({
   title,
@@ -12,8 +16,19 @@ export function FaqList({
   description: string;
   faqs: Faq[];
 }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answerText },
+    })),
+  };
+
   return (
     <main className="flex flex-1 flex-col items-center gap-6 px-6 py-16">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="flex w-full max-w-2xl flex-col gap-8">
         <div>
           <h1 className="text-[28px] font-bold text-text-primary">{title}</h1>

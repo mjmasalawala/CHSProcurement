@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "For Vendors — Wisesoc",
+  description:
+    "Get matched automatically to cooperative housing society requirements in your category and city. Wisesoc is a reliable partner for fair, transparent procurement — for societies and vendors alike.",
+};
 
 const WHY_MISSING_OUT = [
   {
@@ -30,7 +37,7 @@ export default function VendorsLandingPage() {
     <main className="flex flex-1 flex-col items-center gap-20 px-6 py-12">
       <section className="flex flex-col items-center gap-6 pt-12 text-center">
         <h1 className="max-w-2xl text-[24px] font-bold text-text-primary sm:text-[32px]">
-          1.2 lakh housing societies are looking for vendors like you. 
+          1.2 lakh cooperative housing societies are looking for vendors like you.
         </h1>
         <h1 className="max-w-2xl text-[24px] font-bold text-status-error sm:text-[32px]">
           Most will never find you.

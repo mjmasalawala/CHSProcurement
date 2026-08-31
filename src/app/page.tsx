@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "Wisesoc — Fair, Transparent Procurement for Cooperative Housing Societies",
+  description:
+    "Wisesoc is a reliable partner for cooperative housing societies running fair, transparent vendor procurement — matched vendors, blind quoting, and committee co-approval, with a permanent record of every decision.",
+};
 
 const HOW_IT_WORKS = [
   { title: "Raise a requirement", body: "A Manager describes the work — category, description, deadline." },
@@ -21,12 +28,12 @@ export default async function Home() {
       <main className="flex flex-1 flex-col items-center gap-20 px-6 py-12">
         <section className="flex flex-col items-center gap-6 pt-12 text-center">
           <h1 className="max-w-2xl text-[24px] font-bold text-text-primary sm:text-[32px]">
-            Fair, transparent, system-matched quotations for your housing society
+            Fair, transparent, system-matched quotations for your cooperative housing society
           </h1>
           <p className="max-w-xl text-[15px] text-text-secondary">
-            Wisesoc replaces the informal &quot;get three quotes&quot; process with a matched vendor
-            pool, blind quoting, and a co-approval workflow — with a full, searchable record of
-            every transaction.
+            Wisesoc is a reliable partner for cooperative housing societies, replacing the informal
+            &quot;get three quotes&quot; process with a matched vendor pool, blind quoting, and a
+            co-approval workflow — with a full, searchable record of every transaction.
           </p>
         </section>
 

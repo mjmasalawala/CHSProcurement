@@ -33,7 +33,7 @@ export function Footer() {
         <div>
           <p className="text-[15px] font-bold text-text-primary">Wisesoc</p>
           <p className="mt-1 max-w-[220px] text-text-secondary">
-            Fair, transparent procurement for housing societies.
+            Fair, transparent procurement for cooperative housing societies.
           </p>
         </div>
 
@@ -56,7 +56,7 @@ export function Footer() {
       </div>
 
       <p className="mx-auto mt-8 w-full max-w-4xl border-t border-border-subtle pt-6 text-center text-text-secondary">
-        © {new Date().getFullYear()} Wisesoc · Fair, transparent procurement for housing societies
+        © {new Date().getFullYear()} Wisesoc · Fair, transparent procurement for cooperative housing societies
       </p>
     </footer>
   );
