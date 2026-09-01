@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "For Vendors — Wisesoc",
@@ -10,17 +9,25 @@ export const metadata: Metadata = {
 };
 
 const WHY_MISSING_OUT = [
-  "You're invisible to most societies.",
-  "You have no visibility into work at societies around you.",
-  "You are tired of pouring money into marketing.",
+  "Societies don't know you can fulfill their requirements.",
+  "You have no visibility into the requirements of societies around you.",
+  "Lead generation marketing just doesn't work for this segment of clients.",
 ];
 
 const HOW_IT_WORKS = [
   { title: "Register once", body: "List your service categories and service areas." },
-  { title: "Get matched", body: "No cold calling. You're invited the moment a society raises a requirement in your category and city." },
-  { title: "Submit quotes", body: "Line-item based quotes, no haggling over WhatsApp." },
-  { title: "Compete fairly", body: "Societies on Wisesoc compare quality, price and terms, not just who they already know." },
-  { title: "Build track record", body: "Every job, every quote, every Work Order becomes part of your history and footprint on Wisesoc." },
+  {
+    title: "Get Matched with No Marketing Cost",
+    body: "No cold calling leads. When there is a genuine requirement, you get notified.",
+  },
+  {
+    title: "Submit quotes",
+    body: "Contact the society, understand the requirement and submit your quote.",
+  },
+  {
+    title: "Compete fairly",
+    body: "Wisesoc helps societies compare quality and terms along with prices, so you can compete fairly and transparently.",
+  },
 ];
 
 export default function VendorsLandingPage() {
@@ -30,16 +37,9 @@ export default function VendorsLandingPage() {
         <h1 className="max-w-2xl text-[24px] font-bold text-text-primary sm:text-[32px]">
           1.2 lakh cooperative housing societies are looking for vendors like you.
         </h1>
-        <h1 className="max-w-2xl text-[24px] font-bold text-status-error sm:text-[32px]">
+        <h1 className="max-w-2xl text-[24px] font-bold text-accent-primary sm:text-[32px]">
           Most will never find you.
         </h1>
-        <p className="max-w-xl text-[18px] text-text-secondary">
-          These societies raise materials, services and CapEx work every year — plumbing, painting,
-          waterproofing, CCTV, Solar, Fire Safety, Electrical, AMC renewals — and most of it still gets awarded through
-          word-of-mouth. </p>
-        
-        <h2 className="max-w-2xl text-[20px] font-bold text-status-success sm:text-[24px]">Wisesoc puts you in front of societies looking for your products and services.</h2>
-        
         {/* <Link href="/register/vendor">
           <Button>Register Your Business</Button>
         </Link> */}
@@ -64,10 +64,10 @@ export default function VendorsLandingPage() {
         <ul className="mx-auto flex w-fit flex-col gap-3">
           {WHY_MISSING_OUT.map((item) => (
             <li key={item} className="flex items-center gap-2">
-              <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 shrink-0 text-status-success" aria-hidden>
+              <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 shrink-0 text-status-error" aria-hidden>
                 <circle cx="10" cy="10" r="9" fill="currentColor" fillOpacity="0.15" />
                 <path
-                  d="M6 10.5L8.5 13L14 7.5"
+                  d="M7 7L13 13M13 7L7 13"
                   stroke="currentColor"
                   strokeWidth="1.75"
                   strokeLinecap="round"
@@ -81,14 +81,21 @@ export default function VendorsLandingPage() {
       </section>
 
       <section className="flex w-full max-w-4xl flex-col gap-6">
-        <h1 className="text-center text-[24px] font-semibold text-text-primary">How Wisesoc helps</h1>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
+        <h1 className="text-center text-[24px] font-bold text-text-primary sm:text-[32px]">How Wisesoc helps</h1>
+        <div className="mx-auto flex w-full max-w-md flex-col">
           {HOW_IT_WORKS.map((step, i) => (
-            <Card key={step.title} className="flex flex-col gap-2">
-              <span className="text-[13px] font-semibold text-accent-primary">Step {i + 1}</span>
-              <p className="text-[15px] font-medium text-text-primary">{step.title}</p>
-              <p className="text-[13px] text-text-secondary">{step.body}</p>
-            </Card>
+            <div key={step.title} className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent-primary text-[18px] font-bold text-white shadow-sm">
+                  {i + 1}
+                </div>
+                {i < HOW_IT_WORKS.length - 1 && <div className="w-0.5 flex-1 bg-border-subtle" />}
+              </div>
+              <div className="flex flex-col gap-1 pt-1.5 pb-8">
+                <p className="text-[15px] font-semibold text-text-primary">{step.title}</p>
+                <p className="text-[13px] text-text-secondary">{step.body}</p>
+              </div>
+            </div>
           ))}
         </div>
       </section>

@@ -2,26 +2,40 @@
 
 :root {
   /* theme-and-design-system.md Section 3 — light theme only, no dark mode in
-     v1. Palette refreshed for a more polished/professional finish while
-     staying within the spec's "calm, not flashy" light-theme constraint. */
+     v1. Palette matches the Wisesoc brand mark (src/app/img/wisesoc_colour_
+     palette.csv): Deep Navy for text/ink, Navy Blue for secondary text,
+     Orange/Orange Red as the accent — kept restrained (accent used for
+     actions and highlights only, never large fills) to stay professional
+     rather than loud. */
   --color-background-primary: #ffffff;
-  --color-background-secondary: #f6f7f9;
-  --color-background-tertiary: #eceef2;
-  --color-border-subtle: #e2e4e9;
-  --color-border-strong: #cfd3db;
-  --color-text-primary: #14171f;
-  --color-text-secondary: #5b6270;
-  --color-text-tertiary: #8a8f9c;
+  --color-background-secondary: #f5f6f9;
+  --color-background-tertiary: #eaecf2;
+  --color-border-subtle: #e1e4ec;
+  --color-border-strong: #c7cbda;
+  --color-text-primary: #0a1a30;
+  --color-text-secondary: #53586a;
+  --color-text-tertiary: #868b9b;
 
-  --color-accent-primary: #1d4ed8;
-  --color-accent-primary-hover: #1a3fb0;
-  --color-accent-subtle: #eef2ff;
-  --color-accent-subtle-border: #c7d2fe;
+  /* Deepened from the CSV's brightest orange (#fd7601) — that value is only
+     2.7:1 against white, which fails WCAG AA for both button text and link
+     text. This rust/burnt-orange (derived from the palette's "Orange Red"
+     #fe5301, ~28% darker) keeps the same brand hue but clears 4.5:1 in both
+     directions (white text on the fill, and the color as link text on
+     white), so one token works everywhere without a second "text-safe"
+     variant. */
+  --color-accent-primary: #b73c01;
+  --color-accent-primary-hover: #8f2f01;
+  --color-accent-subtle: #fdece0;
+  --color-accent-subtle-border: #f3c79a;
 
   /* Status tokens ship as text/bg/border triplets so any "state" (Society
      status, RequirementStatus, Bid status, RoleAssignment status, etc.) can
      render as a consistent colored-and-bordered badge — see
-     src/components/ui/badge.tsx and src/lib/status-badge.ts. */
+     src/components/ui/badge.tsx and src/lib/status-badge.ts. Success/
+     warning/error keep their conventional green/amber/red hues (changing
+     those would fight user expectations); info and neutral pick up the
+     brand's navy instead of the old blue accent so badges read as part of
+     the same palette as the rest of the app. */
   --color-status-success: #1e7e34;
   --color-status-success-bg: #e9f7ef;
   --color-status-success-border: #b7e4c7;
@@ -34,17 +48,17 @@
   --color-status-error-bg: #fdecea;
   --color-status-error-border: #f3c2bd;
 
-  --color-status-info: #1d4ed8;
-  --color-status-info-bg: #eef2ff;
-  --color-status-info-border: #c7d2fe;
+  --color-status-info: #2d5ba8;
+  --color-status-info-bg: #eaf1fb;
+  --color-status-info-border: #c3d7f2;
 
-  --color-status-neutral: #4b5262;
+  --color-status-neutral: #53586a;
   --color-status-neutral-bg: #eef0f3;
   --color-status-neutral-border: #d8dbe1;
 
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 4px 10px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+  --shadow-xs: 0 1px 2px rgba(10, 26, 48, 0.04);
+  --shadow-sm: 0 1px 3px rgba(10, 26, 48, 0.08), 0 1px 2px rgba(10, 26, 48, 0.04);
+  --shadow-md: 0 4px 10px rgba(10, 26, 48, 0.08), 0 2px 4px rgba(10, 26, 48, 0.04);
 }
 
 @theme inline {
