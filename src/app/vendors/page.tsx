@@ -10,18 +10,9 @@ export const metadata: Metadata = {
 };
 
 const WHY_MISSING_OUT = [
-  {
-    title: "You're invisible to most societies",
-    body: "The informal \"get three quotes\" process runs on word-of-mouth. If you're not already known to a Secretary or Chairman, you never get the call — no matter how good your work is.",
-  },
-  {
-    title: "No visibility into upcoming work",
-    body: "Waterproofing, painting, plumbing, electrical, AMC renewals — tens of thousands of buildings need this work on a recurring cycle, but there's no shared channel to find out when a specific society needs it.",
-  },
-  {
-    title: "Unfair, opaque selection",
-    body: "Without structured quotes, good work often loses to whoever's cheapest or best-connected — reputation, quality, and reliability rarely factor in.",
-  },
+  "You're invisible to most societies.",
+  "You have no visibility into work at societies around you.",
+  "You are tired of pouring money into marketing.",
 ];
 
 const HOW_IT_WORKS = [
@@ -47,8 +38,7 @@ export default function VendorsLandingPage() {
           waterproofing, CCTV, Solar, Fire Safety, Electrical, AMC renewals — and most of it still gets awarded through
           word-of-mouth. </p>
         
-        <h2 className="max-w-2xl text-[20px] font-bold text-status-success sm:text-[24px]">Wisesoc puts your business in front of societies actively looking for exactly
-        what you sell.</h2>
+        <h2 className="max-w-2xl text-[20px] font-bold text-status-success sm:text-[24px]">Wisesoc puts you in front of societies looking for your products and services.</h2>
         
         {/* <Link href="/register/vendor">
           <Button>Register Your Business</Button>
@@ -68,21 +58,30 @@ export default function VendorsLandingPage() {
       </section> */}
 
       <section className="flex w-full max-w-4xl flex-col gap-6">
-        <h2 className="text-center text-[24px] font-semibold text-text-primary">
-          Why good vendors are missing out
-        </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <h1 className="text-center text-[24px] font-bold text-text-primary sm:text-[32px]">
+          Here is why you are missing out
+        </h1>
+        <ul className="mx-auto flex w-fit flex-col gap-3">
           {WHY_MISSING_OUT.map((item) => (
-            <Card key={item.title} className="flex flex-col gap-2">
-              <p className="text-[15px] font-medium text-text-primary">{item.title}</p>
-              <p className="text-[13px] text-text-secondary">{item.body}</p>
-            </Card>
+            <li key={item} className="flex items-center gap-2">
+              <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 shrink-0 text-status-success" aria-hidden>
+                <circle cx="10" cy="10" r="9" fill="currentColor" fillOpacity="0.15" />
+                <path
+                  d="M6 10.5L8.5 13L14 7.5"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <p className="text-[15px] font-medium text-text-primary">{item}</p>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
 
       <section className="flex w-full max-w-4xl flex-col gap-6">
-        <h2 className="text-center text-[24px] font-semibold text-text-primary">How Wisesoc helps</h2>
+        <h1 className="text-center text-[24px] font-semibold text-text-primary">How Wisesoc helps</h1>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
           {HOW_IT_WORKS.map((step, i) => (
             <Card key={step.title} className="flex flex-col gap-2">
