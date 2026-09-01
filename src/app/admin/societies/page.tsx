@@ -33,7 +33,7 @@ export default async function AdminSocietiesPage({
   const societies = await prisma.society.findMany({
     where: activeTab === "ALL" ? {} : { status: activeTab },
     include: { city: true },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
