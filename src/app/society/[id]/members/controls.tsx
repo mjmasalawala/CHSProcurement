@@ -106,6 +106,7 @@ export function ResendInviteButton({
       <Button
         type="button"
         variant="secondary"
+        className="border-accent-primary px-2.5 py-1 text-[12px] text-accent-primary hover:bg-accent-subtle"
         disabled={pending || cooldown > 0}
         onClick={async () => {
           setPending(true);
@@ -138,6 +139,7 @@ export function ToggleMemberButton({
     <Button
       type="button"
       variant="secondary"
+      className="border-accent-primary px-2.5 py-1 text-[12px] text-accent-primary hover:bg-accent-subtle"
       disabled={pending}
       onClick={async () => {
         setPending(true);
@@ -170,6 +172,7 @@ export function ProposeRemovalButton({
       <Button
         type="button"
         variant="danger"
+        className="px-2.5 py-1 text-[12px]"
         disabled={pending}
         onClick={async () => {
           if (!confirm("Propose removing this member? A different Office Bearer will need to approve it.")) return;

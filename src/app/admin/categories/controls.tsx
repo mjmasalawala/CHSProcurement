@@ -52,6 +52,7 @@ export function RenameCategoryButton({ id, name }: { id: string; name: string })
       <Button
         type="button"
         variant="secondary"
+        className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
         onClick={() => {
           setValue(name);
           setError(null);
@@ -107,6 +108,7 @@ export function ToggleActiveButton({ id, active }: { id: string; active: boolean
     <Button
       type="button"
       variant="secondary"
+      className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
       disabled={busy}
       onClick={async () => {
         setBusy(true);

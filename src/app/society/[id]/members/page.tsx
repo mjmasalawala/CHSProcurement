@@ -118,17 +118,19 @@ export default async function SocietyMembersPage({
             key={ra.id}
             className="flex flex-col gap-3 rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between"
           >
-            <div>
+            <div className="flex flex-col gap-1.5">
               <p className="text-[15px] font-semibold text-text-primary">{ra.user.name ?? ra.user.email}</p>
               <p className="text-[13px] text-text-secondary">
                 {ra.user.email} · {ROLE_LABELS[ra.role] ?? ra.role}
               </p>
+              <div>
+                <Badge tone={statusTone(ra.status)}>{statusLabel(ra.status)}</Badge>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {ra.status === "PENDING" && (
                 <p className="text-[13px] text-text-secondary">Invited — waiting for them to set a password</p>
               )}
-              <Badge tone={statusTone(ra.status)}>{statusLabel(ra.status)}</Badge>
               {canManageUsers && ra.status === "PENDING" && (
                 <ResendInviteButton societyId={id} roleAssignmentId={ra.id} />
               )}

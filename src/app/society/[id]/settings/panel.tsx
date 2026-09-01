@@ -73,9 +73,14 @@ export function ThresholdCard({
         </form>
       ) : (
         <div className="flex items-center justify-between">
-          <p className="text-[28px] font-bold tracking-tight text-text-primary">₹{currentValue}</p>
+          <p className="text-[28px] font-bold tracking-tight text-accent-primary">₹{currentValue}</p>
           {canPropose && (
-            <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
+              onClick={() => setEditing(true)}
+            >
               Edit
             </Button>
           )}

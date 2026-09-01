@@ -22,7 +22,7 @@ export function ResendInvitationButton({ vendorSuggestionId }: { vendorSuggestio
       <Button
         type="button"
         variant="secondary"
-        className="px-2.5 py-1 text-[12px]"
+        className="border-accent-primary px-2.5 py-1 text-[12px] text-accent-primary hover:bg-accent-subtle"
         disabled={pending || cooldown > 0}
         onClick={async () => {
           setPending(true);

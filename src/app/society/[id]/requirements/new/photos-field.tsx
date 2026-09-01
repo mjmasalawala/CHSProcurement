@@ -120,6 +120,7 @@ export function RequirementPhotosField({ societyId, value, onChange }: Props) {
           <Button
             type="button"
             variant="secondary"
+            className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
             disabled={uploading}
             onClick={() => inputRef.current?.click()}
           >

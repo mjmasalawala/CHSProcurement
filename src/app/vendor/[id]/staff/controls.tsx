@@ -67,6 +67,7 @@ export function ResendStaffInviteButton({
       <Button
         type="button"
         variant="secondary"
+        className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
         disabled={pending || cooldown > 0}
         onClick={async () => {
           setPending(true);
@@ -99,6 +100,7 @@ export function ToggleStaffButton({
     <Button
       type="button"
       variant="secondary"
+      className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
       disabled={pending}
       onClick={async () => {
         setPending(true);

@@ -168,6 +168,7 @@ export function BidComparison({
                         <Button
                           type="button"
                           variant="secondary"
+                          className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
                           disabled={submitting || !!recommendedBidId}
                           onClick={() => handleRecommend(bid.id, isLowest)}
                         >

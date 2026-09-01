@@ -275,10 +275,21 @@ export function BidForm({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="secondary" onClick={addLineItem}>
+          <Button
+            type="button"
+            variant="secondary"
+            className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
+            onClick={addLineItem}
+          >
             + Add line item
           </Button>
-          <Button type="button" variant="secondary" onClick={handleSuggest} disabled={suggesting || suggestUsed}>
+          <Button
+            type="button"
+            variant="secondary"
+            className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
+            onClick={handleSuggest}
+            disabled={suggesting || suggestUsed}
+          >
             {suggesting ? "Suggesting…" : suggestUsed ? "Suggestions used" : "Suggest line items"}
           </Button>
           {suggestError && <span className="text-[13px] text-status-error">{suggestError}</span>}
@@ -379,10 +390,22 @@ export function BidForm({
         <Button type="submit" disabled={submitting} className="self-start">
           {submitting ? "Submitting…" : existingBid ? "Update quote" : "Submit quote"}
         </Button>
-        <Button type="button" variant="secondary" onClick={handleSaveDraft} disabled={savingDraft}>
+        <Button
+          type="button"
+          variant="secondary"
+          className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
+          onClick={handleSaveDraft}
+          disabled={savingDraft}
+        >
           {savingDraft ? "Saving…" : "Save Draft Quote"}
         </Button>
-        <Button type="button" variant="secondary" onClick={handlePreview} disabled={previewing}>
+        <Button
+          type="button"
+          variant="secondary"
+          className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
+          onClick={handlePreview}
+          disabled={previewing}
+        >
           {previewing ? "Preparing preview…" : "Preview PDF"}
         </Button>
       </div>

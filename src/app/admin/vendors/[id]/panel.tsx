@@ -134,6 +134,7 @@ function SuspendReactivatePanel({
         <Button
           type="button"
           variant="secondary"
+          className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
           disabled={busy}
           onClick={async () => {
             setBusy(true);
