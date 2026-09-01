@@ -18,8 +18,8 @@ export async function Header() {
   return (
     <>
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border-subtle bg-background-primary/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background-primary/80">
-        <Link href={session ? "/app" : "/"} className="text-[18px] font-bold tracking-tight text-text-primary">
-          Wisesoc
+        <Link href={session ? "/app" : "/"} className="flex items-center">
+          <img src="/logo-full.png" alt="Wisesoc" className="h-8 w-auto" />
         </Link>
 
         {session ? (
