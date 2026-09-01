@@ -36,11 +36,11 @@ export function FaqList({
         </div>
 
         <nav aria-label="Questions" className="flex flex-col gap-2 rounded-xl border border-border-subtle p-5">
-          <p className="mb-1 text-[13px] font-semibold text-text-primary">Jump to a question</p>
+          <p className="mb-1 text-[16px] font-bold text-text-primary">Jump to a question</p>
           <ol className="flex flex-col gap-1.5">
             {faqs.map((faq, i) => (
               <li key={faq.id} className="text-[14px]">
-                <a href={`#${faq.id}`} className="text-accent-primary underline underline-offset-2 hover:text-text-primary">
+                <a href={`#${faq.id}`} className="text-accent-primary hover:text-text-primary">
                   {i + 1}. {faq.question}
                 </a>
               </li>
@@ -57,7 +57,7 @@ export function FaqList({
           ))}
         </div>
 
-        <p className="text-[13px] text-text-secondary">
+        <p className="text-[16px] font-bold text-text-primary">
           Still have questions?{" "}
           <Link href="/contact" className="text-accent-primary underline">
             Contact us

@@ -117,7 +117,7 @@ const FAQS: Faq[] = [
   },
   {
     id: "support",
-    question: "Who do I contact if I have a question or run into an issue?",
+    question: "Who do I contact if I have an issue?",
     answer: (
       <>
         Reach out any time through the{" "}
@@ -134,7 +134,7 @@ const FAQS: Faq[] = [
 export default function VendorFaqPage() {
   return (
     <FaqList
-      title="Frequently Asked Questions for Vendors"
+      title="Frequently Asked Questions"
       description="Answers for vendors registering or working on Wisesoc."
       faqs={FAQS}
     />
