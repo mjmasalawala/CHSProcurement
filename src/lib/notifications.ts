@@ -244,14 +244,27 @@ export async function notifyVendorSuggested(params: {
 
   if (params.vendorPhone) {
     // First contact — this always goes out via the approved
-    // wisesoc_vendor_suggested template (whatsapp-templates.ts), not free
-    // text, since there's no open session window with someone who's never
-    // messaged us. Param order must match the template body's {{1}}..{{4}}.
+    // wisesoc_vendor_suggested_v2 template (whatsapp-templates.ts), not
+    // free text, since there's no open session window with someone who's
+    // never messaged us. Param order must match the template body's
+    // {{1}}..{{3}} — the registration link in that template is the plain,
+    // non-personalized page (product decision, 2026-09-05), so it isn't a
+    // param here at all. The free-text fallback below (used only on the
+    // rare chance their window happens to already be open) still gets the
+    // personalized, prefilled link since that's not template-constrained.
     await sendWhatsapp({
       templateKey: "vendor.suggested",
+      // Meta classified wisesoc_vendor_suggested_v2 as MARKETING on review
+      // (2026-09-05) despite it being UTILITY at submission and having no
+      // CTA button — inviting someone to register reads as promotional to
+      // their policy regardless of wording. Tagged accordingly here so
+      // Phase 2's marketing opt-out/frequency-cap gating (dispatcher.ts)
+      // applies to this correctly instead of treating it as unlimited
+      // TRANSACTIONAL send volume.
+      category: "MARKETING",
       to: params.vendorPhone,
       text: `Wisesoc: ${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on Wisesoc. Register: ${params.registerUrl}`,
-      templateParams: [params.vendorName, params.suggestedByName, params.societyName, params.registerUrl],
+      templateParams: [params.vendorName, params.suggestedByName, params.societyName],
     });
   }
 }
