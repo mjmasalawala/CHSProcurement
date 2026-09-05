@@ -1,0 +1,23 @@
+name: Message dispatcher sweep
+
+# Picks up any outbox row (Message) that's QUEUED and due — mainly automatic
+# retries of a send that failed once (see lib/messaging/dispatcher.ts).
+# Every 5 minutes is GitHub Actions' scheduler minimum; timing is
+# best-effort (can lag at busy times), which is fine here since nothing
+# urgent waits on this — urgent sends go out inline via sendOne, not the
+# sweep. Same pattern as deadline-reminders.yml, and Vercel Hobby's
+# once-daily native cron limit is why this runs on GitHub Actions instead.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call dispatch route
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.DEPLOYMENT_URL }}/api/cron/dispatch"

@@ -1,0 +1,223 @@
+import { Resend } from "resend";
+import type { Message } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
+import { isWhatsappMessagingEnabled, sendWhatsappText } from "@/lib/whatsapp";
+
+const WHATSAPP_SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// Sends rows from the outbox (lib/messaging/outbox.ts). Two entry points
+// into the same send logic, per the spec doc's "how does the dispatcher know
+// to send just the urgent one" answer:
+//
+//  - sendOne(id): sends exactly that row. lib/notifications.ts calls this
+//    right after enqueueEmail, in the same request, so a "resend OTP" click
+//    still resolves synchronously (throwing on failure) exactly like the old
+//    direct-to-Resend sendEmail() did — nothing here changes that contract.
+//  - sweep(): the cron-triggered path (/api/cron/dispatch). Claims a batch of
+//    everything due and sends each one — this is what picks up rows nobody
+//    is actively waiting on (currently: automatic retries of a row sendOne
+//    already tried once and failed; Phase 2 adds reminders/sequences here).
+//
+// sendOne never looks at the rest of the queue; it was only ever given the
+// one id it was called with.
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = `Wisesoc <${process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"}>`;
+
+const MAX_ATTEMPTS = 5;
+
+function backoffMs(attempt: number): number {
+  // 1m, 2m, 4m, 8m, capped at 30m.
+  return Math.min(60_000 * 2 ** (attempt - 1), 30 * 60_000);
+}
+
+/**
+ * ContactPreference doesn't exist for most contacts yet (rows are created
+ * lazily — see lib/messaging/preferences.ts), so "no row found" means "not
+ * suppressed", not "unknown, so block it".
+ */
+async function suppressionReason(to: string[], category: Message["category"]): Promise<string | null> {
+  if (to.length === 0) return null;
+
+  const prefs = await prisma.contactPreference.findMany({ where: { email: { in: to } } });
+  for (const pref of prefs) {
+    if (pref.emailSuppressedAt) return `${pref.email} is suppressed (bounced/complained)`;
+    if (category === "MARKETING" && pref.emailMarketingOptOutAt) return `${pref.email} opted out of marketing email`;
+  }
+  return null;
+}
+
+async function deliverEmail(message: Message): Promise<{ providerId?: string }> {
+  // subject/html/text are nullable on Message only to leave room for a
+  // future non-email channel row — enqueueEmail (the only writer of EMAIL
+  // rows) always sets all three, so this is safe.
+  const { data, error } = await resend.emails.send({
+    from: FROM,
+    to: message.to,
+    subject: message.subject!,
+    html: message.html!,
+    text: message.text!,
+  });
+  if (error) {
+    throw new Error(`Resend send failed (to: ${message.to.join(", ")}, subject: "${message.subject}"): ${error.message}`);
+  }
+  return { providerId: data?.id };
+}
+
+/**
+ * A phone opted out of WhatsApp entirely (the "Stop messages" button, or
+ * the STOP keyword — see inbound-triage.ts) blocks every category, same as
+ * an email hard-bounce — someone who asked to stop shouldn't still get
+ * "transactional" WhatsApp messages.
+ */
+async function whatsappSuppressionReason(to: string): Promise<string | null> {
+  const pref = await prisma.contactPreference.findUnique({ where: { phone: to } });
+  if (!pref?.whatsappOptOutAt) return null;
+  const stillOptedOut = !pref.whatsappOptInAt || pref.whatsappOptOutAt > pref.whatsappOptInAt;
+  return stillOptedOut ? `${to} opted out of WhatsApp messages` : null;
+}
+
+/**
+ * Sends via free text if the recipient's 24h customer-service window is
+ * open (their Conversation.lastInboundAt is recent — see the WhatsApp
+ * webhook, which stamps it on every inbound message); otherwise SKIPS with
+ * a clear reason, since reaching them outside the window needs an approved
+ * message template and none exist yet (Requirements/messaging-and-
+ * engagement-spec.md Section 3.1 — templates are a separate Meta approval
+ * per wording, not something this dispatcher can improvise around).
+ */
+async function deliverWhatsapp(message: Message): Promise<{ providerId?: string } | "SKIPPED"> {
+  const to = message.to[0];
+  if (!to) return "SKIPPED";
+
+  const conversation = await prisma.conversation.findUnique({ where: { phoneE164: to } });
+  const withinWindow = conversation?.lastInboundAt && Date.now() - conversation.lastInboundAt.getTime() < WHATSAPP_SESSION_WINDOW_MS;
+  if (!withinWindow) return "SKIPPED";
+
+  const result = await sendWhatsappText({ to, body: message.text ?? "" });
+  await prisma.conversation.update({ where: { id: conversation.id }, data: { lastOutboundAt: new Date() } });
+  return result;
+}
+
+async function recordFailure(message: Message, err: unknown): Promise<"FAILED"> {
+  const attempts = message.attempts + 1;
+  const exhausted = attempts >= MAX_ATTEMPTS;
+  const errorText = err instanceof Error ? err.message : String(err);
+
+  await prisma.message.update({
+    where: { id: message.id },
+    data: {
+      status: exhausted ? "FAILED" : "QUEUED",
+      attempts,
+      error: errorText,
+      sendAfter: exhausted ? message.sendAfter : new Date(Date.now() + backoffMs(attempts)),
+    },
+  });
+
+  if (exhausted) return "FAILED";
+  throw err;
+}
+
+/**
+ * Sends one row, or returns "SKIPPED" without throwing if another sender
+ * already claimed it (belt-and-braces against sendOne and sweep racing on
+ * the same row) or if it's suppressed/outside the WhatsApp session window.
+ * On a genuine send failure that hasn't exhausted retries, this throws —
+ * sendOne's caller sees the failure immediately (see file header), and the
+ * row is left QUEUED with a backed-off sendAfter for the next sweep to
+ * retry.
+ */
+async function sendMessage(message: Message): Promise<"SENT" | "FAILED" | "SKIPPED"> {
+  const claimed = await prisma.message.updateMany({
+    where: { id: message.id, status: "QUEUED" },
+    data: { status: "SENDING" },
+  });
+  if (claimed.count === 0) return "SKIPPED";
+
+  if (message.channel === "EMAIL") {
+    const skipReason = await suppressionReason(message.to, message.category);
+    if (skipReason) {
+      await prisma.message.update({ where: { id: message.id }, data: { status: "SKIPPED", skippedReason: skipReason } });
+      return "SKIPPED";
+    }
+
+    try {
+      const { providerId } = await deliverEmail(message);
+      await prisma.message.update({
+        where: { id: message.id },
+        data: { status: "SENT", providerId, sentAt: new Date(), attempts: { increment: 1 } },
+      });
+      return "SENT";
+    } catch (err) {
+      return recordFailure(message, err);
+    }
+  }
+
+  // channel === "WHATSAPP"
+  if (!isWhatsappMessagingEnabled()) {
+    await prisma.message.update({
+      where: { id: message.id },
+      data: { status: "SKIPPED", skippedReason: "WhatsApp messaging is disabled (WHATSAPP_MESSAGING_ENABLED)." },
+    });
+    return "SKIPPED";
+  }
+
+  const to = message.to[0];
+  const skipReason = to ? await whatsappSuppressionReason(to) : "No recipient phone number.";
+  if (skipReason) {
+    await prisma.message.update({ where: { id: message.id }, data: { status: "SKIPPED", skippedReason: skipReason } });
+    return "SKIPPED";
+  }
+
+  try {
+    const result = await deliverWhatsapp(message);
+    if (result === "SKIPPED") {
+      await prisma.message.update({
+        where: { id: message.id },
+        data: { status: "SKIPPED", skippedReason: "Outside the 24h session window — needs an approved WhatsApp template (none approved yet)." },
+      });
+      return "SKIPPED";
+    }
+    await prisma.message.update({
+      where: { id: message.id },
+      data: { status: "SENT", providerId: result.providerId, sentAt: new Date(), attempts: { increment: 1 } },
+    });
+    return "SENT";
+  } catch (err) {
+    return recordFailure(message, err);
+  }
+}
+
+export async function sendOne(messageId: string): Promise<void> {
+  const message = await prisma.message.findUnique({ where: { id: messageId } });
+  if (!message || message.status !== "QUEUED") return;
+  await sendMessage(message);
+}
+
+export async function sweep(limit = 50): Promise<{ sent: number; failed: number; skipped: number }> {
+  const due = await prisma.message.findMany({
+    where: { status: "QUEUED", sendAfter: { lte: new Date() } },
+    orderBy: { sendAfter: "asc" },
+    take: limit,
+  });
+
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const message of due) {
+    try {
+      const result = await sendMessage(message);
+      if (result === "SENT") sent++;
+      else if (result === "SKIPPED") skipped++;
+      else failed++;
+    } catch {
+      // sendMessage throws on a non-final failure so sendOne's synchronous
+      // caller sees it — sweep already recorded the retry/backoff before
+      // throwing, so here it's just a failed-this-round count.
+      failed++;
+    }
+  }
+
+  return { sent, failed, skipped };
+}

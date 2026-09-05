@@ -1,5 +1,7 @@
-import { Resend } from "resend";
 import { getBaseUrl } from "@/lib/base-url";
+import { enqueueEmail } from "@/lib/messaging/outbox";
+import { sendOne } from "@/lib/messaging/dispatcher";
+import type { MessageCategory } from "@/generated/prisma/enums";
 // SMS notifications are disabled for now — MSG91 is wired up for phone-
 // verification OTPs only (lib/phone-verification.ts), since sending
 // anything else requires a separately DLT-registered template per message
@@ -7,15 +9,6 @@ import { getBaseUrl } from "@/lib/base-url";
 // out, not deleted, so re-enabling a given notification once its template is
 // approved is a one-line uncomment. Re-import when the first one comes back:
 // import { sendSms } from "@/lib/sms";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Falls back to Resend's shared sandbox sender, which only delivers to the
-// account owner's own verified address (SUPPORT_EMAIL) — set RESEND_FROM_EMAIL
-// to a verified-domain address once a sending domain is verified in Resend,
-// to unlock real delivery. RESEND_FROM_EMAIL is just a bare address (no
-// display name), so always wrap it with the Wisesoc name here.
-const FROM = `Wisesoc <${process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"}>`;
 
 function escapeHtml(value: string): string {
   return value
@@ -45,6 +38,14 @@ interface EmailContent {
   secondaryLinks?: EmailLink[];
   // Small print at the very bottom (expiry notes, etc).
   footer?: string;
+  // Outbox metadata (Requirements/messaging-and-engagement-spec.md, Phase
+  // 0) — a stable identifier per notification type, matching the message
+  // catalog in the spec doc, so every email is logged individually and
+  // (Phase 1+) becomes the same key its WhatsApp template equivalent uses.
+  templateKey: string;
+  // TRANSACTIONAL (default) and REMINDER are always sent; MARKETING is the
+  // only category ContactPreference.emailMarketingOptOutAt can suppress.
+  category?: MessageCategory;
 }
 
 /**
@@ -123,23 +124,25 @@ function renderEmailText(content: EmailContent): string {
 }
 
 /**
- * The Resend SDK does NOT throw on API-level failures (invalid/unverified
- * sending domain, bad recipient, etc.) — it resolves with { data, error }.
- * Routing every send through here makes that failure loud instead of silent,
- * and centralizes the html+text templating so every notify* function below
- * just supplies content, not markup.
+ * Enqueues the email as a Message row (lib/messaging/outbox.ts) and sends
+ * it immediately (lib/messaging/dispatcher.ts's sendOne) — logged either
+ * way, but the caller still gets the same synchronous throw-on-failure
+ * behavior this function always had, since every existing call site (e.g.
+ * lib/invite.ts's createInvite/resendInvite) awaits it inside a try/catch
+ * to surface a failure to the user right away. sendOne itself decides
+ * whether a given failure is worth an automatic background retry — see its
+ * doc comment — that part is new, but transparent to callers here.
  */
 async function sendEmail(content: EmailContent) {
-  const { error } = await resend.emails.send({
-    from: FROM,
+  const id = await enqueueEmail({
+    templateKey: content.templateKey,
+    category: content.category,
     to: content.to,
     subject: content.subject,
-    text: renderEmailText(content),
     html: renderEmailHtml(content),
+    text: renderEmailText(content),
   });
-  if (error) {
-    throw new Error(`Resend send failed (to: ${content.to}, subject: "${content.subject}"): ${error.message}`);
-  }
+  if (id) await sendOne(id);
 }
 
 // Shared notification service (unified-platform-architecture.md Section 6,
@@ -164,6 +167,7 @@ export async function notifyNewRegistration(params: {
   if (!supportEmail) return;
 
   await sendEmail({
+    templateKey: "internal.new_registration",
     to: supportEmail,
     subject: `New ${params.type} registration: ${params.name}`,
     heading: `New ${params.type} registration`,
@@ -192,6 +196,7 @@ export async function notifyVendorSuggested(params: {
   registerUrl: string;
 }) {
   await sendEmail({
+    templateKey: "vendor.suggested",
     to: params.vendorEmail,
     subject: `${params.suggestedByName} suggested you register on Wisesoc`,
     heading: `You've been suggested as a vendor`,
@@ -231,6 +236,7 @@ export async function sendInvite(params: {
     : [`Hi,`, `You've been invited to join Wisesoc as ${params.role}${forWhat}.`];
 
   await sendEmail({
+    templateKey: "invite.role_activation",
     to: params.email,
     subject: params.registrationPitch
       ? `You're invited to set up ${params.registrationPitch.societyName} on Wisesoc`
@@ -246,6 +252,7 @@ export async function sendInvite(params: {
 // Same Resend sandbox caveat as sendInvite/notifyRejection.
 export async function sendPasswordReset(params: { email: string; url: string }) {
   await sendEmail({
+    templateKey: "auth.password_reset",
     to: params.email,
     subject: "Reset your Wisesoc password",
     heading: "Reset your password",
@@ -267,6 +274,7 @@ export async function notifyApprovalRequested(params: {
   await Promise.all(
     params.recipients.map((to) =>
       sendEmail({
+        templateKey: "society.approval_requested",
         to,
         subject: `Approval needed: ${params.societyName}`,
         heading: "Approval needed",
@@ -289,6 +297,7 @@ export async function notifyFinalized(params: {
   await Promise.all(
     params.recipients.map((to) =>
       sendEmail({
+        templateKey: "society.finalized",
         to,
         subject: `Quotation finalized: ${params.societyName}`,
         heading: "Quotation finalized",
@@ -308,6 +317,7 @@ export async function notifyReturnedToManager(params: {
   reviewUrl: string;
 }) {
   await sendEmail({
+    templateKey: "society.returned_to_manager",
     to: params.managerEmail,
     subject: `Requirement sent back to you: ${params.societyName}`,
     heading: "Requirement sent back to you",
@@ -329,6 +339,7 @@ export async function notifyBidOutcome(params: {
     : `Your quote for "${params.requirementName}" was not selected this time. Check My Quotes / History on Wisesoc for details.`;
 
   await sendEmail({
+    templateKey: "vendor.bid_outcome",
     to: params.vendorEmail,
     subject: params.won ? "You were selected on Wisesoc" : "Quote outcome on Wisesoc",
     heading: params.won ? "You were selected!" : "Quote outcome",
@@ -349,6 +360,7 @@ export async function notifyThresholdChangeProposed(params: {
   await Promise.all(
     params.recipients.map((to) =>
       sendEmail({
+        templateKey: "society.threshold_change_proposed",
         to,
         subject: `Threshold change proposed: ${params.societyName}`,
         heading: "Threshold change proposed",
@@ -370,6 +382,7 @@ export async function notifyThresholdChangeDecided(params: {
   deciderName: string;
 }) {
   await sendEmail({
+    templateKey: "society.threshold_change_decided",
     to: params.proposerEmail,
     subject: `Threshold change ${params.approved ? "approved" : "rejected"}: ${params.societyName}`,
     heading: `Threshold change ${params.approved ? "approved" : "rejected"}`,
@@ -393,6 +406,7 @@ export async function notifyMemberRemovalProposed(params: {
   await Promise.all(
     params.recipients.map((to) =>
       sendEmail({
+        templateKey: "society.member_removal_proposed",
         to,
         subject: `Member removal proposed: ${params.societyName}`,
         heading: "Member removal proposed",
@@ -413,6 +427,7 @@ export async function notifyMemberRemovalDecided(params: {
   deciderName: string;
 }) {
   await sendEmail({
+    templateKey: "society.member_removal_decided",
     to: params.proposerEmail,
     subject: `Member removal ${params.approved ? "approved" : "rejected"}: ${params.societyName}`,
     heading: `Member removal ${params.approved ? "approved" : "rejected"}`,
@@ -429,6 +444,7 @@ export async function notifyMemberRemovalDecided(params: {
 // they just lose access to this specific society.
 export async function notifyMemberRemoved(params: { email: string; societyName: string }) {
   await sendEmail({
+    templateKey: "society.member_removed",
     to: params.email,
     subject: `Removed from ${params.societyName} on Wisesoc`,
     heading: "You've been removed",
@@ -449,6 +465,7 @@ export async function notifyAddedToExistingAccount(params: {
 }) {
   const forWhat = params.entityName ? ` for ${params.entityName}` : "";
   await sendEmail({
+    templateKey: "invite.added_to_existing_account",
     to: params.email,
     subject: `You've been added to Wisesoc as ${params.role}`,
     heading: "You've been added to Wisesoc",
@@ -470,6 +487,7 @@ export async function notifyRejection(params: {
   const reason = params.reason || "No reason provided.";
 
   await sendEmail({
+    templateKey: "registration.rejected",
     to: params.contactEmail,
     subject: `Your ${params.type} registration on Wisesoc`,
     heading: "Registration not approved",
@@ -494,6 +512,7 @@ export async function notifyRegistrationSubmitted(params: {
   const body = `Your ${params.type} registration for "${params.name}" on Wisesoc has been submitted and is pending verification. We'll notify you once it's reviewed.`;
 
   await sendEmail({
+    templateKey: "registration.submitted",
     to: params.contactEmail,
     subject: `Your ${params.type} registration was submitted`,
     heading: "Registration submitted",
@@ -517,6 +536,7 @@ export async function notifyApproval(params: {
   dashboardUrl?: string;
 }) {
   await sendEmail({
+    templateKey: "registration.approved",
     to: params.contactEmail,
     subject: `Your ${params.type} registration was approved`,
     heading: "Registration approved",
@@ -539,6 +559,7 @@ export async function notifySocietyRegistrationApprovedToRegistrant(params: {
   inviteeEmail: string;
 }) {
   await sendEmail({
+    templateKey: "registration.society_approved_to_registrant",
     to: params.registrantEmail,
     subject: `${params.societyName} was approved on Wisesoc`,
     heading: "Your registration was approved",
@@ -561,6 +582,7 @@ export async function notifyRequirementMatched(params: {
   reviewUrl: string;
 }) {
   await sendEmail({
+    templateKey: "vendor.requirement_matched",
     to: params.vendorEmail,
     subject: `New requirement matched: ${params.categoryName}`,
     heading: "New requirement matched",
@@ -584,6 +606,7 @@ export async function notifyVendorMatchedRequirements(params: {
   const count = params.requirements.length;
 
   await sendEmail({
+    templateKey: "vendor.requirements_matched_batch",
     to: params.vendorEmail,
     subject: `You've been matched with ${count} new requirement${count === 1 ? "" : "s"}`,
     heading: "New requirements matched",
@@ -608,6 +631,7 @@ export async function notifyCategoryRequestDecided(params: {
     : `Your requested category "${params.categoryName}" was not approved.`;
 
   await sendEmail({
+    templateKey: "vendor.category_request_decided",
     to: params.vendorEmail,
     subject: `Category request ${params.approved ? "approved" : "rejected"}: ${params.categoryName}`,
     heading: `Category request ${params.approved ? "approved" : "rejected"}`,
@@ -629,6 +653,8 @@ export async function notifyDeadlineApproaching(params: {
   await Promise.all(
     params.managerEmails.map((to) =>
       sendEmail({
+        templateKey: "society.deadline_approaching",
+        category: "REMINDER",
         to,
         subject: `Quote deadline approaching: ${params.societyName}`,
         heading: "Quote deadline approaching",
@@ -650,6 +676,8 @@ export async function notifyBidsReadyForReview(params: {
   await Promise.all(
     params.managerEmails.map((to) =>
       sendEmail({
+        templateKey: "society.quotes_ready",
+        category: "REMINDER",
         to,
         subject: `Quotes ready for review: ${params.societyName}`,
         heading: "Quotes ready for review",
@@ -670,6 +698,7 @@ export async function notifyVendorStatusChanged(params: {
   suspended: boolean;
 }) {
   await sendEmail({
+    templateKey: "vendor.status_changed",
     to: params.contactEmail,
     subject: params.suspended ? "Your Wisesoc vendor account has been suspended" : "Your Wisesoc vendor account has been reactivated",
     heading: params.suspended ? "Account suspended" : "Account reactivated",
@@ -696,6 +725,7 @@ export async function notifyContactMessage(params: {
   if (!supportEmail) return;
 
   await sendEmail({
+    templateKey: "internal.contact_message",
     to: supportEmail,
     subject: `New Contact Us message from ${params.name}`,
     heading: "New Contact Us message",
@@ -713,6 +743,8 @@ export async function notifyBidDeadlineReminder(params: {
   reviewUrl: string;
 }) {
   await sendEmail({
+    templateKey: "vendor.bid_deadline_reminder",
+    category: "REMINDER",
     to: params.vendorEmail,
     subject: "Quote deadline closing soon",
     heading: "Quote deadline closing soon",

@@ -80,17 +80,17 @@ model PasswordResetToken {
 // still live?) and the audit trail (who impersonated whom, when, and why) —
 // ending impersonation is just stamping endedAt, no cookie/token juggling.
 model ImpersonationEvent {
-  id            String    @id @default(cuid())
-  token         String    @unique
-  adminUserId   String
-  adminUser     User      @relation("ImpersonationsStarted", fields: [adminUserId], references: [id], onDelete: Cascade)
-  targetUserId  String
-  targetUser    User      @relation("ImpersonationsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
-  reason        String
-  startedAt     DateTime  @default(now())
+  id           String    @id @default(cuid())
+  token        String    @unique
+  adminUserId  String
+  adminUser    User      @relation("ImpersonationsStarted", fields: [adminUserId], references: [id], onDelete: Cascade)
+  targetUserId String
+  targetUser   User      @relation("ImpersonationsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+  reason       String
+  startedAt    DateTime  @default(now())
   // Hard cap independent of an explicit "End" click — see startImpersonation.
-  expiresAt     DateTime
-  endedAt       DateTime?
+  expiresAt    DateTime
+  endedAt      DateTime?
 
   @@index([token])
   @@index([adminUserId])
@@ -510,12 +510,12 @@ model WorkOrder {
 // vendors can see or bid on a Requirement — this is what "blind, matched
 // invite" means at the data layer.
 model RequirementInvite {
-  id              String        @id @default(cuid())
-  requirementId   String
-  requirement     Requirement   @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  vendorCompanyId String
-  vendorCompany   VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
-  createdAt       DateTime      @default(now())
+  id                String        @id @default(cuid())
+  requirementId     String
+  requirement       Requirement   @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  vendorCompanyId   String
+  vendorCompany     VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
   // Set when the vendor clicks "Show Contact Details" on this requirement —
   // scoped per invite (i.e. per requirement), not per society, so being
   // matched again on a future requirement from the same society starts
@@ -582,16 +582,16 @@ model Bid {
 }
 
 model BidLineItem {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   bidId       String
-  bid         Bid     @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  bid         Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
   description String
-  quantity    Decimal @db.Decimal(10, 2)
+  quantity    Decimal  @db.Decimal(10, 2)
   // Free text (sqft, nos, lump sum, etc.) — spec calls for a dropdown of
   // common units, not a fixed taxonomy, so this stays a string.
   unit        String
-  unitRate    Decimal @db.Decimal(12, 2)
-  amount      Decimal @db.Decimal(12, 2)
+  unitRate    Decimal  @db.Decimal(12, 2)
+  amount      Decimal  @db.Decimal(12, 2)
   // Null unless the parent Bid is gstCompliant — a per-line-item rate (e.g.
   // materials vs. labour can legitimately sit at different GST slabs), not
   // one flat rate for the whole quote. gstAmount is precomputed at submit
@@ -644,5 +644,227 @@ model BidDraftLineItem {
   quantity    String
   unit        String
   unitRate    String
-  gstRate     String @default("")
+  gstRate     String   @default("")
+}
+
+// ── Messaging & engagement platform (Requirements/messaging-and-engagement-
+// spec.md) — Phase 0: an outbox table every outbound email is logged to,
+// replacing the previous fire-and-forget direct-to-Resend calls. WhatsApp is
+// modeled here (channel/category) so Phase 1 can turn it on without another
+// migration, but nothing sends over it yet — see Message.channel below.
+
+enum MessageChannel {
+  EMAIL
+  WHATSAPP
+}
+
+// TRANSACTIONAL/REMINDER are both "the user is owed this because of
+// something they or their counterparty did" — always sent regardless of
+// marketing preference. MARKETING is the only category gated by
+// ContactPreference.emailMarketingOptOutAt (see lib/messaging/dispatcher.ts).
+// No marketing sends exist yet in Phase 0 — this exists so Phase 2/3
+// campaigns and sequences don't need a schema change to respect opt-outs.
+enum MessageCategory {
+  TRANSACTIONAL
+  REMINDER
+  MARKETING
+}
+
+enum MessageStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+}
+
+// The outbox. Every notify* function in lib/notifications.ts creates one of
+// these (via lib/messaging/outbox.ts's enqueueEmail) instead of calling
+// Resend directly — see lib/messaging/dispatcher.ts for how rows here get
+// sent, retried, and (once RESEND_WEBHOOK_SECRET is set) updated to
+// DELIVERED/READ/FAILED from Resend's webhook.
+model Message {
+  id          String          @id @default(cuid())
+  channel     MessageChannel
+  category    MessageCategory @default(TRANSACTIONAL)
+  // Stable identifier per notification type (e.g. "vendor.bid_outcome"),
+  // matching the message catalog in the spec doc — not a foreign key to
+  // anything yet, just a tag for logs/analytics until Phase 1's typed
+  // per-language WhatsApp template registry is built on top of it.
+  templateKey String
+
+  to      String[]
+  subject String?
+  html    String?
+  text    String?
+
+  status        MessageStatus @default(QUEUED)
+  skippedReason String?
+  error         String?
+  attempts      Int           @default(0)
+  // Resend's email id (data.id from resend.emails.send) — how the webhook
+  // matches an incoming delivery event back to this row.
+  providerId    String?
+  // Optional caller-supplied idempotency key — a second enqueue with the
+  // same key is a silent no-op (see enqueueEmail), for reminder-style sends
+  // that must fire at most once per (recipient, event).
+  dedupeKey     String?       @unique
+
+  sendAfter   DateTime  @default(now())
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, sendAfter])
+  @@index([templateKey])
+  @@index([providerId])
+}
+
+// One row per email address (phone joins once WhatsApp lands in Phase 1).
+// Created lazily — on first unsubscribe-link visit, or (future) at
+// registration — not for every contact up front.
+model ContactPreference {
+  id    String  @id @default(cuid())
+  // Nullable — a WhatsApp-first contact (a vendor who only ever texts in)
+  // may have no known email. getOrCreatePreference (email flow) and
+  // getOrCreatePreferenceForPhone (WhatsApp flow, lib/messaging/
+  // preferences.ts) are the two independent lookup paths into this table;
+  // the latter tries to resolve a known email first (via User.phone /
+  // VendorCompany.ownerPhone) so the two don't fork into duplicate rows for
+  // someone we can actually identify.
+  email String? @unique
+  phone String? @unique
+
+  // "EN" | "HI" | "MR" — which language template/copy to send this contact.
+  // Plain string rather than an enum since Phase 0 has no sender that reads
+  // it yet; becomes load-bearing once WhatsApp templates are per-language.
+  messageLanguage String @default("EN")
+
+  // Marketing is opt-out (defaults subscribed); the flag alongside the
+  // timestamp is redundant on purpose — cheap to query on its own once
+  // campaigns exist, without every read having to reason about "timestamp
+  // set means opted out".
+  subscribedMarketing    Boolean   @default(true)
+  emailMarketingOptOutAt DateTime?
+  // Set by the Resend webhook on a hard bounce/complaint — blocks ALL
+  // categories, not just marketing, since re-sending to a bounced address is
+  // pointless regardless of why the email was sent.
+  emailSuppressedAt      DateTime?
+  suppressionReason      String?
+
+  whatsappOptInAt  DateTime?
+  whatsappOptOutAt DateTime?
+
+  unsubscribeToken String @unique @default(cuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum WebhookProvider {
+  RESEND
+  WHATSAPP
+}
+
+// Raw inbound webhook events, stored before processing so a re-delivered
+// event (both Resend and Meta retry on a non-2xx response) is a no-op
+// instead of double-processing — see @@unique below.
+model WebhookEvent {
+  id          String          @id @default(cuid())
+  provider    WebhookProvider
+  // The provider's own event id (Resend's `data.id`/svix message id; Meta
+  // doesn't provide one for status callbacks, so the whatsapp adapter will
+  // derive a stable one from the payload when Phase 1 wires it up).
+  eventId     String
+  eventType   String
+  payload     String
+  receivedAt  DateTime        @default(now())
+  processedAt DateTime?
+  error       String?
+
+  @@unique([provider, eventId])
+}
+
+// ── WhatsApp inbound (Phase 1) — Requirements/messaging-and-engagement-
+// spec.md, "Conversations + Inbox". One Conversation per phone number;
+// InboundMessage rows are every reply. userId/vendorCompanyId/
+// assignedToUserId are loose references (no FK), same pattern as
+// RoleAssignment.entityId elsewhere in this schema — deliberately not
+// wired to User/VendorCompany relations to avoid this table forcing schema
+// changes onto those models for what's currently a best-effort resolution.
+
+enum ConversationStatus {
+  OPEN
+  NEEDS_HUMAN
+  CLOSED
+}
+
+model Conversation {
+  id        String @id @default(cuid())
+  // Digits-only, country code + number, no "+" — see lib/whatsapp.ts's
+  // toE164India, the single place this value is produced.
+  phoneE164 String @unique
+
+  userId          String?
+  vendorCompanyId String?
+
+  status           ConversationStatus @default(OPEN)
+  assignedToUserId String?
+
+  // Drives the 24h free-form-reply window (Meta's rule, not ours) — see
+  // lib/messaging/dispatcher.ts's WhatsApp branch.
+  lastInboundAt  DateTime?
+  lastOutboundAt DateTime?
+
+  inboundMessages InboundMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+enum InboundMessageType {
+  TEXT
+  BUTTON
+  INTERACTIVE
+  MEDIA
+  OTHER
+}
+
+enum InboundHandledBy {
+  // A structured button/list reply matched a fixed enum and was acted on
+  // automatically — see lib/messaging/inbound-triage.ts. Never applies to
+  // free text; see that file's doc comment for why.
+  AUTO_RULE
+  HUMAN
+  UNHANDLED
+}
+
+model InboundMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  // Meta's own message id — retried webhook deliveries of the same message
+  // are a no-op via this, same idempotency shape as WebhookEvent above.
+  providerMessageId String             @unique
+  type              InboundMessageType
+  text              String?
+  // The button/list payload id, when type is BUTTON/INTERACTIVE — matched
+  // against inbound-triage.ts's fixed constants (e.g. the opt-out button).
+  buttonPayload     String?
+
+  intent        String?
+  handledBy     InboundHandledBy @default(UNHANDLED)
+  autoReplyText String?
+
+  receivedAt DateTime @default(now())
+
+  @@index([conversationId])
 }
