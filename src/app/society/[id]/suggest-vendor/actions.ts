@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { notifyVendorSuggested } from "@/lib/notifications";
+import { resendVendorSuggestionMessage } from "@/lib/vendor-suggestion";
 import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
 
@@ -75,6 +76,29 @@ export async function suggestVendor(
     revalidatePath(`/society/${societyId}/suggest-vendor`);
     return { error: "Vendor suggestion saved, but the invite email failed to send. Please contact support." };
   }
+
+  revalidatePath(`/society/${societyId}/suggest-vendor`);
+}
+
+// "Resend Invite" on the Asked so far table — re-sends the same email +
+// WhatsApp message (lib/vendor-suggestion.ts) suggestVendor above sent
+// originally. Checked against societyId (not just permission) so a Manager
+// at one society can't resend another society's suggestion by guessing its
+// id.
+export async function resendVendorSuggestion(
+  societyId: string,
+  vendorSuggestionId: string,
+): Promise<{ error: string } | undefined> {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.CREATE_REQUIREMENT);
+
+  const suggestion = await prisma.vendorSuggestion.findUnique({
+    where: { id: vendorSuggestionId },
+    select: { societyId: true },
+  });
+  if (!suggestion || suggestion.societyId !== societyId) return { error: "Invitation not found." };
+
+  const result = await resendVendorSuggestionMessage(vendorSuggestionId);
+  if (result?.error) return result;
 
   revalidatePath(`/society/${societyId}/suggest-vendor`);
 }

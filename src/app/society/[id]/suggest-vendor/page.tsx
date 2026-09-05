@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { formatDate } from "@/lib/date";
 import { SuggestVendorForm } from "./form";
+import { ResendInviteButton } from "./resend-invite-button";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,8 @@ export default async function SuggestVendorPage({
                   <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Phone</th>
                   <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Suggested by</th>
                   <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Date</th>
-                  <th className="pb-2 text-[11px] font-semibold uppercase tracking-wide">Status</th>
+                  <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Status</th>
+                  <th className="pb-2 text-[11px] font-semibold uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -96,10 +98,13 @@ export default async function SuggestVendorPage({
                         {s.suggestedByUser.name ?? s.suggestedByUser.email}
                       </td>
                       <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{formatDate(s.createdAt)}</td>
-                      <td className="py-2 whitespace-nowrap">
+                      <td className="py-2 pr-2 whitespace-nowrap">
                         <Badge tone={REGISTRATION_STATUS_TONE[status]}>
                           {REGISTRATION_STATUS_LABEL[status]}
                         </Badge>
+                      </td>
+                      <td className="py-2 whitespace-nowrap">
+                        <ResendInviteButton societyId={id} vendorSuggestionId={s.id} />
                       </td>
                     </tr>
                   );
