@@ -1,7 +1,8 @@
 import { Resend } from "resend";
 import type { Message } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isWhatsappMessagingEnabled, sendWhatsappText } from "@/lib/whatsapp";
+import { isWhatsappMessagingEnabled, sendWhatsappTemplate, sendWhatsappText } from "@/lib/whatsapp";
+import { WHATSAPP_TEMPLATES } from "@/lib/messaging/whatsapp-templates";
 
 const WHATSAPP_SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -86,17 +87,34 @@ async function whatsappSuppressionReason(to: string): Promise<string | null> {
  * engagement-spec.md Section 3.1 — templates are a separate Meta approval
  * per wording, not something this dispatcher can improvise around).
  */
-async function deliverWhatsapp(message: Message): Promise<{ providerId?: string } | "SKIPPED"> {
+async function deliverWhatsapp(message: Message): Promise<{ providerId?: string } | { skipped: string }> {
   const to = message.to[0];
-  if (!to) return "SKIPPED";
+  if (!to) return { skipped: "No recipient phone number." };
 
   const conversation = await prisma.conversation.findUnique({ where: { phoneE164: to } });
   const withinWindow = conversation?.lastInboundAt && Date.now() - conversation.lastInboundAt.getTime() < WHATSAPP_SESSION_WINDOW_MS;
-  if (!withinWindow) return "SKIPPED";
 
-  const result = await sendWhatsappText({ to, body: message.text ?? "" });
-  await prisma.conversation.update({ where: { id: conversation.id }, data: { lastOutboundAt: new Date() } });
-  return result;
+  if (withinWindow) {
+    const result = await sendWhatsappText({ to, body: message.text ?? "" });
+    await prisma.conversation.update({ where: { id: conversation.id }, data: { lastOutboundAt: new Date() } });
+    return result;
+  }
+
+  // Outside the window — most sends are (a first contact has never
+  // messaged us) — so free text is off the table; only an approved
+  // template mapped to this templateKey can reach them. See
+  // whatsapp-templates.ts.
+  const template = WHATSAPP_TEMPLATES[message.templateKey];
+  if (!template) {
+    return { skipped: "Outside the 24h session window — no approved WhatsApp template mapped for this templateKey yet." };
+  }
+
+  return sendWhatsappTemplate({
+    to,
+    templateName: template.name,
+    languageCode: template.language,
+    bodyParams: message.whatsappTemplateParams,
+  });
 }
 
 async function recordFailure(message: Message, err: unknown): Promise<"FAILED"> {
@@ -171,11 +189,8 @@ async function sendMessage(message: Message): Promise<"SENT" | "FAILED" | "SKIPP
 
   try {
     const result = await deliverWhatsapp(message);
-    if (result === "SKIPPED") {
-      await prisma.message.update({
-        where: { id: message.id },
-        data: { status: "SKIPPED", skippedReason: "Outside the 24h session window — needs an approved WhatsApp template (none approved yet)." },
-      });
+    if ("skipped" in result) {
+      await prisma.message.update({ where: { id: message.id }, data: { status: "SKIPPED", skippedReason: result.skipped } });
       return "SKIPPED";
     }
     await prisma.message.update({

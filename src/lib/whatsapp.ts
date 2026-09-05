@@ -96,13 +96,27 @@ export async function sendWhatsappOtp(params: { to: string; code: string }): Pro
     return;
   }
 
+  // OTP/verification-code content must use Meta's AUTHENTICATION template
+  // category — a UTILITY submission gets auto-rejected with
+  // INCORRECT_CATEGORY regardless of wording (confirmed 2026-09-05).
+  // Authentication templates have Meta-fixed body wording (only
+  // add_security_recommendation/code_expiration_minutes are configurable at
+  // creation) plus a "Copy Code" button. Despite the button being created
+  // as otp_type COPY_CODE, Meta stores/sends it as a URL-type button whose
+  // url has an "otp{{1}}" placeholder (confirmed by inspecting the created
+  // template's components) — so the send-time button component needs
+  // sub_type "url" with a plain text parameter, NOT sub_type "copy_code"/
+  // coupon_code as Meta's older docs describe for this otp_type.
   await postToGraph(credentials, {
     to,
     type: "template",
     template: {
       name: templateName,
       language: { code: process.env.WHATSAPP_OTP_TEMPLATE_LANG || "en" },
-      components: [{ type: "body", parameters: [{ type: "text", text: params.code }] }],
+      components: [
+        { type: "body", parameters: [{ type: "text", text: params.code }] },
+        { type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: params.code }] },
+      ],
     },
   });
 }

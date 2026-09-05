@@ -1,6 +1,7 @@
 import { getBaseUrl } from "@/lib/base-url";
-import { enqueueEmail } from "@/lib/messaging/outbox";
+import { enqueueEmail, enqueueWhatsapp } from "@/lib/messaging/outbox";
 import { sendOne } from "@/lib/messaging/dispatcher";
+import { toE164India } from "@/lib/whatsapp";
 import type { MessageCategory } from "@/generated/prisma/enums";
 // SMS notifications are disabled for now — MSG91 is wired up for phone-
 // verification OTPs only (lib/phone-verification.ts), since sending
@@ -145,6 +146,40 @@ async function sendEmail(content: EmailContent) {
   if (id) await sendOne(id);
 }
 
+interface WhatsappContent {
+  templateKey: string;
+  category?: MessageCategory;
+  to: string;
+  // Free-text fallback, used only on the rare chance the recipient's 24h
+  // session window happens to already be open. Most calls here are a first
+  // contact, so templateParams (below) is what actually reaches them.
+  text: string;
+  templateParams?: string[];
+}
+
+/**
+ * WhatsApp counterpart to sendEmail — same enqueue-then-send-immediately
+ * shape, but errors are swallowed (logged, not thrown): every call site
+ * below fires this *alongside* an email that's expected to succeed on its
+ * own, so a WhatsApp hiccup (template still pending approval, kill switch
+ * off, recipient opted out) shouldn't make the whole notification look
+ * like it failed when the email side is fine.
+ */
+async function sendWhatsapp(content: WhatsappContent) {
+  try {
+    const id = await enqueueWhatsapp({
+      templateKey: content.templateKey,
+      category: content.category,
+      to: toE164India(content.to),
+      text: content.text,
+      templateParams: content.templateParams,
+    });
+    if (id) await sendOne(id);
+  } catch (err) {
+    console.error(`sendWhatsapp: failed for templateKey "${content.templateKey}"`, err);
+  }
+}
+
 // Shared notification service (unified-platform-architecture.md Section 6,
 // M7) — one function per trigger event, each firing email + (where a phone
 // number is on record) SMS. Individual users (Managers/Office
@@ -206,10 +241,19 @@ export async function notifyVendorSuggested(params: {
     ],
     cta: { label: "Register on Wisesoc", url: params.registerUrl },
   });
-  // SMS intentionally not sent — MSG91 is OTP-only for now, no DLT template
-  // registered for this message yet (product decision, 2026-07-19). Once a
-  // template's approved, re-add:
-  // await sendSms({ to: params.vendorPhone, body: `Wisesoc: ${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on Wisesoc. Register: ${params.registerUrl}` });
+
+  if (params.vendorPhone) {
+    // First contact — this always goes out via the approved
+    // wisesoc_vendor_suggested template (whatsapp-templates.ts), not free
+    // text, since there's no open session window with someone who's never
+    // messaged us. Param order must match the template body's {{1}}..{{4}}.
+    await sendWhatsapp({
+      templateKey: "vendor.suggested",
+      to: params.vendorPhone,
+      text: `Wisesoc: ${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on Wisesoc. Register: ${params.registerUrl}`,
+      templateParams: [params.vendorName, params.suggestedByName, params.societyName, params.registerUrl],
+    });
+  }
 }
 
 // Note: while RESEND_API_KEY is sandboxed, this — like notifyRejection —

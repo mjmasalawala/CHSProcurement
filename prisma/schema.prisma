@@ -695,10 +695,16 @@ model Message {
   // per-language WhatsApp template registry is built on top of it.
   templateKey String
 
-  to      String[]
-  subject String?
-  html    String?
-  text    String?
+  to                     String[]
+  subject                String?
+  html                   String?
+  text                   String?
+  // Positional {{1}}, {{2}}, ... body params for a WhatsApp template send —
+  // only used when channel is WHATSAPP and the recipient's 24h session
+  // window is closed, so reaching them needs an approved template rather
+  // than free text. See lib/messaging/whatsapp-templates.ts (the
+  // templateKey → Meta template name/language mapping) and dispatcher.ts.
+  whatsappTemplateParams String[] @default([])
 
   status        MessageStatus @default(QUEUED)
   skippedReason String?

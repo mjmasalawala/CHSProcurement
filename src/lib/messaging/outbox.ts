@@ -61,7 +61,15 @@ export interface EnqueueWhatsappParams {
   // A single E.164 phone number (lib/whatsapp.ts's toE164India) — unlike
   // email there's no batch-recipient case for a WhatsApp send.
   to: string;
+  // Used if the recipient's 24h session window happens to be open (rare for
+  // a first-contact message, but cheap to supply so it isn't wasted).
   text: string;
+  // Positional {{1}}, {{2}}, ... values for the approved WhatsApp template
+  // this templateKey maps to (lib/messaging/whatsapp-templates.ts) — used
+  // when the window is closed, which is the common case for a first
+  // contact. Omit if this templateKey has no template mapped yet; the
+  // dispatcher will just SKIP outside the window until one is added.
+  templateParams?: string[];
   dedupeKey?: string;
   sendAfter?: Date;
 }
@@ -69,8 +77,9 @@ export interface EnqueueWhatsappParams {
 /**
  * Same shape as enqueueEmail, for the WhatsApp channel. What the dispatcher
  * does with this row (lib/messaging/dispatcher.ts) depends on whether the
- * recipient's 24h session window is open — see that file — since no custom
- * WhatsApp template exists yet to reach them outside it.
+ * recipient's 24h session window is open, and whether templateKey has an
+ * approved WhatsApp template mapped to it — see that file and
+ * whatsapp-templates.ts.
  */
 export async function enqueueWhatsapp(params: EnqueueWhatsappParams): Promise<string | null> {
   try {
@@ -81,6 +90,7 @@ export async function enqueueWhatsapp(params: EnqueueWhatsappParams): Promise<st
         templateKey: params.templateKey,
         to: [params.to],
         text: params.text,
+        whatsappTemplateParams: params.templateParams ?? [],
         dedupeKey: params.dedupeKey,
         sendAfter: params.sendAfter ?? new Date(),
       },
