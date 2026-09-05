@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getBaseUrl } from "@/lib/base-url";
+import { isStagingEnvironment } from "@/lib/environment";
 
 // Explicitly allow AI crawlers/answer-engine bots (not just default-allow by
 // omission) so GEO — showing up in ChatGPT/Perplexity/Claude/Gemini answers
@@ -42,6 +43,16 @@ const AI_CRAWLER_USER_AGENTS = [
 
 export default function robots(): MetadataRoute.Robots {
   const base = getBaseUrl();
+
+  // Staging is already access-gated by Vercel Deployment Protection (no
+  // crawler — AI or otherwise — can get past its login wall to see any
+  // content), but that's a project setting that could get toggled off by
+  // accident; a blanket disallow here costs nothing and doesn't depend on
+  // it staying on. Production keeps the permissive, GEO-oriented rules
+  // below unchanged.
+  if (isStagingEnvironment()) {
+    return { rules: [{ userAgent: "*", disallow: "/" }] };
+  }
 
   return {
     rules: [
