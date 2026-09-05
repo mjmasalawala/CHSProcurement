@@ -30,12 +30,21 @@ async function markAccepted(inviteId: string, roleAssignmentId: string) {
 }
 
 // First login into a Society role lands on Members instead of the generic
-// /app router, with a nudge to invite the rest of the committee — most
-// pressing right after society registration, when only one person (often
-// not the Secretary) has an account so far.
-function postAcceptRedirectPath(roleAssignment: { entityType: string; entityId: string | null }): string {
+// /app router, with a nudge to invite the rest of the committee — but only
+// when this genuinely is the first active member (this invitee's own
+// RoleAssignment is already flipped ACTIVE by markAccepted before this
+// runs, so "only me" means the count is 1). Without this check, every
+// invite acceptance — even a Manager invited by an existing Secretary into
+// an already-set-up society — saw "Only you have access so far", which is
+// simply false (bug found + fixed 2026-09-05).
+async function postAcceptRedirectPath(roleAssignment: { entityType: string; entityId: string | null }): Promise<string> {
   if (roleAssignment.entityType === "SOCIETY" && roleAssignment.entityId) {
-    return `/society/${roleAssignment.entityId}/members?nudge=invite`;
+    const activeMemberCount = await prisma.roleAssignment.count({
+      where: { entityType: "SOCIETY", entityId: roleAssignment.entityId, status: "ACTIVE" },
+    });
+    if (activeMemberCount <= 1) {
+      return `/society/${roleAssignment.entityId}/members?nudge=invite`;
+    }
   }
   return "/app";
 }
@@ -122,7 +131,7 @@ export async function submitInviteProfile(
   });
 
   await markAccepted(invite.id, invite.roleAssignmentId);
-  await signInAndRedirect(invite.email, password, postAcceptRedirectPath(invite.roleAssignment));
+  await signInAndRedirect(invite.email, password, await postAcceptRedirectPath(invite.roleAssignment));
 }
 
 /** Existing account: verify their password, then re-establish a fresh session. */
@@ -139,7 +148,7 @@ export async function acceptInviteExistingUser(token: string, formData: FormData
   }
 
   await markAccepted(invite.id, invite.roleAssignmentId);
-  await signInAndRedirect(invite.email, password, postAcceptRedirectPath(invite.roleAssignment));
+  await signInAndRedirect(invite.email, password, await postAcceptRedirectPath(invite.roleAssignment));
 }
 
 /**
