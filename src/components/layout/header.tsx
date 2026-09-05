@@ -3,6 +3,14 @@ import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { endImpersonation } from "@/app/admin/support/actions";
 
+// Vercel sets VERCEL_GIT_COMMIT_REF automatically on every deploy, no
+// manual env var needed. "develop" is this project's staging branch (main
+// is production) — see the git remote's branch layout. If that mapping
+// ever changes (a dedicated "staging" branch, say), update this one check.
+function isStagingEnvironment(): boolean {
+  return process.env.VERCEL_GIT_COMMIT_REF === "develop";
+}
+
 /**
  * Global app chrome (root layout) — one header for every route, logged-in or
  * not, instead of each page building its own. Logged out: logo + Login.
@@ -10,13 +18,26 @@ import { endImpersonation } from "@/app/admin/support/actions";
  * session holds more than one Role Assignment, and Sign out. The Support
  * tool itself lives in the admin sidebar (/admin/support — see
  * src/app/admin/layout.tsx), not here. While impersonating, a persistent
- * banner replaces the identity block — see src/lib/impersonation.ts.
+ * banner replaces the identity block — see src/lib/impersonation.ts. A
+ * staging banner (2026-09-05) sits above everything else, on-brand-orange
+ * and unmissable, only rendered on the develop-branch deployment.
  */
 export async function Header() {
   const session = await auth();
 
   return (
     <>
+      {isStagingEnvironment() && (
+        // Deliberately not sticky (unlike the header below it) — it scrolls
+        // away with the page instead of fighting the header for the top-0
+        // sticky slot, which would need a hardcoded height offset to stack
+        // correctly. The header staying pinned on its own is enough; this
+        // only needs to be seen once per page load, not permanently docked.
+        <div className="bg-status-warning px-6 py-1.5 text-center text-[12px] font-semibold uppercase tracking-wide text-white">
+          Staging environment — not production
+        </div>
+      )}
+
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border-subtle bg-background-primary/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background-primary/80">
         <Link href={session ? "/app" : "/"} className="flex items-center">
           <img src="/logo-full.png" alt="Wisesoc" className="h-10 w-auto" />
