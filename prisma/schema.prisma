@@ -172,6 +172,13 @@ model Invite {
   email            String
   roleAssignmentId String         @unique
   roleAssignment   RoleAssignment @relation(fields: [roleAssignmentId], references: [id], onDelete: Cascade)
+  // Display name of whoever triggered this invite (a Manager naming a new
+  // Office Bearer, a Vendor Owner naming staff) — set once at creation and
+  // reused unchanged on resend, so "who invited you" stays accurate rather
+  // than re-deriving it from whoever happens to click Resend. Null for the
+  // registrationPitch invite path (society self-registration activation),
+  // which already carries its own proposer name separately.
+  invitedByName    String?
   expiresAt        DateTime
   acceptedAt       DateTime?
   createdAt        DateTime       @default(now())

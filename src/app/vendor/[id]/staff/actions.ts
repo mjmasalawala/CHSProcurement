@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorActionPermission } from "@/lib/vendor-auth";
@@ -11,6 +12,7 @@ export async function inviteStaff(
   email: string,
 ): Promise<{ error: string } | undefined> {
   await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.MANAGE_STAFF);
+  const session = await auth();
 
   const trimmed = email.trim().toLowerCase();
   if (!trimmed) return { error: "Email is required." };
@@ -31,6 +33,7 @@ export async function inviteStaff(
     entityType: "VENDOR_COMPANY",
     entityId: vendorCompanyId,
     role: "VENDOR_STAFF",
+    invitedByName: session?.user.name ?? session?.user.email ?? "The Vendor Owner",
   });
 
   revalidatePath(`/vendor/${vendorCompanyId}/staff`);

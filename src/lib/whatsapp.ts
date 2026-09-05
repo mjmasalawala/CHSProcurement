@@ -7,6 +7,8 @@
 // Falls back to a console-log stub — same pattern as lib/sms.ts — until
 // WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID are configured.
 
+import { isStagingEnvironment } from "@/lib/environment";
+
 const GRAPH_API_VERSION = "v21.0";
 
 /**
@@ -39,6 +41,37 @@ class WhatsappMessagingDisabledError extends Error {
   constructor() {
     super('WhatsApp messaging is disabled (WHATSAPP_MESSAGING_ENABLED is not "true").');
     this.name = "WhatsappMessagingDisabledError";
+  }
+}
+
+/**
+ * Staging safety net (2026-09-05), mirrors STAGING_EMAIL_REDIRECT_TO —
+ * separate from the kill switch above, and not redundant with it: this
+ * specifically stops a real phone number from ever being messaged by
+ * staging (Vercel Deployment Protection already blocks external access to
+ * staging entirely, but this is a free second layer, and matters whenever
+ * the kill switch gets flipped on temporarily for testing). Returns the
+ * real target everywhere else; in staging, returns the configured redirect
+ * number, or null if none is set — null means "refuse to send", not
+ * "guess a safe number".
+ */
+function resolveRecipient(to: string): string | null {
+  if (!isStagingEnvironment()) return to;
+  return process.env.STAGING_WHATSAPP_REDIRECT_TO ?? null;
+}
+
+// Exported so dispatcher.ts and the inbound webhook's auto-reply can check
+// this proactively and record a clean SKIPPED status, the same way they
+// already do for isWhatsappMessagingEnabled(), instead of relying on the
+// throw below.
+export function isStagingWhatsappRedirectConfigured(): boolean {
+  return !isStagingEnvironment() || Boolean(process.env.STAGING_WHATSAPP_REDIRECT_TO);
+}
+
+class StagingWhatsappRedirectMissingError extends Error {
+  constructor() {
+    super("Staging: STAGING_WHATSAPP_REDIRECT_TO isn't set — refusing to send a real WhatsApp message in staging.");
+    this.name = "StagingWhatsappRedirectMissingError";
   }
 }
 
@@ -87,7 +120,15 @@ async function postToGraph(credentials: GraphCredentials, body: Record<string, u
 }
 
 export async function sendWhatsappOtp(params: { to: string; code: string }): Promise<void> {
-  const to = toE164India(params.to);
+  const recipient = resolveRecipient(params.to);
+  if (recipient === null) {
+    // Silent, not thrown — phone-verification.ts has no retry/error-surface
+    // handling for this call, and OTP failing shouldn't break the request.
+    console.log(`[whatsapp:staging-blocked] STAGING_WHATSAPP_REDIRECT_TO isn't set — refusing OTP send (intended to=${params.to}).`);
+    return;
+  }
+
+  const to = toE164India(recipient);
   const templateName = process.env.WHATSAPP_OTP_TEMPLATE_NAME;
   const credentials = getCredentials();
 
@@ -138,7 +179,10 @@ export async function sendWhatsappTemplate(params: {
 }): Promise<{ providerId?: string }> {
   if (!isWhatsappMessagingEnabled()) throw new WhatsappMessagingDisabledError();
 
-  const to = toE164India(params.to);
+  const recipient = resolveRecipient(params.to);
+  if (recipient === null) throw new StagingWhatsappRedirectMissingError();
+
+  const to = toE164India(recipient);
   const credentials = getCredentials();
 
   if (!credentials) {
@@ -169,7 +213,10 @@ export async function sendWhatsappTemplate(params: {
 export async function sendWhatsappText(params: { to: string; body: string }): Promise<{ providerId?: string }> {
   if (!isWhatsappMessagingEnabled()) throw new WhatsappMessagingDisabledError();
 
-  const to = toE164India(params.to);
+  const recipient = resolveRecipient(params.to);
+  if (recipient === null) throw new StagingWhatsappRedirectMissingError();
+
+  const to = toE164India(recipient);
   const credentials = getCredentials();
 
   if (!credentials) {

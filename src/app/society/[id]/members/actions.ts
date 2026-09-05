@@ -27,12 +27,20 @@ const INVITABLE_ROLES: RoleName[] = ["MANAGER", "CHAIRMAN", "TREASURER", "SECRET
 // (society-portal-spec.md Section 2).
 const SINGLE_SEAT_ROLES: RoleName[] = ["CHAIRMAN", "SECRETARY", "TREASURER"];
 
+const ROLE_LABELS: Record<string, string> = {
+  MANAGER: "Manager",
+  CHAIRMAN: "Chairman",
+  SECRETARY: "Secretary",
+  TREASURER: "Treasurer",
+};
+
 export async function inviteMember(
   societyId: string,
   email: string,
   role: RoleName,
 ): Promise<{ error: string } | undefined> {
-  await requireSocietyActionPermission(societyId, PERMISSIONS.MANAGE_USERS);
+  const assignment = await requireSocietyActionPermission(societyId, PERMISSIONS.MANAGE_USERS);
+  const session = await auth();
 
   if (!INVITABLE_ROLES.includes(role)) return { error: "Invalid role." };
 
@@ -59,7 +67,13 @@ export async function inviteMember(
   });
   if (existing) return { error: "This person already has this role (or a pending invite)." };
 
-  const { emailError } = await createInvite({ email: trimmed, entityType: "SOCIETY", entityId: societyId, role });
+  const { emailError } = await createInvite({
+    email: trimmed,
+    entityType: "SOCIETY",
+    entityId: societyId,
+    role,
+    invitedByName: session?.user.name ?? `The ${ROLE_LABELS[assignment.role] ?? assignment.role}`,
+  });
 
   revalidatePath(`/society/${societyId}/members`);
   if (emailError) {

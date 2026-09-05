@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import type { Message } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isWhatsappMessagingEnabled, sendWhatsappTemplate, sendWhatsappText } from "@/lib/whatsapp";
+import { isStagingWhatsappRedirectConfigured, isWhatsappMessagingEnabled, sendWhatsappTemplate, sendWhatsappText } from "@/lib/whatsapp";
 import { WHATSAPP_TEMPLATES } from "@/lib/messaging/whatsapp-templates";
 import { isStagingEnvironment } from "@/lib/environment";
 
@@ -205,6 +205,14 @@ async function sendMessage(message: Message): Promise<"SENT" | "FAILED" | "SKIPP
     await prisma.message.update({
       where: { id: message.id },
       data: { status: "SKIPPED", skippedReason: "WhatsApp messaging is disabled (WHATSAPP_MESSAGING_ENABLED)." },
+    });
+    return "SKIPPED";
+  }
+
+  if (!isStagingWhatsappRedirectConfigured()) {
+    await prisma.message.update({
+      where: { id: message.id },
+      data: { status: "SKIPPED", skippedReason: "Staging: STAGING_WHATSAPP_REDIRECT_TO isn't set — refusing to send a real WhatsApp message in staging." },
     });
     return "SKIPPED";
   }

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import type { InboundHandledBy, InboundMessageType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
-import { isWhatsappMessagingEnabled, sendWhatsappText } from "@/lib/whatsapp";
+import { isStagingWhatsappRedirectConfigured, isWhatsappMessagingEnabled, sendWhatsappText } from "@/lib/whatsapp";
 import { triageInbound } from "@/lib/messaging/inbound-triage";
 import { setWhatsappOptStatus } from "@/lib/messaging/preferences";
 
@@ -178,10 +178,10 @@ async function processInboundMessage(message: WhatsappMessage): Promise<void> {
   // regardless of this check — only the confirmation text is gated, so
   // disabling messaging can't also block someone's opt-out from taking
   // effect. Checked explicitly (rather than letting sendWhatsappText's own
-  // guard throw) so a disabled kill switch doesn't turn into a 500 here —
-  // that would make Meta retry the whole webhook delivery for a state that
-  // isn't going to change on retry.
-  if (triage.autoReplyText && isWhatsappMessagingEnabled()) {
+  // guards throw) so a disabled kill switch or unconfigured staging
+  // redirect doesn't turn into a 500 here — that would make Meta retry the
+  // whole webhook delivery for a state that isn't going to change on retry.
+  if (triage.autoReplyText && isWhatsappMessagingEnabled() && isStagingWhatsappRedirectConfigured()) {
     // Safe to send free text here regardless of the 24h window check the
     // dispatcher otherwise enforces — this message just opened/refreshed
     // the window by arriving.

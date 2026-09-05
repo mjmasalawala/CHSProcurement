@@ -6,7 +6,10 @@ import { getEntityName } from "@/lib/entities";
 import { sendInvite, notifyAddedToExistingAccount } from "@/lib/notifications";
 import { getBaseUrl } from "@/lib/base-url";
 
-const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// 24 hours (shortened from 7 days, 2026-09-05, to read unambiguously as
+// time-bound/transactional — both in the email/WhatsApp copy and in the
+// token's actual lifetime, which must match what the message says).
+const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // User-facing text on an email send failure — the real cause (e.g. Resend
 // domain-verification errors) is logged server-side via console.error, not
@@ -41,6 +44,12 @@ export async function createInvite(params: {
   entityType: EntityType;
   entityId: string | null;
   role: RoleName;
+  // Display name of whoever's triggering this invite (a Manager naming an
+  // Office Bearer, a Vendor Owner naming staff) — persisted on the Invite
+  // row so a later resend can still show it without the resender needing
+  // to re-supply it. Not used by the registrationPitch path below, which
+  // already carries its own proposer name.
+  invitedByName?: string;
   // Society self-registration: overrides the generic invite copy with a
   // "{proposer} has proposed registration of {society}…" framing, since the
   // invitee isn't necessarily who submitted the registration.
@@ -97,13 +106,21 @@ export async function createInvite(params: {
       token,
       email: params.email,
       roleAssignmentId: roleAssignment.id,
+      invitedByName: params.registrationPitch ? null : (params.invitedByName ?? null),
       expiresAt: new Date(Date.now() + INVITE_TTL_MS),
     },
   });
 
   const url = `${base}/invite/${token}`;
   try {
-    await sendInvite({ email: params.email, role: params.role, entityName, url, registrationPitch: params.registrationPitch });
+    await sendInvite({
+      email: params.email,
+      role: params.role,
+      entityName,
+      url,
+      invitedByName: params.invitedByName,
+      registrationPitch: params.registrationPitch,
+    });
   } catch (err) {
     console.error("createInvite: failed to send invite email", err);
     return { token, url, emailError: EMAIL_FAILURE_MESSAGE };
@@ -116,8 +133,10 @@ export async function createInvite(params: {
  * Re-triggers the invite email for a still-PENDING RoleAssignment — e.g. the
  * first email got lost/spam-filtered/never arrived. Reuses the existing
  * Invite row (roleAssignmentId is @unique, so there's only ever one) with a
- * fresh token and a renewed 7-day expiry; the old token stops resolving the
+ * fresh token and a renewed 24h expiry; the old token stops resolving the
  * moment this runs, so there's never more than one valid link outstanding.
+ * invitedByName carries over unchanged from the original invite — whoever
+ * clicks Resend isn't necessarily who originally invited this person.
  */
 export async function resendInvite(roleAssignmentId: string): Promise<{ error: string } | undefined> {
   const roleAssignment = await prisma.roleAssignment.findUnique({
@@ -138,7 +157,13 @@ export async function resendInvite(roleAssignmentId: string): Promise<{ error: s
   const url = `${base}/invite/${token}`;
   const entityName = await getEntityName(roleAssignment.entityType, roleAssignment.entityId);
   try {
-    await sendInvite({ email: roleAssignment.user.email, role: roleAssignment.role, entityName, url });
+    await sendInvite({
+      email: roleAssignment.user.email,
+      role: roleAssignment.role,
+      entityName,
+      url,
+      invitedByName: roleAssignment.invite.invitedByName ?? undefined,
+    });
   } catch (err) {
     console.error("resendInvite: failed to send invite email", err);
     return { error: EMAIL_FAILURE_MESSAGE };

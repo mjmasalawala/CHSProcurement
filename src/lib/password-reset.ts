@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getBaseUrl } from "@/lib/base-url";
 
-const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour — shorter than Invite's 7 days since this grants immediate account access.
+const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour — shorter than Invite's 24 hours since this grants immediate account access.
 
 export async function createPasswordResetToken(userId: string): Promise<{ token: string; url: string }> {
   const token = randomBytes(32).toString("base64url");

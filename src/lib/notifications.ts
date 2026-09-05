@@ -290,6 +290,12 @@ export async function sendInvite(params: {
   role: string;
   entityName: string | null;
   url: string;
+  // Display name of whoever triggered this invite — threaded through from
+  // createInvite/resendInvite (lib/invite.ts), which persists it on the
+  // Invite row so a resend keeps showing the original inviter. Not used
+  // (and not meaningful) on the registrationPitch path below, which already
+  // names its own proposer.
+  invitedByName?: string;
   // Custom framing for the society self-registration flow, where the
   // invitee didn't necessarily submit the registration themselves — replaces
   // the generic "You've been invited as {role}" opener.
@@ -303,7 +309,12 @@ export async function sendInvite(params: {
         `${params.registrationPitch.proposerName} (${params.registrationPitch.proposerRoleLabel}) has proposed registration of ${params.registrationPitch.societyName} onto the free Wisesoc platform for managing vendor quotes transparently and fairly.`,
         `Create a password and set up your Office Bearer team and Manager to explore the portal.`,
       ]
-    : [`Hi,`, `You've been invited to join Wisesoc as ${params.role}${forWhat}.`];
+    : [
+        `Hi,`,
+        params.invitedByName
+          ? `${params.invitedByName} has invited you to join Wisesoc as ${params.role}${forWhat}.`
+          : `You've been invited to join Wisesoc as ${params.role}${forWhat}.`,
+      ];
 
   await sendEmail({
     templateKey: "invite.role_activation",
@@ -315,8 +326,14 @@ export async function sendInvite(params: {
     paragraphs,
     cta: { label: "Create your password", url: params.url },
     secondaryLinks: params.registrationPitch ? [{ label: "the Wisesoc FAQ", url: `${base}/faq` }] : undefined,
-    footer: "This link expires in 7 days.",
+    footer: "This link expires in 24 hours.",
   });
+
+  // WhatsApp isn't wired here yet — sending it needs the invitee's phone
+  // number, which the "Invite Member"/"Invite Staff" forms don't currently
+  // collect (only known once the invitee themselves supplies it during
+  // acceptance). See wisesoc_role_invite in whatsapp-templates.ts, submitted
+  // and approved but not yet called from anywhere.
 }
 
 // Same Resend sandbox caveat as sendInvite/notifyRejection.
