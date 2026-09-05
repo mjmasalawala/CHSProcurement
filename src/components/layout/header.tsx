@@ -2,14 +2,7 @@ import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { endImpersonation } from "@/app/admin/support/actions";
-
-// Vercel sets VERCEL_GIT_COMMIT_REF automatically on every deploy, no
-// manual env var needed. "develop" is this project's staging branch (main
-// is production) — see the git remote's branch layout. If that mapping
-// ever changes (a dedicated "staging" branch, say), update this one check.
-function isStagingEnvironment(): boolean {
-  return process.env.VERCEL_GIT_COMMIT_REF === "develop";
-}
+import { isStagingEnvironment } from "@/lib/environment";
 
 /**
  * Global app chrome (root layout) — one header for every route, logged-in or

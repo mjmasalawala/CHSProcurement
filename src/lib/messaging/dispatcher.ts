@@ -3,6 +3,7 @@ import type { Message } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWhatsappMessagingEnabled, sendWhatsappTemplate, sendWhatsappText } from "@/lib/whatsapp";
 import { WHATSAPP_TEMPLATES } from "@/lib/messaging/whatsapp-templates";
+import { isStagingEnvironment } from "@/lib/environment";
 
 const WHATSAPP_SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -48,19 +49,39 @@ async function suppressionReason(to: string[], category: Message["category"]): P
   return null;
 }
 
+// Now that RESEND_FROM_EMAIL is a verified domain (2026-09-05), Resend
+// actually delivers to whoever a Message row names — the sandbox-only
+// delivery that used to make this safe by accident is gone. Staging must
+// never email a real vendor/society member, so every EMAIL send there is
+// redirected to STAGING_EMAIL_REDIRECT_TO instead, with the real intended
+// recipient(s) prepended to the subject so it's still obvious what would
+// have gone out. Guarded by isStagingEnvironment() (VERCEL_GIT_COMMIT_REF),
+// not by whether this env var happens to be set — so if it were ever also
+// set in Production by mistake, isStagingEnvironment() being false there
+// means it's simply never read. If it's unset while staging, sendMessage
+// below refuses to send at all rather than guessing a safe address.
+function stagingEmailRedirectTo(): string | undefined {
+  return process.env.STAGING_EMAIL_REDIRECT_TO;
+}
+
 async function deliverEmail(message: Message): Promise<{ providerId?: string }> {
   // subject/html/text are nullable on Message only to leave room for a
   // future non-email channel row — enqueueEmail (the only writer of EMAIL
   // rows) always sets all three, so this is safe.
+  const redirectTo = isStagingEnvironment() ? stagingEmailRedirectTo() : undefined;
+  const redirecting = Boolean(redirectTo);
+  const to = redirectTo ? [redirectTo] : message.to;
+  const subject = redirecting ? `[STAGING → ${message.to.join(", ")}] ${message.subject}` : message.subject!;
+
   const { data, error } = await resend.emails.send({
     from: FROM,
-    to: message.to,
-    subject: message.subject!,
+    to,
+    subject,
     html: message.html!,
     text: message.text!,
   });
   if (error) {
-    throw new Error(`Resend send failed (to: ${message.to.join(", ")}, subject: "${message.subject}"): ${error.message}`);
+    throw new Error(`Resend send failed (to: ${to.join(", ")}, subject: "${subject}"): ${error.message}`);
   }
   return { providerId: data?.id };
 }
@@ -153,6 +174,14 @@ async function sendMessage(message: Message): Promise<"SENT" | "FAILED" | "SKIPP
   if (claimed.count === 0) return "SKIPPED";
 
   if (message.channel === "EMAIL") {
+    if (isStagingEnvironment() && !stagingEmailRedirectTo()) {
+      await prisma.message.update({
+        where: { id: message.id },
+        data: { status: "SKIPPED", skippedReason: "Staging: STAGING_EMAIL_REDIRECT_TO isn't set — refusing to send a real email in staging." },
+      });
+      return "SKIPPED";
+    }
+
     const skipReason = await suppressionReason(message.to, message.category);
     if (skipReason) {
       await prisma.message.update({ where: { id: message.id }, data: { status: "SKIPPED", skippedReason: skipReason } });
