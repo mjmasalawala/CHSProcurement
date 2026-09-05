@@ -22,6 +22,8 @@ A single-URL SaaS web application for **Bluejay**, solving the "three-quotation"
 6. **`landing-page-and-auth-flow-spec.md`** — the public landing page, login-only auth entry (no public sign-up), and how invite-based account creation works.
 7. **`work-order-pdf-spec.md`** — auto-generated Work Order PDF, triggered on finalization.
 8. **`voice-to-job-ai-spec.md`** — voice-note-to-structured-requirement AI feature for Requirement creation.
+9. **`messaging-and-engagement-spec.md`** — the email/WhatsApp outbox platform: architecture, WhatsApp rules, phasing.
+10. **`outbound-communications-catalog.md`** — every event that sends an email and/or WhatsApp message, with recipient, channel, and trigger location. The reference to check when asked "what do we send people."
 
 ---
 
