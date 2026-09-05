@@ -230,17 +230,28 @@ export async function notifyVendorSuggested(params: {
   societyName: string;
   registerUrl: string;
 }) {
-  await sendEmail({
-    templateKey: "vendor.suggested",
-    to: params.vendorEmail,
-    subject: `${params.suggestedByName} suggested you register on Wisesoc`,
-    heading: `You've been suggested as a vendor`,
-    paragraphs: [
-      `Hi ${params.vendorName},`,
-      `${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on Wisesoc — the platform housing societies use to find and hire vendors like you.`,
-    ],
-    cta: { label: "Register on Wisesoc", url: params.registerUrl },
-  });
+  // Decoupled (product decision, 2026-09-05): email and WhatsApp are two
+  // independent channels for the same event, so one failing (e.g. Resend's
+  // sandbox rejecting an unverified recipient) shouldn't stop the other
+  // from being attempted. The email error, if any, is still re-thrown
+  // afterward so callers keep surfacing "failed to send" the same way they
+  // always have — it just no longer blocks WhatsApp from getting its turn.
+  let emailError: unknown;
+  try {
+    await sendEmail({
+      templateKey: "vendor.suggested",
+      to: params.vendorEmail,
+      subject: `${params.suggestedByName} suggested you register on Wisesoc`,
+      heading: `You've been suggested as a vendor`,
+      paragraphs: [
+        `Hi ${params.vendorName},`,
+        `${params.suggestedByName} from ${params.societyName} suggested you register as a vendor on Wisesoc — the platform housing societies use to find and hire vendors like you.`,
+      ],
+      cta: { label: "Register on Wisesoc", url: params.registerUrl },
+    });
+  } catch (err) {
+    emailError = err;
+  }
 
   if (params.vendorPhone) {
     // First contact — this always goes out via the approved
@@ -267,6 +278,8 @@ export async function notifyVendorSuggested(params: {
       templateParams: [params.vendorName, params.suggestedByName, params.societyName],
     });
   }
+
+  if (emailError) throw emailError;
 }
 
 // Note: while RESEND_API_KEY is sandboxed, this — like notifyRejection —
