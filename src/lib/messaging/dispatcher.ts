@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import type { Message } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isStagingWhatsappRedirectConfigured, isWhatsappMessagingEnabled, sendWhatsappTemplate, sendWhatsappText } from "@/lib/whatsapp";
-import { WHATSAPP_TEMPLATES } from "@/lib/messaging/whatsapp-templates";
+import { getWhatsappTemplate } from "@/lib/messaging/whatsapp-templates";
 import { isStagingEnvironment } from "@/lib/environment";
 
 const WHATSAPP_SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -125,9 +125,11 @@ async function deliverWhatsapp(message: Message): Promise<{ providerId?: string 
   // messaged us) — so free text is off the table; only an approved
   // template mapped to this templateKey can reach them. See
   // whatsapp-templates.ts.
-  const template = WHATSAPP_TEMPLATES[message.templateKey];
+  const template = getWhatsappTemplate(message.templateKey);
   if (!template) {
-    return { skipped: "Outside the 24h session window — no approved WhatsApp template mapped for this templateKey yet." };
+    return {
+      skipped: "Outside the 24h session window — no approved WhatsApp template mapped for this templateKey on this environment's WABA yet.",
+    };
   }
 
   return sendWhatsappTemplate({
