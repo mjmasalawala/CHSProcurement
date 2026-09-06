@@ -104,7 +104,11 @@ export default async function SuggestVendorPage({
                         </Badge>
                       </td>
                       <td className="py-2 whitespace-nowrap">
-                        <ResendInviteButton societyId={id} vendorSuggestionId={s.id} />
+                        {status === "REGISTERED" ? (
+                          <span className="text-[13px] text-text-tertiary">—</span>
+                        ) : (
+                          <ResendInviteButton societyId={id} vendorSuggestionId={s.id} />
+                        )}
                       </td>
                     </tr>
                   );
