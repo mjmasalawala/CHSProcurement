@@ -58,9 +58,10 @@ const WHATSAPP_TEMPLATES: Record<string, TemplateByEnvironment> = {
   // template deletion needs a permission our token doesn't have).
   "vendor.suggested": {
     test: { name: "wisesoc_vendor_suggested_v3", language: "en" },
-    // Not yet mirrored to the production WABA (4358290911100089,
-    // "Wisesoc") — do that once any further test-side wording changes
-    // settle, not before.
+    // Mirrored to the production WABA (4358290911100089, "Wisesoc")
+    // 2026-09-06, using the identical body/buttons/category confirmed live
+    // on the test WABA — approved there as MARKETING too, same as test.
+    production: { name: "wisesoc_vendor_suggested_v3", language: "en" },
   },
 };
 
