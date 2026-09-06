@@ -176,6 +176,12 @@ export async function sendWhatsappTemplate(params: {
   templateName: string;
   languageCode: string;
   bodyParams?: string[];
+  // The dynamic URL button's parameter, when the template has one (e.g. an
+  // invite token) — Meta only allows a variable as a fixed-base-URL
+  // suffix, at button index 0, so this is always exactly one value, never
+  // an array. Omit for a template with no dynamic button (static-link
+  // buttons, like vendor.suggested's, need nothing here).
+  buttonParam?: string;
 }): Promise<{ providerId?: string }> {
   if (!isWhatsappMessagingEnabled()) throw new WhatsappMessagingDisabledError();
 
@@ -186,9 +192,18 @@ export async function sendWhatsappTemplate(params: {
   const credentials = getCredentials();
 
   if (!credentials) {
-    console.log(`[whatsapp:stub] template=${params.templateName} to=${to} params=${JSON.stringify(params.bodyParams)}`);
+    console.log(
+      `[whatsapp:stub] template=${params.templateName} to=${to} params=${JSON.stringify(params.bodyParams)} button=${params.buttonParam ?? ""}`,
+    );
     return {};
   }
+
+  const components = [
+    ...(params.bodyParams?.length ? [{ type: "body", parameters: params.bodyParams.map((text) => ({ type: "text", text })) }] : []),
+    ...(params.buttonParam
+      ? [{ type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: params.buttonParam }] }]
+      : []),
+  ];
 
   return postToGraph(credentials, {
     to,
@@ -196,9 +211,7 @@ export async function sendWhatsappTemplate(params: {
     template: {
       name: params.templateName,
       language: { code: params.languageCode },
-      ...(params.bodyParams?.length
-        ? { components: [{ type: "body", parameters: params.bodyParams.map((text) => ({ type: "text", text })) }] }
-        : {}),
+      ...(components.length ? { components } : {}),
     },
   });
 }

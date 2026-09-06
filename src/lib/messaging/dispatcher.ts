@@ -137,6 +137,7 @@ async function deliverWhatsapp(message: Message): Promise<{ providerId?: string 
     templateName: template.name,
     languageCode: template.language,
     bodyParams: message.whatsappTemplateParams,
+    buttonParam: message.whatsappButtonParam ?? undefined,
   });
 }
 

@@ -50,6 +50,11 @@ export async function createInvite(params: {
   // to re-supply it. Not used by the registrationPitch path below, which
   // already carries its own proposer name.
   invitedByName?: string;
+  // Given by the inviter, if they know it — the only way to reach this
+  // person over WhatsApp (wisesoc_role_invite_v2), since they haven't
+  // logged in yet to supply their own. Persisted on the Invite row so a
+  // resend can reuse it without asking again.
+  phone?: string;
   // Society self-registration: overrides the generic invite copy with a
   // "{proposer} has proposed registration of {society}…" framing, since the
   // invitee isn't necessarily who submitted the registration.
@@ -107,6 +112,7 @@ export async function createInvite(params: {
       email: params.email,
       roleAssignmentId: roleAssignment.id,
       invitedByName: params.registrationPitch ? null : (params.invitedByName ?? null),
+      phone: params.registrationPitch ? null : (params.phone ?? null),
       expiresAt: new Date(Date.now() + INVITE_TTL_MS),
     },
   });
@@ -118,7 +124,9 @@ export async function createInvite(params: {
       role: params.role,
       entityName,
       url,
+      token,
       invitedByName: params.invitedByName,
+      phone: params.registrationPitch ? undefined : params.phone,
       registrationPitch: params.registrationPitch,
     });
   } catch (err) {
@@ -135,8 +143,10 @@ export async function createInvite(params: {
  * Invite row (roleAssignmentId is @unique, so there's only ever one) with a
  * fresh token and a renewed 24h expiry; the old token stops resolving the
  * moment this runs, so there's never more than one valid link outstanding.
- * invitedByName carries over unchanged from the original invite — whoever
- * clicks Resend isn't necessarily who originally invited this person.
+ * invitedByName and phone carry over unchanged from the original invite —
+ * whoever clicks Resend isn't necessarily who originally invited this
+ * person, and re-asking for a phone they may not remember on resend would
+ * be worse than just reusing what was given the first time.
  */
 export async function resendInvite(roleAssignmentId: string): Promise<{ error: string } | undefined> {
   const roleAssignment = await prisma.roleAssignment.findUnique({
@@ -162,7 +172,9 @@ export async function resendInvite(roleAssignmentId: string): Promise<{ error: s
       role: roleAssignment.role,
       entityName,
       url,
+      token,
       invitedByName: roleAssignment.invite.invitedByName ?? undefined,
+      phone: roleAssignment.invite.phone ?? undefined,
     });
   } catch (err) {
     console.error("resendInvite: failed to send invite email", err);

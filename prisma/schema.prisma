@@ -179,6 +179,14 @@ model Invite {
   // registrationPitch invite path (society self-registration activation),
   // which already carries its own proposer name separately.
   invitedByName    String?
+  // Given by the inviter at creation time (mandatory on the "Invite Member"
+  // form, optional/absent elsewhere until those flows get the same field)
+  // — this is what makes wisesoc_role_invite_v2 (WhatsApp) reachable at
+  // all, since it's needed before the invitee has ever logged in to supply
+  // their own. Distinct from User.phone, which is the invitee's own
+  // OTP-verified number set later during acceptance — this one is
+  // unverified, inviter-supplied, and never overwrites that.
+  phone            String?
   expiresAt        DateTime
   acceptedAt       DateTime?
   createdAt        DateTime       @default(now())
@@ -712,6 +720,11 @@ model Message {
   // than free text. See lib/messaging/whatsapp-templates.ts (the
   // templateKey → Meta template name/language mapping) and dispatcher.ts.
   whatsappTemplateParams String[] @default([])
+  // The single dynamic URL button's parameter (Meta only allows a variable
+  // as a fixed-base-URL suffix, at button index 0) — e.g. an invite token.
+  // Null for templates with no dynamic button (vendor.suggested's two
+  // buttons are both static links, so it never sets this).
+  whatsappButtonParam    String?
 
   status        MessageStatus @default(QUEUED)
   skippedReason String?

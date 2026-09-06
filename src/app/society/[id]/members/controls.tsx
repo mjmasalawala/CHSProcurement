@@ -29,6 +29,7 @@ export function InviteMemberForm({
 }) {
   const firstAvailable = ROLE_OPTIONS.find((r) => !occupiedRoles.includes(r.value))?.value ?? "MANAGER";
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [role, setRole] = useState<RoleName>(firstAvailable);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -41,10 +42,13 @@ export function InviteMemberForm({
     }
     setSubmitting(true);
     setError(null);
-    const result = await inviteMember(societyId, email, role);
+    const result = await inviteMember(societyId, email, phone, role);
     setSubmitting(false);
     if (result?.error) setError(result.error);
-    else setEmail("");
+    else {
+      setEmail("");
+      setPhone("");
+    }
   }
 
   return (
@@ -67,6 +71,15 @@ export function InviteMemberForm({
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="flex-1">
+        <Input
+          type="tel"
+          placeholder="Phone number"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
           required
         />
         {error && <p className="mt-1 text-[13px] text-status-error">{error}</p>}

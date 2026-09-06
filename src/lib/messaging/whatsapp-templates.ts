@@ -63,6 +63,27 @@ const WHATSAPP_TEMPLATES: Record<string, TemplateByEnvironment> = {
     // on the test WABA — approved there as MARKETING too, same as test.
     production: { name: "wisesoc_vendor_suggested_v3", language: "en" },
   },
+
+  // Generic role invite — Manager/Chairman/Secretary/Treasurer, Vendor
+  // Staff — from lib/notifications.ts's sendInvite (non-registrationPitch
+  // path only). Body: "You've been given {{1}} access for {{2}} on
+  // Wisesoc by {{3}}. Tap below within 24 hours to get started — the link
+  // expires after that." ({{1}}=role, {{2}}=entityName, {{3}}=inviterName).
+  // One dynamic URL button, "Create your password" →
+  // https://www.wisesoc.in/invite/{{1}}, where {{1}} is the raw invite
+  // token — see Message.whatsappButtonParam / sendWhatsappTemplate's
+  // buttonParam.
+  //
+  // History: submitted as UTILITY (v1 body mentioned "password"/"activate"
+  // and got rejected INCORRECT_CATEGORY, same failure mode as the actual
+  // OTP template — Meta's classifier reads that phrasing as
+  // authentication-adjacent); v2 dropped that language, submission
+  // succeeded but was reclassified MARKETING on final review anyway, same
+  // outcome as vendor.suggested. Only submitted on the Test WABA so far —
+  // mirror to production once this is confirmed working end to end.
+  "invite.role_activation": {
+    test: { name: "wisesoc_role_invite_v2", language: "en" },
+  },
 };
 
 /**

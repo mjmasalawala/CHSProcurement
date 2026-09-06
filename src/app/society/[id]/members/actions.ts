@@ -37,6 +37,7 @@ const ROLE_LABELS: Record<string, string> = {
 export async function inviteMember(
   societyId: string,
   email: string,
+  phone: string,
   role: RoleName,
 ): Promise<{ error: string } | undefined> {
   const assignment = await requireSocietyActionPermission(societyId, PERMISSIONS.MANAGE_USERS);
@@ -46,6 +47,12 @@ export async function inviteMember(
 
   const trimmed = email.trim().toLowerCase();
   if (!trimmed) return { error: "Email is required." };
+
+  // Mandatory here (unlike suggest-vendor's "Phone (if known)") — this is
+  // what makes the WhatsApp invite (wisesoc_role_invite_v2) reachable at
+  // all, since the invitee hasn't logged in yet to supply their own.
+  const trimmedPhone = phone.trim();
+  if (!trimmedPhone) return { error: "Phone number is required." };
 
   if (SINGLE_SEAT_ROLES.includes(role)) {
     const activeHolder = await prisma.roleAssignment.findFirst({
@@ -72,6 +79,7 @@ export async function inviteMember(
     entityType: "SOCIETY",
     entityId: societyId,
     role,
+    phone: trimmedPhone,
     invitedByName: session?.user.name ?? `The ${ROLE_LABELS[assignment.role] ?? assignment.role}`,
   });
 

@@ -155,6 +155,9 @@ interface WhatsappContent {
   // contact, so templateParams (below) is what actually reaches them.
   text: string;
   templateParams?: string[];
+  // The dynamic URL button's single parameter (e.g. an invite token), for
+  // a template that has one — see sendWhatsappTemplate in lib/whatsapp.ts.
+  buttonParam?: string;
 }
 
 /**
@@ -173,6 +176,7 @@ async function sendWhatsapp(content: WhatsappContent) {
       to: toE164India(content.to),
       text: content.text,
       templateParams: content.templateParams,
+      buttonParam: content.buttonParam,
     });
     if (id) await sendOne(id);
   } catch (err) {
@@ -290,12 +294,22 @@ export async function sendInvite(params: {
   role: string;
   entityName: string | null;
   url: string;
+  // The raw invite token (not the full url) — needed separately because
+  // the WhatsApp template's button has the domain baked in permanently
+  // (Meta template buttons can't vary by environment); only the token
+  // suffix is a send-time parameter. See wisesoc_role_invite_v2 in
+  // whatsapp-templates.ts.
+  token: string;
   // Display name of whoever triggered this invite — threaded through from
   // createInvite/resendInvite (lib/invite.ts), which persists it on the
   // Invite row so a resend keeps showing the original inviter. Not used
   // (and not meaningful) on the registrationPitch path below, which already
   // names its own proposer.
   invitedByName?: string;
+  // Given by the inviter, if known — the only way to reach this person
+  // over WhatsApp before they've ever logged in. Undefined/omitted means
+  // email-only, same as vendor.suggested's vendorPhone.
+  phone?: string;
   // Custom framing for the society self-registration flow, where the
   // invitee didn't necessarily submit the registration themselves — replaces
   // the generic "You've been invited as {role}" opener.
@@ -316,24 +330,46 @@ export async function sendInvite(params: {
           : `You've been invited to join Wisesoc as ${params.role}${forWhat}.`,
       ];
 
-  await sendEmail({
-    templateKey: "invite.role_activation",
-    to: params.email,
-    subject: params.registrationPitch
-      ? `You're invited to set up ${params.registrationPitch.societyName} on Wisesoc`
-      : `You've been invited to Wisesoc as ${params.role}`,
-    heading: params.registrationPitch ? "Set up your society on Wisesoc" : "You've been invited to Wisesoc",
-    paragraphs,
-    cta: { label: "Create your password", url: params.url },
-    secondaryLinks: params.registrationPitch ? [{ label: "the Wisesoc FAQ", url: `${base}/faq` }] : undefined,
-    footer: "This link expires in 24 hours.",
-  });
+  // Decoupled from the WhatsApp send below, same reasoning as
+  // notifyVendorSuggested: independent channels for the same event, so one
+  // failing shouldn't block the other. The email error, if any, is
+  // re-thrown afterward so callers keep surfacing "failed to send" as
+  // before.
+  let emailError: unknown;
+  try {
+    await sendEmail({
+      templateKey: "invite.role_activation",
+      to: params.email,
+      subject: params.registrationPitch
+        ? `You're invited to set up ${params.registrationPitch.societyName} on Wisesoc`
+        : `You've been invited to Wisesoc as ${params.role}`,
+      heading: params.registrationPitch ? "Set up your society on Wisesoc" : "You've been invited to Wisesoc",
+      paragraphs,
+      cta: { label: "Create your password", url: params.url },
+      secondaryLinks: params.registrationPitch ? [{ label: "the Wisesoc FAQ", url: `${base}/faq` }] : undefined,
+      footer: "This link expires in 24 hours.",
+    });
+  } catch (err) {
+    emailError = err;
+  }
 
-  // WhatsApp isn't wired here yet — sending it needs the invitee's phone
-  // number, which the "Invite Member"/"Invite Staff" forms don't currently
-  // collect (only known once the invitee themselves supplies it during
-  // acceptance). See wisesoc_role_invite in whatsapp-templates.ts, submitted
-  // and approved but not yet called from anywhere.
+  if (params.phone && !params.registrationPitch) {
+    // First contact — always goes out via the approved
+    // wisesoc_role_invite_v2 template (whatsapp-templates.ts), not free
+    // text, since there's no open session window with someone who's never
+    // messaged us. Falls back to generic phrasing for the two required
+    // placeholders that can't ever be blank in a Meta template.
+    await sendWhatsapp({
+      templateKey: "invite.role_activation",
+      category: "MARKETING", // Meta classified this MARKETING on review, same as vendor.suggested — see whatsapp-templates.ts.
+      to: params.phone,
+      text: `Wisesoc: You've been given ${params.role} access${forWhat} by ${params.invitedByName ?? "a Wisesoc admin"}. Create your password: ${params.url}`,
+      templateParams: [params.role, params.entityName ?? "Wisesoc", params.invitedByName ?? "a Wisesoc admin"],
+      buttonParam: params.token,
+    });
+  }
+
+  if (emailError) throw emailError;
 }
 
 // Same Resend sandbox caveat as sendInvite/notifyRejection.

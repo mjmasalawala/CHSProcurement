@@ -70,6 +70,9 @@ export interface EnqueueWhatsappParams {
   // contact. Omit if this templateKey has no template mapped yet; the
   // dispatcher will just SKIP outside the window until one is added.
   templateParams?: string[];
+  // The dynamic URL button's single parameter (e.g. an invite token), for a
+  // template that has one — see sendWhatsappTemplate in lib/whatsapp.ts.
+  buttonParam?: string;
   dedupeKey?: string;
   sendAfter?: Date;
 }
@@ -91,6 +94,7 @@ export async function enqueueWhatsapp(params: EnqueueWhatsappParams): Promise<st
         to: [params.to],
         text: params.text,
         whatsappTemplateParams: params.templateParams ?? [],
+        whatsappButtonParam: params.buttonParam,
         dedupeKey: params.dedupeKey,
         sendAfter: params.sendAfter ?? new Date(),
       },
