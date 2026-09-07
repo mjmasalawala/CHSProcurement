@@ -9,18 +9,20 @@ import { ResendInviteButton } from "./resend-invite-button";
 
 export const dynamic = "force-dynamic";
 
-type RegistrationStatus = "INVITED" | "UNDER_REVIEW" | "REGISTERED";
+type RegistrationStatus = "INVITED" | "UNDER_REVIEW" | "REGISTERED" | "REJECTED";
 
 const REGISTRATION_STATUS_LABEL: Record<RegistrationStatus, string> = {
   INVITED: "Invited",
   UNDER_REVIEW: "Under Review",
   REGISTERED: "Registered",
+  REJECTED: "Rejected",
 };
 
 const REGISTRATION_STATUS_TONE: Record<RegistrationStatus, BadgeTone> = {
   INVITED: "neutral",
   UNDER_REVIEW: "warning",
   REGISTERED: "success",
+  REJECTED: "error",
 };
 
 export default async function SuggestVendorPage({
@@ -52,7 +54,9 @@ export default async function SuggestVendorPage({
   function registrationStatus(vendorEmail: string): RegistrationStatus {
     const companyStatus = companyStatusByEmail.get(vendorEmail.toLowerCase());
     if (!companyStatus) return "INVITED";
-    return companyStatus === "ACTIVE" ? "REGISTERED" : "UNDER_REVIEW";
+    if (companyStatus === "ACTIVE") return "REGISTERED";
+    if (companyStatus === "REJECTED") return "REJECTED";
+    return "UNDER_REVIEW";
   }
 
   return (
