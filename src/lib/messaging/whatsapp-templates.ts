@@ -108,10 +108,13 @@ const WHATSAPP_TEMPLATES: Record<string, TemplateByEnvironment> = {
   // existing, already-registered vendor's account — distinct in kind from
   // vendor.suggested/invite.role_activation, which both target someone
   // with no prior relationship and got reclassified MARKETING regardless
-  // of wording). Pending Meta review — no `production` entry until
-  // approved there and mirrored, per the established test-first policy.
+  // of wording) — and it held: the first template in this project to be
+  // approved as UTILITY rather than reclassified. Mirrored to the
+  // production WABA (4358290911100089, "Wisesoc") 2026-09-07, identical
+  // content, also approved there as UTILITY.
   "vendor.approved": {
     test: { name: "wisesoc_vendor_approved_v1", language: "en" },
+    production: { name: "wisesoc_vendor_approved_v1", language: "en" },
   },
 
   // Requirement matched to an already-active vendor (two trigger paths:
