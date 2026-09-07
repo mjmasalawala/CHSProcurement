@@ -47,6 +47,13 @@ interface EmailContent {
   // TRANSACTIONAL (default) and REMINDER are always sent; MARKETING is the
   // only category ContactPreference.emailMarketingOptOutAt can suppress.
   category?: MessageCategory;
+  // For a reminder that a cron route may attempt to (re-)enqueue more than
+  // once for the same event (e.g. a retry after a prior run crashed before
+  // recording that this one went out) — enqueueEmail's unique constraint on
+  // this makes the second attempt a silent no-op instead of a duplicate
+  // send, independent of whatever flag the caller uses to track "already
+  // notified".
+  dedupeKey?: string;
 }
 
 /**
@@ -142,6 +149,7 @@ async function sendEmail(content: EmailContent) {
     subject: content.subject,
     html: renderEmailHtml(content),
     text: renderEmailText(content),
+    dedupeKey: content.dedupeKey,
   });
   if (id) await sendOne(id);
 }
@@ -772,6 +780,11 @@ export async function notifyDeadlineApproaching(params: {
   societyName: string;
   requirementName: string;
   reviewUrl: string;
+  // Cron-route callers pass a per-requirement base (e.g. the requirement
+  // id) so a retry of the same event — even one triggered by a bug, not
+  // just a legitimate re-run — can't send the same manager the same
+  // reminder twice. See EmailContent.dedupeKey.
+  dedupeKeyBase?: string;
 }) {
   await Promise.all(
     params.managerEmails.map((to) =>
@@ -783,6 +796,7 @@ export async function notifyDeadlineApproaching(params: {
         heading: "Quote deadline approaching",
         paragraphs: [`The quote deadline for "${params.requirementName}" closes within 24 hours.`],
         cta: { label: "Review Requirement", url: params.reviewUrl },
+        dedupeKey: params.dedupeKeyBase ? `deadline-approaching:${params.dedupeKeyBase}:${to}` : undefined,
       }),
     ),
   );
@@ -795,6 +809,7 @@ export async function notifyBidsReadyForReview(params: {
   societyName: string;
   requirementName: string;
   reviewUrl: string;
+  dedupeKeyBase?: string;
 }) {
   await Promise.all(
     params.managerEmails.map((to) =>
@@ -808,6 +823,7 @@ export async function notifyBidsReadyForReview(params: {
           `Quote submission has closed for "${params.requirementName}" — the submitted quotes are ready for your review and recommendation.`,
         ],
         cta: { label: "Review Quotes", url: params.reviewUrl },
+        dedupeKey: params.dedupeKeyBase ? `bids-ready:${params.dedupeKeyBase}:${to}` : undefined,
       }),
     ),
   );
@@ -864,6 +880,7 @@ export async function notifyBidDeadlineReminder(params: {
   vendorPhone?: string | null;
   requirementName: string;
   reviewUrl: string;
+  dedupeKeyBase?: string;
 }) {
   await sendEmail({
     templateKey: "vendor.bid_deadline_reminder",
@@ -873,6 +890,7 @@ export async function notifyBidDeadlineReminder(params: {
     heading: "Quote deadline closing soon",
     paragraphs: [`The quote deadline for "${params.requirementName}" closes within 24 hours.`],
     cta: { label: "Submit your quote", url: params.reviewUrl },
+    dedupeKey: params.dedupeKeyBase ? `bid-deadline-reminder:${params.dedupeKeyBase}:${params.vendorEmail}` : undefined,
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
   // await sendSms({ to: params.vendorPhone, body: `Wisesoc: The quote deadline for "${params.requirementName}" closes within 24 hours. Submit your quote: ${params.reviewUrl}` });

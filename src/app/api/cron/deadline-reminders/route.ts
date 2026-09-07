@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
               societyName: requirement.society.name,
               requirementName: requirement.name,
               reviewUrl: `${base}/society/${requirement.societyId}/requirements/${requirement.id}`,
+              dedupeKeyBase: requirement.id,
             })
           : Promise.resolve(),
         ...pendingVendors.map((v) =>
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
             vendorPhone: v.ownerPhone,
             requirementName: requirement.name,
             reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
+            dedupeKeyBase: requirement.id,
           }),
         ),
       ]);
@@ -112,6 +114,7 @@ export async function GET(request: NextRequest) {
           societyName: requirement.society.name,
           requirementName: requirement.name,
           reviewUrl: `${base}/society/${requirement.societyId}/requirements/${requirement.id}`,
+          dedupeKeyBase: requirement.id,
         });
       }
 
