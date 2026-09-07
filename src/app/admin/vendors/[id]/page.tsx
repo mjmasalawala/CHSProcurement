@@ -34,7 +34,7 @@ export default async function AdminVendorPage({ params }: { params: Promise<{ id
         </div>
         <Link
           href={`/admin/vendors/${id}/edit`}
-          className="text-[13px] font-medium text-accent-primary underline hover:no-underline"
+          className="shrink-0 rounded-lg border border-border-strong bg-background-primary px-4 py-2 text-[15px] font-semibold text-text-primary shadow-xs transition-colors duration-150 hover:bg-background-secondary"
         >
           Edit profile
         </Link>
