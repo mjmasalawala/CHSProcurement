@@ -73,49 +73,81 @@ export default async function SuggestVendorPage({
         {suggestions.length === 0 ? (
           <p className="text-[13px] text-text-secondary">No vendors asked yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px]">
-              <thead>
-                <tr className="border-b border-border-subtle text-text-tertiary">
-                  <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Vendor</th>
-                  <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Email</th>
-                  <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Phone</th>
-                  <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Suggested by</th>
-                  <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Date</th>
-                  <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Status</th>
-                  <th className="pb-2 text-[11px] font-semibold uppercase tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {suggestions.map((s) => {
-                  const status = registrationStatus(s.vendorEmail);
-                  return (
-                    <tr key={s.id} className="border-b border-border-subtle last:border-0">
-                      <td className="py-2 pr-2 font-medium whitespace-nowrap text-text-primary">{s.vendorName}</td>
-                      <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{s.vendorEmail}</td>
-                      <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{s.vendorPhone ?? "—"}</td>
-                      <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">
-                        {s.suggestedByUser.name ?? s.suggestedByUser.email}
-                      </td>
-                      <td className="py-2 pr-2 whitespace-nowrap text-text-secondary">{formatDate(s.createdAt)}</td>
-                      <td className="py-2 pr-2 whitespace-nowrap">
-                        <Badge tone={REGISTRATION_STATUS_TONE[status]}>
-                          {REGISTRATION_STATUS_LABEL[status]}
-                        </Badge>
-                      </td>
-                      <td className="py-2 whitespace-nowrap">
-                        {status === "REGISTERED" ? (
-                          <span className="text-[13px] text-text-tertiary">—</span>
-                        ) : (
-                          <ResendInviteButton societyId={id} vendorSuggestionId={s.id} />
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Mobile: card list */}
+            <div className="flex flex-col gap-2 md:hidden">
+              {suggestions.map((s) => {
+                const status = registrationStatus(s.vendorEmail);
+                return (
+                  <div
+                    key={s.id}
+                    className="flex flex-col gap-2 rounded-xl border border-border-subtle bg-background-primary p-4 shadow-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[15px] font-semibold text-text-primary">{s.vendorName}</p>
+                      <Badge tone={REGISTRATION_STATUS_TONE[status]} className="shrink-0">
+                        {REGISTRATION_STATUS_LABEL[status]}
+                      </Badge>
+                    </div>
+                    <div className="text-[13px] text-text-secondary">
+                      <p className="break-words">{s.vendorEmail}</p>
+                      <p>{s.vendorPhone ?? "—"}</p>
+                    </div>
+                    <p className="text-[13px] text-text-tertiary">
+                      Asked by {s.suggestedByUser.name ?? s.suggestedByUser.email} · {formatDate(s.createdAt)}
+                    </p>
+                    {status !== "REGISTERED" && (
+                      <ResendInviteButton societyId={id} vendorSuggestionId={s.id} fullWidth />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-border-subtle text-text-tertiary">
+                    <th className="pb-2 pr-3 text-[11px] font-semibold uppercase tracking-wide">Vendor</th>
+                    <th className="pb-2 pr-3 text-[11px] font-semibold uppercase tracking-wide">Suggested by</th>
+                    <th className="pb-2 pr-3 text-[11px] font-semibold uppercase tracking-wide">Status</th>
+                    <th className="pb-2 text-[11px] font-semibold uppercase tracking-wide">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suggestions.map((s) => {
+                    const status = registrationStatus(s.vendorEmail);
+                    return (
+                      <tr key={s.id} className="border-b border-border-subtle last:border-0">
+                        <td className="py-2 pr-3 align-top">
+                          <p className="font-medium text-text-primary">{s.vendorName}</p>
+                          <p className="text-text-secondary">{s.vendorEmail}</p>
+                          <p className="text-text-tertiary">{s.vendorPhone ?? "—"}</p>
+                        </td>
+                        <td className="py-2 pr-3 align-top whitespace-nowrap text-text-secondary">
+                          <p>{s.suggestedByUser.name ?? s.suggestedByUser.email}</p>
+                          <p className="text-text-tertiary">{formatDate(s.createdAt)}</p>
+                        </td>
+                        <td className="py-2 pr-3 align-top whitespace-nowrap">
+                          <Badge tone={REGISTRATION_STATUS_TONE[status]}>
+                            {REGISTRATION_STATUS_LABEL[status]}
+                          </Badge>
+                        </td>
+                        <td className="py-2 align-top whitespace-nowrap">
+                          {status === "REGISTERED" ? (
+                            <span className="text-[13px] text-text-tertiary">—</span>
+                          ) : (
+                            <ResendInviteButton societyId={id} vendorSuggestionId={s.id} />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
