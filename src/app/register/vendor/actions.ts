@@ -105,21 +105,32 @@ export async function registerVendor(
   }
 
   const base = getBaseUrl();
-  await Promise.all([
-    notifyNewRegistration({
-      type: "Vendor",
-      name: input.name,
-      contactName: input.ownerName,
-      contactEmail: input.ownerEmail,
-      approveUrl: `${base}/admin/vendors/${vendorCompanyId}`,
-    }),
-    notifyRegistrationSubmitted({
-      type: "Vendor",
-      name: input.name,
-      contactEmail: input.ownerEmail,
-      contactPhone: input.ownerPhone,
-    }),
-  ]);
+  try {
+    await Promise.all([
+      notifyNewRegistration({
+        type: "Vendor",
+        name: input.name,
+        contactName: input.ownerName,
+        contactEmail: input.ownerEmail,
+        approveUrl: `${base}/admin/vendors/${vendorCompanyId}`,
+      }),
+      notifyRegistrationSubmitted({
+        type: "Vendor",
+        name: input.name,
+        contactEmail: input.ownerEmail,
+        contactPhone: input.ownerPhone,
+      }),
+    ]);
+  } catch (err) {
+    // The VendorCompany + User already exist at this point — a delivery
+    // hiccup on either admin-facing email must not strand the account
+    // (registerVendor used to crash here, before the phone-verification
+    // step even ran, leaving an orphaned unverified account with no way
+    // to retry under the same email). Log and keep going; the admin
+    // notification is a courtesy, not something registration should
+    // depend on succeeding.
+    console.error("registerVendor: failed to send admin notification email(s)", err);
+  }
 
   try {
     await sendPhoneVerificationCode(userId, input.ownerPhone);
