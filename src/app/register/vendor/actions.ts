@@ -7,6 +7,7 @@ import { hashPassword } from "@/lib/password";
 import { ROLE_DEFAULT_PERMISSIONS } from "@/lib/permissions";
 import { notifyNewRegistration, notifyRegistrationSubmitted } from "@/lib/notifications";
 import { getBaseUrl } from "@/lib/base-url";
+import { sendPhoneVerificationCode, verifyPhoneVerificationCode } from "@/lib/phone-verification";
 
 export interface VendorRegistrationInput {
   name: string;
@@ -33,6 +34,14 @@ export interface VendorRegistrationInput {
  * still starts PENDING_VERIFICATION and can't be matched to requirements
  * until an admin approves it (M3) — see vendor-registration-portal-spec.md
  * Section 3.
+ *
+ * "Immediately" now means "as soon as they verify their phone" — this
+ * creates the VendorCompany + User and sends a WhatsApp OTP to ownerPhone,
+ * but does not sign them in. verifyVendorRegistrationPhone below is what
+ * actually starts the session, once the code is confirmed. If they abandon
+ * the flow at the OTP screen, the account exists but is simply never signed
+ * into — a known, accepted gap (no "resume verification" path exists yet;
+ * retrying registration with the same email hits the P2002 case below).
  */
 export async function registerVendor(
   input: VendorRegistrationInput,
@@ -42,6 +51,7 @@ export async function registerVendor(
   }
 
   let vendorCompanyId: string;
+  let userId: string;
   try {
     const passwordHash = await hashPassword(input.password);
 
@@ -69,7 +79,7 @@ export async function registerVendor(
       });
     }
 
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email: input.ownerEmail,
         name: input.ownerName,
@@ -86,6 +96,7 @@ export async function registerVendor(
     });
 
     vendorCompanyId = vendorCompany.id;
+    userId = user.id;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return { error: "An account with this email already exists." };
@@ -110,9 +121,43 @@ export async function registerVendor(
     }),
   ]);
 
-  await signIn("credentials", {
-    email: input.ownerEmail,
-    password: input.password,
-    redirectTo: "/app",
-  });
+  try {
+    await sendPhoneVerificationCode(userId, input.ownerPhone);
+  } catch (err) {
+    console.error("registerVendor: failed to send verification code", err);
+    return { error: "Your account was created, but we couldn't send a verification code to that number. Contact support to finish setting up your login." };
+  }
+}
+
+/** Re-sends a fresh code to the phone number given at registration. */
+export async function resendVendorRegistrationCode(email: string, phone: string): Promise<{ error: string } | { ok: true }> {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return { error: "Account not found." };
+
+  try {
+    await sendPhoneVerificationCode(user.id, phone.trim());
+  } catch (err) {
+    console.error("resendVendorRegistrationCode: failed to send verification code", err);
+    return { error: "Couldn't resend the code — try again in a moment." };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Confirms the WhatsApp OTP sent at the end of registerVendor, then signs
+ * the new Vendor Owner in — this is what actually starts their session.
+ */
+export async function verifyVendorRegistrationPhone(
+  email: string,
+  code: string,
+  password: string,
+): Promise<{ error: string } | undefined> {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return { error: "Account not found." };
+
+  const result = await verifyPhoneVerificationCode(user.id, code.trim());
+  if ("error" in result) return result;
+
+  await signIn("credentials", { email, password, redirectTo: "/app" });
 }

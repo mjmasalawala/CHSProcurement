@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { sendPhoneVerificationCode, verifyPhoneVerificationCode } from "@/lib/phone-verification";
 
 async function loadInvite(token: string) {
   return prisma.invite.findUnique({
@@ -59,13 +60,8 @@ async function signInAndRedirect(email: string, password: string, redirectTo: st
 }
 
 /**
- * New-user (or not-yet-onboarded) invite acceptance, step 1 of 2. Phone OTP
- * verification (originally step 2 of 3) is skipped for now — no WhatsApp
- * Business number/template is configured yet (see lib/whatsapp.ts), so
- * there's no way to actually deliver a code. lib/phone-verification.ts and
- * the PhoneVerification model are left in place, unused, to reconnect once
- * a real send path exists; submitInviteProfile below saves the phone number
- * as given and completes the invite immediately instead.
+ * New-user (or not-yet-onboarded) invite acceptance, step 1 of 3 (2 of 3 is
+ * submitInviteProfile, 3 of 3 is verifyInvitePhone below).
  *
  * Handles two cases with the same action: if no password is set yet, this
  * sets one; if a password already exists (the user set it in step 1 on a
@@ -103,19 +99,17 @@ export async function setInvitePassword(
 }
 
 /**
- * Step 2 (final): name + phone. Saves both directly and completes the
- * invite — no OTP round-trip (see the note above setInvitePassword).
- * phoneVerifiedAt is still stamped, unverified, so this remains a one-time
- * onboarding step rather than something every future invite re-asks (see
- * needsOnboarding in page.tsx); it stops meaning "OTP-confirmed" until a
- * real send path replaces this.
+ * Step 2 of 3: name + phone. Saves the name, then sends a WhatsApp OTP to
+ * the phone number given — User.phone/phoneVerifiedAt aren't stamped here;
+ * verifyInvitePhone below is the only writer of those, via
+ * verifyPhoneVerificationCode, once the code is actually confirmed. The
+ * invite itself isn't accepted yet either — that also waits for step 3.
  */
 export async function submitInviteProfile(
   token: string,
   name: string,
   phone: string,
-  password: string,
-): Promise<{ error: string } | undefined> {
+): Promise<{ error: string } | { ok: true }> {
   const invite = await loadInvite(token);
   requireOpenInvite(invite, token);
   if (!invite) return { error: "This invite link is invalid or has already been used." };
@@ -127,8 +121,51 @@ export async function submitInviteProfile(
 
   await prisma.user.update({
     where: { id: invite.roleAssignment.userId },
-    data: { name: trimmedName, phone: trimmedPhone, phoneVerifiedAt: new Date() },
+    data: { name: trimmedName },
   });
+
+  try {
+    await sendPhoneVerificationCode(invite.roleAssignment.userId, trimmedPhone);
+  } catch (err) {
+    console.error("submitInviteProfile: failed to send verification code", err);
+    return { error: "Couldn't send a verification code to that number — check it and try again." };
+  }
+
+  return { ok: true };
+}
+
+/** Re-sends a fresh code to the same number submitted in step 2. */
+export async function resendInvitePhoneCode(token: string, phone: string): Promise<{ error: string } | { ok: true }> {
+  const invite = await loadInvite(token);
+  requireOpenInvite(invite, token);
+  if (!invite) return { error: "This invite link is invalid or has already been used." };
+
+  try {
+    await sendPhoneVerificationCode(invite.roleAssignment.userId, phone.trim());
+  } catch (err) {
+    console.error("resendInvitePhoneCode: failed to send verification code", err);
+    return { error: "Couldn't resend the code — try again in a moment." };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Step 3 of 3 (final): confirms the WhatsApp OTP, which is what actually
+ * stamps User.phone/phoneVerifiedAt (see verifyPhoneVerificationCode) —
+ * only then is the invite marked accepted and the session started.
+ */
+export async function verifyInvitePhone(
+  token: string,
+  code: string,
+  password: string,
+): Promise<{ error: string } | undefined> {
+  const invite = await loadInvite(token);
+  requireOpenInvite(invite, token);
+  if (!invite) return { error: "This invite link is invalid or has already been used." };
+
+  const result = await verifyPhoneVerificationCode(invite.roleAssignment.userId, code.trim());
+  if ("error" in result) return result;
 
   await markAccepted(invite.id, invite.roleAssignmentId);
   await signInAndRedirect(invite.email, password, await postAcceptRedirectPath(invite.roleAssignment));

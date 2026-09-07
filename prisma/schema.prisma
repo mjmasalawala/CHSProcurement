@@ -17,10 +17,13 @@ model User {
   name            String?
   // Null if the user only ever signs in via Google.
   passwordHash    String?
-  // Collected + OTP-verified during invite acceptance (invite/[token] —
-  // Vendor Owner registration sets name/phone directly at signup instead,
-  // so this is specifically for invited Manager/Office Bearer/Vendor Staff
-  // users). Both null until phoneVerifiedAt is stamped.
+  // Collected + OTP-verified during invite acceptance (invite/[token]) and
+  // during Vendor Owner self-registration (register/vendor) — both flows
+  // call lib/phone-verification.ts's verifyPhoneVerificationCode, which is
+  // the only writer of this pair. Both null until phoneVerifiedAt is
+  // stamped. Distinct from VendorCompany.ownerPhone, which is business
+  // contact data entered at registration regardless of whether this User-
+  // level OTP verification has completed.
   phone           String?
   phoneVerifiedAt DateTime?
   createdAt       DateTime  @default(now())

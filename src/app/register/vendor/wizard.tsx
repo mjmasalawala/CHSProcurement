@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MultiSelectDropdown } from "@/components/ui/multi-select";
 import { TagInput } from "@/components/ui/tag-input";
 import { Button } from "@/components/ui/button";
-import { registerVendor, type VendorRegistrationInput } from "./actions";
+import { registerVendor, resendVendorRegistrationCode, verifyVendorRegistrationPhone, type VendorRegistrationInput } from "./actions";
 import { isValidEmail } from "@/lib/validation";
 
 const BUSINESS_TYPES = [
@@ -20,7 +20,7 @@ const BUSINESS_TYPES = [
   { value: "OTHER", label: "Other" },
 ];
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 interface Props {
   categories: { id: string; name: string }[];
@@ -34,6 +34,8 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [resent, setResent] = useState(false);
   const [form, setForm] = useState<VendorRegistrationInput>({
     name: initial?.name ?? "",
     businessType: "",
@@ -69,10 +71,26 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
     setSubmitting(true);
     setError(null);
     const result = await registerVendor(form);
-    if (result?.error) {
-      setError(result.error);
-      setSubmitting(false);
-    }
+    setSubmitting(false);
+    if (result?.error) setError(result.error);
+    else setStep(7);
+  }
+
+  async function handleVerify() {
+    setSubmitting(true);
+    setError(null);
+    const result = await verifyVendorRegistrationPhone(form.ownerEmail, code, form.password);
+    setSubmitting(false);
+    if (result?.error) setError(result.error);
+    // On success signIn redirects (throws internally) — no further handling here.
+  }
+
+  async function handleResend() {
+    setError(null);
+    setResent(false);
+    const result = await resendVendorRegistrationCode(form.ownerEmail, form.ownerPhone);
+    if ("error" in result) setError(result.error);
+    else setResent(true);
   }
 
   return (
@@ -282,6 +300,30 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
           <Button type="button" className="w-full" onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Submitting…" : "Submit registration"}
           </Button>
+        </WizardShell>
+      )}
+
+      {step === 7 && (
+        <WizardShell step={7} totalSteps={TOTAL_STEPS} title="Verify your phone">
+          <p className="text-[13px] text-text-secondary">
+            We sent a 6-digit code to {form.ownerPhone} on WhatsApp — enter it below to finish setting up your account.
+          </p>
+          <div>
+            <Label htmlFor="code">Verification code</Label>
+            <Input id="code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
+          </div>
+          {error && <p className="text-[13px] text-status-error">{error}</p>}
+          <Button type="button" className="w-full" onClick={handleVerify} disabled={submitting}>
+            {submitting ? "Verifying…" : "Verify & finish"}
+          </Button>
+          <button
+            type="button"
+            onClick={handleResend}
+            className="text-[13px] font-medium text-accent-primary underline hover:no-underline"
+          >
+            Resend code
+          </button>
+          {resent && <p className="text-[13px] text-status-success">Code resent.</p>}
         </WizardShell>
       )}
     </div>
