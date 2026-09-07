@@ -16,7 +16,7 @@ export default async function AdminVendorPage({ params }: { params: Promise<{ id
 
   const vendor = await prisma.vendorCompany.findUnique({
     where: { id },
-    include: { serviceCategories: true, citiesServed: true },
+    include: { serviceCategories: true, citiesServed: true, categoryRequests: true },
   });
   if (!vendor) notFound();
 
@@ -45,7 +45,14 @@ export default async function AdminVendorPage({ params }: { params: Promise<{ id
         <Row label="Owner" value={`${vendor.ownerName} · ${vendor.ownerEmail} · ${vendor.ownerPhone}`} />
         <Row label="Address" value={vendor.registeredAddress} />
         <Row label="Categories" value={vendor.serviceCategories.map((c) => c.name).join(", ") || "—"} />
+        <Row
+          label="Requested Category"
+          value={vendor.categoryRequests.map((r) => `${r.name} (${r.status.toLowerCase()})`).join(", ") || "—"}
+        />
         <Row label="Cities" value={vendor.citiesServed.map((c) => c.name).join(", ") || "—"} />
+        <Row label="Societies Already Serviced" value={vendor.societiesServiced.join(", ") || "—"} />
+        <Row label="Years in Business" value={vendor.yearsInBusiness != null ? String(vendor.yearsInBusiness) : "—"} />
+        <Row label="Description" value={vendor.description || "—"} />
       </Card>
 
       <ApproveRejectPanel vendorCompanyId={vendor.id} status={vendor.status} />
