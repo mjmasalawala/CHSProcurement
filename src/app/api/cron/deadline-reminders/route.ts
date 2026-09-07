@@ -44,39 +44,49 @@ export async function GET(request: NextRequest) {
     },
   });
 
+  let approachingFailed = 0;
   for (const requirement of approaching) {
-    const managers = await prisma.roleAssignment.findMany({
-      where: { entityType: "SOCIETY", entityId: requirement.societyId, role: "MANAGER", status: "ACTIVE" },
-      include: { user: true },
-    });
-    const alreadyBid = new Set(requirement.bids.map((b) => b.vendorCompanyId));
-    const pendingVendors = requirement.invites
-      .map((i) => i.vendorCompany)
-      .filter((v) => !alreadyBid.has(v.id));
+    try {
+      const managers = await prisma.roleAssignment.findMany({
+        where: { entityType: "SOCIETY", entityId: requirement.societyId, role: "MANAGER", status: "ACTIVE" },
+        include: { user: true },
+      });
+      const alreadyBid = new Set(requirement.bids.map((b) => b.vendorCompanyId));
+      const pendingVendors = requirement.invites
+        .map((i) => i.vendorCompany)
+        .filter((v) => !alreadyBid.has(v.id));
 
-    await Promise.all([
-      managers.length > 0
-        ? notifyDeadlineApproaching({
-            managerEmails: managers.map((m) => m.user.email),
-            societyName: requirement.society.name,
+      await Promise.all([
+        managers.length > 0
+          ? notifyDeadlineApproaching({
+              managerEmails: managers.map((m) => m.user.email),
+              societyName: requirement.society.name,
+              requirementName: requirement.name,
+              reviewUrl: `${base}/society/${requirement.societyId}/requirements/${requirement.id}`,
+            })
+          : Promise.resolve(),
+        ...pendingVendors.map((v) =>
+          notifyBidDeadlineReminder({
+            vendorEmail: v.ownerEmail,
+            vendorPhone: v.ownerPhone,
             requirementName: requirement.name,
-            reviewUrl: `${base}/society/${requirement.societyId}/requirements/${requirement.id}`,
-          })
-        : Promise.resolve(),
-      ...pendingVendors.map((v) =>
-        notifyBidDeadlineReminder({
-          vendorEmail: v.ownerEmail,
-          vendorPhone: v.ownerPhone,
-          requirementName: requirement.name,
-          reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
-        }),
-      ),
-    ]);
+            reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
+          }),
+        ),
+      ]);
 
-    await prisma.requirement.update({
-      where: { id: requirement.id },
-      data: { deadlineReminderSentAt: now },
-    });
+      await prisma.requirement.update({
+        where: { id: requirement.id },
+        data: { deadlineReminderSentAt: now },
+      });
+    } catch (err) {
+      // A single bad recipient (e.g. a Resend rejection) must not crash the
+      // whole hourly run — every other requirement in this batch still
+      // needs its reminder sent. Left without deadlineReminderSentAt set,
+      // so this one is retried next hour rather than silently dropped.
+      approachingFailed++;
+      console.error(`deadline-reminders: failed for requirement ${requirement.id}`, err);
+    }
   }
 
   const closed = await prisma.requirement.findMany({
@@ -88,29 +98,37 @@ export async function GET(request: NextRequest) {
     include: { society: true },
   });
 
+  let closedFailed = 0;
   for (const requirement of closed) {
-    const managers = await prisma.roleAssignment.findMany({
-      where: { entityType: "SOCIETY", entityId: requirement.societyId, role: "MANAGER", status: "ACTIVE" },
-      include: { user: true },
-    });
-
-    if (managers.length > 0) {
-      await notifyBidsReadyForReview({
-        managerEmails: managers.map((m) => m.user.email),
-        societyName: requirement.society.name,
-        requirementName: requirement.name,
-        reviewUrl: `${base}/society/${requirement.societyId}/requirements/${requirement.id}`,
+    try {
+      const managers = await prisma.roleAssignment.findMany({
+        where: { entityType: "SOCIETY", entityId: requirement.societyId, role: "MANAGER", status: "ACTIVE" },
+        include: { user: true },
       });
-    }
 
-    await prisma.requirement.update({
-      where: { id: requirement.id },
-      data: { deadlineClosedNotifiedAt: now },
-    });
+      if (managers.length > 0) {
+        await notifyBidsReadyForReview({
+          managerEmails: managers.map((m) => m.user.email),
+          societyName: requirement.society.name,
+          requirementName: requirement.name,
+          reviewUrl: `${base}/society/${requirement.societyId}/requirements/${requirement.id}`,
+        });
+      }
+
+      await prisma.requirement.update({
+        where: { id: requirement.id },
+        data: { deadlineClosedNotifiedAt: now },
+      });
+    } catch (err) {
+      closedFailed++;
+      console.error(`deadline-reminders: failed for requirement ${requirement.id}`, err);
+    }
   }
 
   return NextResponse.json({
-    approachingNotified: approaching.length,
-    closedNotified: closed.length,
+    approachingNotified: approaching.length - approachingFailed,
+    approachingFailed,
+    closedNotified: closed.length - closedFailed,
+    closedFailed,
   });
 }
