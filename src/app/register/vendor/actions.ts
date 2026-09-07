@@ -55,49 +55,63 @@ export async function registerVendor(
   try {
     const passwordHash = await hashPassword(input.password);
 
-    const vendorCompany = await prisma.vendorCompany.create({
-      data: {
-        name: input.name,
-        businessType: input.businessType as Prisma.VendorCompanyCreateInput["businessType"],
-        ownerName: input.ownerName,
-        ownerEmail: input.ownerEmail,
-        ownerPhone: input.ownerPhone,
-        registeredAddress: input.registeredAddress,
-        gstNumber: input.gstNumber || null,
-        panNumber: input.panNumber || null,
-        yearsInBusiness: input.yearsInBusiness ? Number(input.yearsInBusiness) : null,
-        description: input.description || null,
-        societiesServiced: input.societiesServiced,
-        serviceCategories: { connect: input.categoryIds.map((id) => ({ id })) },
-        citiesServed: { connect: input.cityIds.map((id) => ({ id })) },
-      },
-    });
-
-    if (input.requestedCategory.trim()) {
-      await prisma.categoryRequest.create({
-        data: { name: input.requestedCategory.trim(), vendorCompanyId: vendorCompany.id },
+    // All three creates share one transaction — VendorCompany.ownerEmail is
+    // unique, so a failure between it and User.create (a real incident:
+    // 2026-09-07, a mid-flight schema migration made the User.create below
+    // throw on a column that didn't exist in prod yet) used to leave a
+    // stranded VendorCompany with no matching User. Every retry under that
+    // email then hit *that* row's unique constraint and got the misleading
+    // "account already exists" error, with no way to tell the difference
+    // from a real duplicate. Wrapping this in $transaction means any
+    // failure — that class of bug, a transient DB blip, anything — rolls
+    // every write back together instead of stranding a partial account.
+    const { vendorCompany, user } = await prisma.$transaction(async (tx) => {
+      const vendorCompany = await tx.vendorCompany.create({
+        data: {
+          name: input.name,
+          businessType: input.businessType as Prisma.VendorCompanyCreateInput["businessType"],
+          ownerName: input.ownerName,
+          ownerEmail: input.ownerEmail,
+          ownerPhone: input.ownerPhone,
+          registeredAddress: input.registeredAddress,
+          gstNumber: input.gstNumber || null,
+          panNumber: input.panNumber || null,
+          yearsInBusiness: input.yearsInBusiness ? Number(input.yearsInBusiness) : null,
+          description: input.description || null,
+          societiesServiced: input.societiesServiced,
+          serviceCategories: { connect: input.categoryIds.map((id) => ({ id })) },
+          citiesServed: { connect: input.cityIds.map((id) => ({ id })) },
+        },
       });
-    }
 
-    const user = await prisma.user.create({
-      data: {
-        email: input.ownerEmail,
-        name: input.ownerName,
-        passwordHash,
-        // Blocks credentials login (auth.ts authorize()) until
-        // verifyVendorRegistrationPhone succeeds — otherwise the password
-        // set on this step alone would already be enough to log in,
-        // bypassing the OTP screen entirely.
-        phoneVerificationRequired: true,
-        roleAssignments: {
-          create: {
-            entityType: "VENDOR_COMPANY",
-            entityId: vendorCompany.id,
-            role: "VENDOR_OWNER",
-            permissions: ROLE_DEFAULT_PERMISSIONS.VENDOR_OWNER,
+      if (input.requestedCategory.trim()) {
+        await tx.categoryRequest.create({
+          data: { name: input.requestedCategory.trim(), vendorCompanyId: vendorCompany.id },
+        });
+      }
+
+      const user = await tx.user.create({
+        data: {
+          email: input.ownerEmail,
+          name: input.ownerName,
+          passwordHash,
+          // Blocks credentials login (auth.ts authorize()) until
+          // verifyVendorRegistrationPhone succeeds — otherwise the password
+          // set on this step alone would already be enough to log in,
+          // bypassing the OTP screen entirely.
+          phoneVerificationRequired: true,
+          roleAssignments: {
+            create: {
+              entityType: "VENDOR_COMPANY",
+              entityId: vendorCompany.id,
+              role: "VENDOR_OWNER",
+              permissions: ROLE_DEFAULT_PERMISSIONS.VENDOR_OWNER,
+            },
           },
         },
-      },
+      });
+
+      return { vendorCompany, user };
     });
 
     vendorCompanyId = vendorCompany.id;
