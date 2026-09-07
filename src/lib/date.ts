@@ -16,6 +16,20 @@ export function formatDateTime(date: Date | string): string {
   return `${formatDate(d)}, ${time}`;
 }
 
+// WhatsApp deadline placeholder format ("DD-MMM-YY HH:MM", 24h clock) for
+// wisesoc_requirement_matched_v1 — a distinct spec from formatDate/
+// formatDateTime (4-digit year, 12h clock) because the template's
+// placeholder format was fixed independently when the template was
+// approved; changing it would mean resubmitting the template.
+export function formatWhatsappDeadline(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const day = d.getDate().toString().padStart(2, "0");
+  const year = (d.getFullYear() % 100).toString().padStart(2, "0");
+  const hours = d.getHours().toString().padStart(2, "0");
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  return `${day}-${MONTHS[d.getMonth()]}-${year} ${hours}:${minutes}`;
+}
+
 // Coarse elapsed/remaining-time phrasing (e.g. "2 days", "18 hours") — for
 // contexts like "given X to quote", where a precise duration is noise.
 export function formatDuration(ms: number): string {

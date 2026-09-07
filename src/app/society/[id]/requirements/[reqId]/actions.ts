@@ -103,8 +103,11 @@ export async function updateRequirement(
           notifyRequirementMatched({
             vendorEmail: v.ownerEmail,
             vendorPhone: v.ownerPhone,
+            vendorName: v.name,
             categoryName: categoryNames,
             societyName: society.name,
+            requirementTitle: updated.name,
+            deadline: bidDeadline,
             reviewUrl: `${base}/vendor/${v.id}/requirements/${requirementId}`,
           }),
         ),
@@ -208,8 +211,11 @@ export async function extendRequirementDeadline(
           notifyRequirementMatched({
             vendorEmail: v.ownerEmail,
             vendorPhone: v.ownerPhone,
+            vendorName: v.name,
             categoryName: categoryNames,
             societyName: society.name,
+            requirementTitle: requirement.name,
+            deadline,
             reviewUrl: `${base}/vendor/${v.id}/requirements/${requirementId}`,
           }),
         ),

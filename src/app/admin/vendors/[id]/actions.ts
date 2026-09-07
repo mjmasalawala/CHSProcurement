@@ -30,6 +30,7 @@ export async function approveVendor(vendorCompanyId: string): Promise<void> {
       contactEmail: vendor.ownerEmail,
       contactPhone: vendor.ownerPhone,
       dashboardUrl: `${base}/vendor/${vendorCompanyId}/requirements`,
+      vendorCompanyId,
     });
   } catch (err) {
     console.error("Failed to notify vendor of approval:", err);

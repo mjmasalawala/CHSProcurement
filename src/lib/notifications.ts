@@ -2,6 +2,7 @@ import { getBaseUrl } from "@/lib/base-url";
 import { enqueueEmail, enqueueWhatsapp } from "@/lib/messaging/outbox";
 import { sendOne } from "@/lib/messaging/dispatcher";
 import { toE164India } from "@/lib/whatsapp";
+import { formatWhatsappDeadline } from "@/lib/date";
 import type { MessageCategory } from "@/generated/prisma/enums";
 // SMS notifications are disabled for now — MSG91 is wired up for phone-
 // verification OTPs only (lib/phone-verification.ts), since sending
@@ -665,6 +666,11 @@ export async function notifyApproval(params: {
   // platform via the separate activation invite email (createInvite), so
   // this is just for the Vendor Owner's "check requirements" nudge.
   dashboardUrl?: string;
+  // Vendor-only — the raw VendorCompany id, needed separately from
+  // dashboardUrl because the WhatsApp button below links through
+  // /vendor-profile/{id} (see that route's own comment), not the
+  // requirements dashboard the email CTA points at.
+  vendorCompanyId?: string;
 }) {
   await sendEmail({
     templateKey: "registration.approved",
@@ -676,6 +682,17 @@ export async function notifyApproval(params: {
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
   // await sendSms({ to: params.contactPhone, body: `Wisesoc: Good news — your ${params.type} registration for "${params.name}" on Wisesoc has been approved and is now active.` });
+
+  if (params.type === "Vendor" && params.contactPhone && params.vendorCompanyId) {
+    await sendWhatsapp({
+      templateKey: "vendor.approved",
+      category: "TRANSACTIONAL",
+      to: params.contactPhone,
+      text: `Great news — your Wisesoc registration for ${params.name} has been approved. Next step: complete your profile with more details so we can match you accurately with requirements on the portal from societies.`,
+      templateParams: [params.name],
+      buttonParam: params.vendorCompanyId,
+    });
+  }
 }
 
 // Society registration confirmation to the registrant, sent only when the
@@ -708,8 +725,11 @@ export async function notifySocietyRegistrationApprovedToRegistrant(params: {
 export async function notifyRequirementMatched(params: {
   vendorEmail: string;
   vendorPhone?: string | null;
+  vendorName: string;
   categoryName: string;
   societyName: string;
+  requirementTitle: string;
+  deadline: Date;
   reviewUrl: string;
 }) {
   await sendEmail({
@@ -722,6 +742,17 @@ export async function notifyRequirementMatched(params: {
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
   // await sendSms({ to: params.vendorPhone, body: `Wisesoc: A new ${params.categoryName} requirement from ${params.societyName} matches your profile. Submit your quote: ${params.reviewUrl}` });
+
+  if (params.vendorPhone) {
+    await sendWhatsapp({
+      templateKey: "requirement.matched",
+      category: "TRANSACTIONAL",
+      to: params.vendorPhone,
+      text: `Requirement - "${params.requirementTitle}" in ${params.categoryName} category has been matched for ${params.vendorName}. Log in to your Wisesoc account by ${formatWhatsappDeadline(params.deadline)} and submit your quote.`,
+      templateParams: [params.requirementTitle, params.categoryName, params.vendorName, formatWhatsappDeadline(params.deadline)],
+      // Login button is a static URL (no per-recipient suffix) — no buttonParam needed.
+    });
+  }
 }
 
 // Used when a vendor becomes newly eligible for several open requirements at
@@ -731,7 +762,8 @@ export async function notifyRequirementMatched(params: {
 export async function notifyVendorMatchedRequirements(params: {
   vendorEmail: string;
   vendorPhone?: string | null;
-  requirements: { categoryName: string; societyName: string }[];
+  vendorName: string;
+  requirements: { title: string; categoryName: string; societyName: string; deadline: Date }[];
   dashboardUrl: string;
 }) {
   const count = params.requirements.length;
@@ -747,6 +779,24 @@ export async function notifyVendorMatchedRequirements(params: {
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
   // await sendSms({ to: params.vendorPhone, body: `Wisesoc: You've been matched with ${count} new requirement${count === 1 ? "" : "s"}. Check your dashboard: ${params.dashboardUrl}` });
+
+  // One WhatsApp per matched requirement, even though the email above is a
+  // single batch summary (2026-09-07 product decision) — each message uses
+  // the same wisesoc_requirement_matched_v1 template as the single-match
+  // path (notifyRequirementMatched), so a vendor can't tell from the
+  // message itself whether it came from a batch trigger or a fresh
+  // requirement.
+  if (params.vendorPhone) {
+    for (const r of params.requirements) {
+      await sendWhatsapp({
+        templateKey: "requirement.matched",
+        category: "TRANSACTIONAL",
+        to: params.vendorPhone,
+        text: `Requirement - "${r.title}" in ${r.categoryName} category has been matched for ${params.vendorName}. Log in to your Wisesoc account by ${formatWhatsappDeadline(r.deadline)} and submit your quote.`,
+        templateParams: [r.title, r.categoryName, params.vendorName, formatWhatsappDeadline(r.deadline)],
+      });
+    }
+  }
 }
 
 // M7 — vendor-registration-portal-spec.md Section 9, "New category request

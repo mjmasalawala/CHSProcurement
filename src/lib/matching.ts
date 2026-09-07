@@ -21,7 +21,7 @@ export async function matchVendors(categoryIds: string[], cityId: string) {
       serviceCategories: { some: { id: { in: categoryIds } } },
       citiesServed: { some: { id: cityId } },
     },
-    select: { id: true, ownerEmail: true, ownerPhone: true },
+    select: { id: true, name: true, ownerEmail: true, ownerPhone: true },
   });
 }
 
@@ -37,6 +37,7 @@ export async function syncVendorRequirementMatches(vendorCompanyId: string): Pro
     where: { id: vendorCompanyId },
     select: {
       status: true,
+      name: true,
       ownerEmail: true,
       ownerPhone: true,
       serviceCategories: { select: { id: true } },
@@ -66,6 +67,8 @@ export async function syncVendorRequirementMatches(vendorCompanyId: string): Pro
     },
     select: {
       id: true,
+      name: true,
+      bidDeadline: true,
       categories: { select: { name: true } },
       society: { select: { name: true } },
     },
@@ -82,9 +85,12 @@ export async function syncVendorRequirementMatches(vendorCompanyId: string): Pro
     await notifyVendorMatchedRequirements({
       vendorEmail: vendor.ownerEmail,
       vendorPhone: vendor.ownerPhone,
+      vendorName: vendor.name,
       requirements: requirements.map((r) => ({
+        title: r.name,
         categoryName: r.categories.map((c) => c.name).join(", "),
         societyName: r.society.name,
+        deadline: r.bidDeadline,
       })),
       dashboardUrl: `${base}/vendor/${vendorCompanyId}`,
     });

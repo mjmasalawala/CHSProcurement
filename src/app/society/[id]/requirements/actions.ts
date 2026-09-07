@@ -138,8 +138,11 @@ export async function createRequirement(
           notifyRequirementMatched({
             vendorEmail: v.ownerEmail,
             vendorPhone: v.ownerPhone,
+            vendorName: v.name,
             categoryName: categoryNames,
             societyName: society.name,
+            requirementTitle: requirement.name,
+            deadline: bidDeadline,
             reviewUrl: `${base}/vendor/${v.id}/requirements/${requirement.id}`,
           }),
         ),

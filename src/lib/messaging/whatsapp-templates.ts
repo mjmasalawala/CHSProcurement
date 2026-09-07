@@ -92,6 +92,49 @@ const WHATSAPP_TEMPLATES: Record<string, TemplateByEnvironment> = {
     test: { name: "wisesoc_role_invite_v3", language: "en" },
     production: { name: "wisesoc_role_invite_v3", language: "en" },
   },
+
+  // Admin approves a vendor's registration (admin/vendors/[id]/actions.ts's
+  // approveVendor). Body: "Great news — your Wisesoc registration for
+  // {{1}} has been approved. *Next step*: complete your profile with more
+  // details so we can match you accurately with requirements on the
+  // portal from societies." ({{1}}=VendorCompany.name). One dynamic URL
+  // button, "Update Profile" → https://www.wisesoc.in/vendor-profile/{{1}},
+  // {{1}}=VendorCompany.id — routes through the /vendor-profile/[id]
+  // redirect (see that route for why: Meta only allows a dynamic button's
+  // variable as a bare trailing suffix, and /vendor/{id}/profile has
+  // /profile after the id).
+  //
+  // Submitted 2026-09-07 to the Test WABA as UTILITY (servicing an
+  // existing, already-registered vendor's account — distinct in kind from
+  // vendor.suggested/invite.role_activation, which both target someone
+  // with no prior relationship and got reclassified MARKETING regardless
+  // of wording). Pending Meta review — no `production` entry until
+  // approved there and mirrored, per the established test-first policy.
+  "vendor.approved": {
+    test: { name: "wisesoc_vendor_approved_v1", language: "en" },
+  },
+
+  // Requirement matched to an already-active vendor (two trigger paths:
+  // notifyRequirementMatched — a new requirement just matched vendors —
+  // and notifyVendorMatchedRequirements — a vendor became newly eligible
+  // for existing open requirements, one WhatsApp send per requirement per
+  // 2026-09-07 product decision, even though the email side stays one
+  // batch summary). Body: "Requirement - "{{1}}" in {{2}} category has
+  // been matched for {{3}}. Log in to your Wisesoc account by {{4}} and
+  // submit your quote." ({{1}}=requirement title, {{2}}=category name,
+  // {{3}}=vendor company name, {{4}}=bid deadline formatted
+  // DD-MMM-YY HH:MM via lib/date.ts's formatWhatsappDeadline — note this
+  // is a *different* placeholder order than originally specified, moved to
+  // satisfy Meta's "no variable immediately before only punctuation at the
+  // very end" rule). One static URL button, "Login to Wisesoc" →
+  // https://www.wisesoc.in/login (no variable — deliberately a plain
+  // login page, not a deep link, per product decision).
+  //
+  // Submitted 2026-09-07 to the Test WABA as UTILITY, same reasoning as
+  // vendor.approved above. Pending Meta review.
+  "requirement.matched": {
+    test: { name: "wisesoc_requirement_matched_v1", language: "en" },
+  },
 };
 
 /**
