@@ -3,6 +3,11 @@ import { Card } from "@/components/ui/card";
 import { signInWithGoogle } from "./actions";
 import { LoginForm } from "./login-form";
 
+const ERROR_MESSAGES: Record<string, string> = {
+  verify_with_password:
+    "Your phone hasn't been verified yet — log in with your email and password below to finish verifying it. (Google sign-in can't complete that step.)",
+};
+
 /**
  * Functional stand-in for M1 (proves the auth flow end-to-end). The real
  * landing/login page styling per landing-page-and-auth-flow-spec.md ships
@@ -22,7 +27,7 @@ export default async function LoginPage({
 
         {error && (
           <p className="mb-4 text-[13px] text-status-error">
-            Incorrect email or password.
+            {ERROR_MESSAGES[error] ?? "Incorrect email or password."}
           </p>
         )}
 

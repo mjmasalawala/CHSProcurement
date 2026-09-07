@@ -50,13 +50,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account }) {
       // Google sign-in has no adapter to persist the User row — do it here,
       // find-or-create by email. Credentials sign-in already resolved a real
-      // User in authorize() above.
+      // User in authorize() above, including its own
+      // phoneVerificationRequired check — but that check lives inside the
+      // Credentials provider only, so on its own it did nothing to stop
+      // someone abandoning register/vendor's OTP step and then hitting
+      // "Continue with Google" with the same email: Google sign-in matches
+      // the existing User by email and, without this check, would have
+      // signed them straight in. Checking it here instead — after the
+      // upsert, so it applies to the same User row a Credentials sign-in
+      // would have matched — covers every provider in one place.
       if (account?.provider === "google" && user.email) {
-        await prisma.user.upsert({
+        const dbUser = await prisma.user.upsert({
           where: { email: user.email },
           update: { name: user.name ?? undefined },
           create: { email: user.email, name: user.name },
         });
+        if (dbUser.phoneVerificationRequired && !dbUser.phoneVerifiedAt) {
+          // Google carries no password through to complete the OTP flow
+          // (verifyVendorRegistrationPhone/verifyLoginPhone both need one
+          // to finish signIn("credentials", ...)), so there's no
+          // equivalent "detour into an OTP screen" available here — send
+          // them to log in with email+password instead, which does have
+          // that path.
+          return "/login?error=verify_with_password";
+        }
       }
       return true;
     },

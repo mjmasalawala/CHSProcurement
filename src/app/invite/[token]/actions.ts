@@ -92,7 +92,16 @@ export async function setInvitePassword(
   const passwordHash = await hashPassword(password);
   await prisma.user.update({
     where: { id: invite.roleAssignment.userId },
-    data: { passwordHash },
+    data: {
+      passwordHash,
+      // Same reasoning as register/vendor: this password alone would
+      // already be enough to log in (via Credentials or Google, both
+      // gated in auth.ts) if steps 2-3 below are never finished — blocks
+      // that until verifyInvitePhone actually succeeds. A no-op for
+      // someone who already has phoneVerifiedAt from an earlier invite
+      // (needsOnboarding in page.tsx skips this whole wizard for them).
+      phoneVerificationRequired: true,
+    },
   });
 
   return { ok: true };
