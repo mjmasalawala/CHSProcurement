@@ -28,7 +28,7 @@ export default async function AdminVendorsPage({
   await requirePagePermission(PERMISSIONS.VENDOR_QUEUE_ACCESS, "/admin/vendors");
 
   const { status } = await searchParams;
-  const activeTab = TABS.some((t) => t.value === status) ? (status as EntityStatus | "ALL") : "PENDING_VERIFICATION";
+  const activeTab = TABS.some((t) => t.value === status) ? (status as EntityStatus | "ALL") : "ACTIVE";
 
   const vendors = await prisma.vendorCompany.findMany({
     where: activeTab === "ALL" ? {} : { status: activeTab },
