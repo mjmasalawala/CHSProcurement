@@ -32,6 +32,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await verifyPassword(password, user.passwordHash);
         if (!valid) return null;
 
+        // Real access gate, not just a UI nicety — an account created by a
+        // flow that requires WhatsApp OTP verification (register/vendor)
+        // stays unable to log in until that verification actually
+        // completes, even though the password itself was already set
+        // earlier in that same flow. login/actions.ts checks this first to
+        // route an unverified-but-correct-password attempt into the OTP
+        // screen instead of a bare "incorrect credentials" error; this is
+        // the enforcement that can't be bypassed by skipping that page.
+        if (user.phoneVerificationRequired && !user.phoneVerifiedAt) return null;
+
         return { id: user.id, email: user.email, name: user.name };
       },
     }),

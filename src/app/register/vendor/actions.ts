@@ -84,6 +84,11 @@ export async function registerVendor(
         email: input.ownerEmail,
         name: input.ownerName,
         passwordHash,
+        // Blocks credentials login (auth.ts authorize()) until
+        // verifyVendorRegistrationPhone succeeds — otherwise the password
+        // set on this step alone would already be enough to log in,
+        // bypassing the OTP screen entirely.
+        phoneVerificationRequired: true,
         roleAssignments: {
           create: {
             entityType: "VENDOR_COMPANY",

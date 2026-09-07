@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { signInWithCredentials, signInWithGoogle } from "./actions";
+import { signInWithGoogle } from "./actions";
+import { LoginForm } from "./login-form";
 
 /**
  * Functional stand-in for M1 (proves the auth flow end-to-end). The real
@@ -41,20 +40,7 @@ export default async function LoginPage({
           <div className="h-px flex-1 bg-border-subtle" />
         </div>
 
-        <form action={signInWithCredentials} className="flex flex-col gap-4">
-          <input type="hidden" name="callbackUrl" value={callbackUrl ?? ""} />
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" autoComplete="username" required />
-          </div>
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" autoComplete="current-password" required />
-          </div>
-          <Button type="submit" className="w-full">
-            Log in
-          </Button>
-        </form>
+        <LoginForm callbackUrl={callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/app"} />
 
         <a
           href="/forgot-password"

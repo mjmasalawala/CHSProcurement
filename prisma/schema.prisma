@@ -12,11 +12,11 @@ datasource db {
 
 // A login identity. Separate from role — see unified-platform-architecture.md Section 3.
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  name            String?
+  id                        String    @id @default(cuid())
+  email                     String    @unique
+  name                      String?
   // Null if the user only ever signs in via Google.
-  passwordHash    String?
+  passwordHash              String?
   // Collected + OTP-verified during invite acceptance (invite/[token]) and
   // during Vendor Owner self-registration (register/vendor) — both flows
   // call lib/phone-verification.ts's verifyPhoneVerificationCode, which is
@@ -24,10 +24,19 @@ model User {
   // stamped. Distinct from VendorCompany.ownerPhone, which is business
   // contact data entered at registration regardless of whether this User-
   // level OTP verification has completed.
-  phone           String?
-  phoneVerifiedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  phone                     String?
+  phoneVerifiedAt           DateTime?
+  // True only for accounts created through a flow that sends a WhatsApp OTP
+  // as part of signup (register/vendor as of 2026-09-07) — authorize() in
+  // auth.ts refuses credentials login while this is true and
+  // phoneVerifiedAt is still null, so an abandoned-mid-verification account
+  // can't just log in around the OTP step. Defaults false so every
+  // pre-existing account (and any future account created outside such a
+  // flow — Google sign-in, admin-created users) is unaffected; only set to
+  // true by a flow that has actually queued the OTP.
+  phoneVerificationRequired Boolean   @default(false)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 
   roleAssignments         RoleAssignment[]
   bids                    Bid[]
