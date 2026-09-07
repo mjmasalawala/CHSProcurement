@@ -746,9 +746,12 @@ export async function notifyRequirementMatched(params: {
   if (params.vendorPhone) {
     await sendWhatsapp({
       templateKey: "requirement.matched",
-      category: "TRANSACTIONAL",
+      // Meta reclassified this MARKETING on both WABAs despite two UTILITY
+      // submission attempts (v1 and a reworded v2) — see the extensive
+      // history comment in whatsapp-templates.ts. Tagged to match reality.
+      category: "MARKETING",
       to: params.vendorPhone,
-      text: `Requirement - "${params.requirementTitle}" in ${params.categoryName} category has been matched for ${params.vendorName}. Log in to your Wisesoc account by ${formatWhatsappDeadline(params.deadline)} and submit your quote.`,
+      text: `Update on your Wisesoc profile: requirement "${params.requirementTitle}" in ${params.categoryName} category matched for ${params.vendorName}. Quote submission deadline: ${formatWhatsappDeadline(params.deadline)} (IST).`,
       templateParams: [params.requirementTitle, params.categoryName, params.vendorName, formatWhatsappDeadline(params.deadline)],
       // Login button is a static URL (no per-recipient suffix) — no buttonParam needed.
     });
@@ -782,7 +785,7 @@ export async function notifyVendorMatchedRequirements(params: {
 
   // One WhatsApp per matched requirement, even though the email above is a
   // single batch summary (2026-09-07 product decision) — each message uses
-  // the same wisesoc_requirement_matched_v1 template as the single-match
+  // the same wisesoc_requirement_matched_v2 template as the single-match
   // path (notifyRequirementMatched), so a vendor can't tell from the
   // message itself whether it came from a batch trigger or a fresh
   // requirement.
@@ -790,9 +793,12 @@ export async function notifyVendorMatchedRequirements(params: {
     for (const r of params.requirements) {
       await sendWhatsapp({
         templateKey: "requirement.matched",
-        category: "TRANSACTIONAL",
+        // See the category comment in notifyRequirementMatched above —
+        // Meta reclassified this MARKETING regardless of two UTILITY
+        // submission attempts.
+        category: "MARKETING",
         to: params.vendorPhone,
-        text: `Requirement - "${r.title}" in ${r.categoryName} category has been matched for ${params.vendorName}. Log in to your Wisesoc account by ${formatWhatsappDeadline(r.deadline)} and submit your quote.`,
+        text: `Update on your Wisesoc profile: requirement "${r.title}" in ${r.categoryName} category matched for ${params.vendorName}. Quote submission deadline: ${formatWhatsappDeadline(r.deadline)} (IST).`,
         templateParams: [r.title, r.categoryName, params.vendorName, formatWhatsappDeadline(r.deadline)],
       });
     }

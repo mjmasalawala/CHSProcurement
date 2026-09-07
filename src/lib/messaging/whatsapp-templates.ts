@@ -122,21 +122,34 @@ const WHATSAPP_TEMPLATES: Record<string, TemplateByEnvironment> = {
   // and notifyVendorMatchedRequirements — a vendor became newly eligible
   // for existing open requirements, one WhatsApp send per requirement per
   // 2026-09-07 product decision, even though the email side stays one
-  // batch summary). Body: "Requirement - "{{1}}" in {{2}} category has
-  // been matched for {{3}}. Log in to your Wisesoc account by {{4}} and
-  // submit your quote." ({{1}}=requirement title, {{2}}=category name,
-  // {{3}}=vendor company name, {{4}}=bid deadline formatted
-  // DD-MMM-YY HH:MM via lib/date.ts's formatWhatsappDeadline — note this
-  // is a *different* placeholder order than originally specified, moved to
-  // satisfy Meta's "no variable immediately before only punctuation at the
-  // very end" rule). One static URL button, "Login to Wisesoc" →
-  // https://www.wisesoc.in/login (no variable — deliberately a plain
-  // login page, not a deep link, per product decision).
+  // batch summary). Params: {{1}}=requirement title, {{2}}=category name,
+  // {{3}}=vendor company name, {{4}}=bid deadline formatted DD-MMM-YY HH:MM
+  // via lib/date.ts's formatWhatsappDeadline. One static URL button,
+  // "Login to Wisesoc" → https://www.wisesoc.in/login (no variable —
+  // deliberately a plain login page, not a deep link, per product
+  // decision).
   //
-  // Submitted 2026-09-07 to the Test WABA as UTILITY, same reasoning as
-  // vendor.approved above. Pending Meta review.
+  // History: v1 ("Requirement - "{{1}}" in {{2}} category has been
+  // matched for {{3}}. Log in to your Wisesoc account by {{4}} and submit
+  // your quote.") was submitted UTILITY and reclassified MARKETING on
+  // both WABAs. v2 ("Update on your Wisesoc profile: requirement "{{1}}"
+  // in {{2}} category matched for {{3}}. Quote submission deadline:
+  // {{4}} (IST).") reworded to lean into "status update on your existing
+  // profile" framing and drop the "log in and act now" instruction, in
+  // case the CTA phrasing itself was the trigger — also reclassified
+  // MARKETING regardless, on both WABAs. Together with vendor.approved
+  // landing UTILITY on the first try with no such struggle, this is good
+  // evidence the deciding factor here isn't wording at all: "a new
+  // business opportunity has appeared for you to act on" reads to Meta's
+  // classifier as fundamentally the same shape as vendor.suggested/
+  // invite.role_activation (new-opportunity/engagement content), no
+  // matter how the sentence is built — unlike vendor.approved's pure
+  // account-status-update content, which isn't "new" in that sense at
+  // all. Accepted as MARKETING going forward (2026-09-07 product
+  // decision) — v1 left orphaned/unused, same as prior superseded drafts.
   "requirement.matched": {
-    test: { name: "wisesoc_requirement_matched_v1", language: "en" },
+    test: { name: "wisesoc_requirement_matched_v2", language: "en" },
+    production: { name: "wisesoc_requirement_matched_v2", language: "en" },
   },
 };
 
