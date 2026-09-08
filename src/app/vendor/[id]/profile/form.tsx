@@ -103,13 +103,16 @@ export function ProfileForm({ vendorCompanyId, vendor, categories, cities, onSav
           <Input id="ownerName" value={form.ownerName} onChange={(e) => update("ownerName", e.target.value)} />
         </div>
         <div>
-          <Label htmlFor="ownerPhone">Contact Person Phone</Label>
+          <Label htmlFor="ownerPhone">WhatsApp Number</Label>
           <Input
             id="ownerPhone"
             type="tel"
             value={form.ownerPhone}
             onChange={(e) => update("ownerPhone", e.target.value)}
           />
+          <p className="mt-1 text-[13px] text-text-secondary">
+            Used to send OTPs and notify you of new work — make sure it can receive WhatsApp messages.
+          </p>
         </div>
         <div>
           <Label htmlFor="registeredAddress">Registered Address</Label>

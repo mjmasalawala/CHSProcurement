@@ -158,7 +158,7 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
             )}
           </div>
           <div>
-            <Label htmlFor="ownerPhone">Owner Phone</Label>
+            <Label htmlFor="ownerPhone">WhatsApp Number</Label>
             <Input
               id="ownerPhone"
               name="ownerPhone"
@@ -167,6 +167,9 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
               value={form.ownerPhone}
               onChange={(e) => update("ownerPhone", e.target.value)}
             />
+            <p className="mt-1 text-[13px] text-text-secondary">
+              Used to send OTPs and notify you of new work — make sure it can receive WhatsApp messages.
+            </p>
           </div>
           <div>
             <Label htmlFor="registeredAddress">Registered Address</Label>
