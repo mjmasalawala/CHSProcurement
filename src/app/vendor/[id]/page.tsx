@@ -132,7 +132,7 @@ export default async function VendorDashboardPage({
       <Card>
         <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-border-subtle">
           {submittedBids !== null && (
-            <DashboardStat label="Quotes submitted (12m)" value={String(submittedBids)} href={`/vendor/${id}/bids`} />
+            <DashboardStat label="Quotes submitted (12 months)" value={String(submittedBids)} href={`/vendor/${id}/bids`} />
           )}
           {totalValueWon !== null && (
             <DashboardStat
@@ -150,7 +150,7 @@ export default async function VendorDashboardPage({
           )}
           {missedInvitesCount !== null && (
             <DashboardStat
-              label="Missed invites (90d)"
+              label="Missed invites"
               value={String(missedInvitesCount)}
               href={`/vendor/${id}/requirements?filter=missed`}
               valueClassName={missedInvitesCount > 0 ? "text-status-error" : undefined}
