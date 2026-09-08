@@ -37,7 +37,7 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-10">
+        <div className="flex flex-col gap-8 sm:flex-row sm:flex-wrap sm:gap-10">
           {LINK_GROUPS.map((group) => (
             <div key={group.title}>
               <p className="font-semibold text-text-primary">{group.title}</p>
