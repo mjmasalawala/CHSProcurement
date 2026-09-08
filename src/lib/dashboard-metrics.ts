@@ -36,31 +36,6 @@ export interface WeeklySeriesValues {
   values: number[];
 }
 
-/** Vendors approved per week, over the trailing WEEKS weeks. */
-export async function getVendorApprovalsOverTime(): Promise<WeeklySeriesValues> {
-  const weekStarts = lastNWeekStarts(WEEKS);
-  const vendors = await prisma.vendorCompany.findMany({
-    where: { approvedAt: { gte: weekStarts[0] } },
-    select: { approvedAt: true },
-  });
-
-  return { weekLabels: weekStarts.map(weekLabel), values: bucketWeekly(vendors.map((v) => v.approvedAt!), weekStarts) };
-}
-
-/** Societies approved per week, over the trailing WEEKS weeks. */
-export async function getSocietyApprovalsOverTime(): Promise<WeeklySeriesValues> {
-  const weekStarts = lastNWeekStarts(WEEKS);
-  const societies = await prisma.society.findMany({
-    where: { approvedAt: { gte: weekStarts[0] } },
-    select: { approvedAt: true },
-  });
-
-  return {
-    weekLabels: weekStarts.map(weekLabel),
-    values: bucketWeekly(societies.map((s) => s.approvedAt!), weekStarts),
-  };
-}
-
 /** New Vendor registrations per week, over the trailing WEEKS weeks. */
 export async function getVendorOnboardingsOverTime(): Promise<WeeklySeriesValues> {
   const weekStarts = lastNWeekStarts(WEEKS);
@@ -87,6 +62,41 @@ function weekLabel(weekStart: Date): string {
   const day = weekStart.getUTCDate().toString().padStart(2, "0");
   const month = weekStart.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
   return `${day} ${month}`;
+}
+
+export interface CategoryVendorCount {
+  categoryId: string;
+  categoryName: string;
+  activeVendorCount: number;
+}
+
+/**
+ * Active vendor count per service category (categories with no active
+ * vendors are omitted), sorted by count descending, plus the total distinct
+ * count of active vendors — not the sum of the per-category counts, since a
+ * vendor can carry more than one category.
+ */
+export async function getActiveVendorsByCategory(): Promise<{
+  categories: CategoryVendorCount[];
+  totalActiveVendors: number;
+}> {
+  const [categories, totalActiveVendors] = await Promise.all([
+    prisma.category.findMany({
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { vendorCompanies: { where: { status: "ACTIVE" } } } },
+      },
+    }),
+    prisma.vendorCompany.count({ where: { status: "ACTIVE" } }),
+  ]);
+
+  const rows = categories
+    .map((c) => ({ categoryId: c.id, categoryName: c.name, activeVendorCount: c._count.vendorCompanies }))
+    .filter((c) => c.activeVendorCount > 0)
+    .sort((a, b) => b.activeVendorCount - a.activeVendorCount || a.categoryName.localeCompare(b.categoryName));
+
+  return { categories: rows, totalActiveVendors };
 }
 
 export interface VendorResponseStats {

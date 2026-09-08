@@ -7,8 +7,7 @@ import { Card } from "@/components/ui/card";
 import { BarChart } from "@/components/ui/bar-chart";
 import { formatDate } from "@/lib/date";
 import {
-  getVendorApprovalsOverTime,
-  getSocietyApprovalsOverTime,
+  getActiveVendorsByCategory,
   getVendorOnboardingsOverTime,
   getSocietyOnboardingsOverTime,
   getVendorResponseStats,
@@ -32,8 +31,7 @@ export default async function AdminDashboardPage() {
     pendingVendors,
     pendingSocieties,
     pendingCategoryRequests,
-    vendorApprovals,
-    societyApprovals,
+    vendorsByCategory,
     vendorOnboardings,
     societyOnboardings,
     vendorResponseStats,
@@ -44,20 +42,14 @@ export default async function AdminDashboardPage() {
     perms.has(PERMISSIONS.TAXONOMY_MANAGEMENT)
       ? prisma.categoryRequest.count({ where: { status: "PENDING" } })
       : null,
-    canVendor ? getVendorApprovalsOverTime() : null,
-    canSociety ? getSocietyApprovalsOverTime() : null,
+    canVendor ? getActiveVendorsByCategory() : null,
     canVendor ? getVendorOnboardingsOverTime() : null,
     canSociety ? getSocietyOnboardingsOverTime() : null,
     canVendor ? getVendorResponseStats() : null,
     canSociety ? getSocietiesWithNoRequirements() : null,
   ]);
 
-  const weekLabels = vendorApprovals?.weekLabels ?? societyApprovals?.weekLabels ?? [];
-  const approvalSeries = [
-    vendorApprovals && { label: "Vendors approved", color: "var(--color-accent-primary)", values: vendorApprovals.values },
-    societyApprovals && { label: "Societies approved", color: "var(--color-status-success)", values: societyApprovals.values },
-  ].filter((s): s is { label: string; color: string; values: number[] } => Boolean(s));
-
+  const weekLabels = vendorOnboardings?.weekLabels ?? societyOnboardings?.weekLabels ?? [];
   const onboardingSeries = [
     vendorOnboardings && { label: "New vendors", color: "var(--color-accent-primary)", values: vendorOnboardings.values },
     societyOnboardings && { label: "New societies", color: "var(--color-status-success)", values: societyOnboardings.values },
@@ -134,18 +126,48 @@ export default async function AdminDashboardPage() {
         )}
       </div>
 
-      {approvalSeries.length > 0 && (
-        <div className="flex flex-col gap-4">
+      {(vendorsByCategory || onboardingSeries.length > 0) && (
+      <div className="flex flex-col gap-4">
+        {vendorsByCategory && (
           <Card className="flex flex-col gap-3">
-            <h2 className="text-[15px] font-semibold text-text-primary">Approvals over time</h2>
-            <BarChart weekLabels={weekLabels} series={approvalSeries} />
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-[15px] font-semibold text-text-primary">Active vendors by category</h2>
+              <p className="text-[13px] text-text-secondary">
+                Total active vendors: <span className="font-semibold text-text-primary">{vendorsByCategory.totalActiveVendors}</span>
+              </p>
+            </div>
+            {vendorsByCategory.categories.length > 0 ? (
+              <div className="max-h-80 overflow-y-auto overflow-x-auto">
+                <table className="w-full text-left text-[13px]">
+                  <thead>
+                    <tr className="border-b border-border-subtle text-text-tertiary">
+                      <th className="pb-2 pr-2 text-[11px] font-semibold uppercase tracking-wide">Category</th>
+                      <th className="pb-2 text-[11px] font-semibold uppercase tracking-wide">Active Vendors</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {vendorsByCategory.categories.map((c) => (
+                      <tr key={c.categoryId} className="border-b border-border-subtle last:border-0">
+                        <td className="py-2 pr-2 whitespace-nowrap text-text-primary">{c.categoryName}</td>
+                        <td className="py-2 text-text-secondary">{c.activeVendorCount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-[13px] text-text-secondary">No active vendors yet.</p>
+            )}
           </Card>
+        )}
 
+        {onboardingSeries.length > 0 && (
           <Card className="flex flex-col gap-3">
             <h2 className="text-[15px] font-semibold text-text-primary">Weekly new onboardings</h2>
             <BarChart weekLabels={weekLabels} series={onboardingSeries} />
           </Card>
-        </div>
+        )}
+      </div>
       )}
 
       {vendorResponseStats && (
