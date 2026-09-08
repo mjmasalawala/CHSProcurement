@@ -42,25 +42,57 @@ export async function approveVendor(vendorCompanyId: string): Promise<void> {
   revalidatePath("/admin/vendors");
 }
 
+/**
+ * Rejects a (necessarily still-PENDING_VERIFICATION, never-ACTIVE) vendor
+ * and frees them to register again under the same email later — 2026-09-08
+ * product decision. The VendorCompany row itself is kept, not deleted: it's
+ * the only record of "this company was rejected and why," and both the
+ * admin Rejected tabs (admin/vendors, admin/vendor-directory) and the
+ * society's suggestion-status badge (suggest-vendor/page.tsx) depend on it
+ * existing with status REJECTED. ownerEmail/User.email are both @unique
+ * not-null, though, so a real re-registration attempt would otherwise hit
+ * the exact "account already exists" bug fixed in registerVendor — the fix
+ * there was to stop stranding accounts, not to let the same email be reused
+ * by a genuinely different registration attempt, which this is. So instead
+ * of deleting the VendorCompany, its ownerEmail is tombstoned (suffixed
+ * with the id, so it's still readable as "this was originally X" without
+ * colliding) once the rejection email has gone out to the real address,
+ * and the User row (whose email otherwise blocks a fresh registerVendor
+ * call the same way) is deleted outright — a rejected vendor was never
+ * ACTIVE, so nothing else (bids, invites — lib/matching.ts only matches
+ * ACTIVE vendors) is tied to that User that a delete would orphan.
+ */
 export async function rejectVendor(vendorCompanyId: string, reason: string): Promise<void> {
   await requireActionPermission(PERMISSIONS.VENDOR_QUEUE_ACCESS);
 
-  const vendor = await prisma.vendorCompany.update({
+  const existing = await prisma.vendorCompany.findUniqueOrThrow({
     where: { id: vendorCompanyId },
-    data: { status: "REJECTED", rejectionReason: reason || null },
+    select: { name: true, ownerEmail: true, ownerPhone: true },
   });
 
   try {
     await notifyRejection({
       type: "Vendor",
-      name: vendor.name,
-      contactEmail: vendor.ownerEmail,
-      contactPhone: vendor.ownerPhone,
+      name: existing.name,
+      contactEmail: existing.ownerEmail,
+      contactPhone: existing.ownerPhone,
       reason,
     });
   } catch (err) {
     console.error("Failed to notify vendor of rejection:", err);
   }
+
+  await prisma.$transaction([
+    prisma.vendorCompany.update({
+      where: { id: vendorCompanyId },
+      data: {
+        status: "REJECTED",
+        rejectionReason: reason || null,
+        ownerEmail: `${existing.ownerEmail}.rejected-${vendorCompanyId}`,
+      },
+    }),
+    prisma.user.deleteMany({ where: { email: existing.ownerEmail } }),
+  ]);
 
   revalidatePath(`/admin/vendors/${vendorCompanyId}`);
   revalidatePath("/admin/vendors");
