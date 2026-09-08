@@ -31,7 +31,7 @@ export default async function VendorLayout({
   const navItems = visibleNav.map((item) => ({ href: `/vendor/${id}${item.suffix}`, label: item.label }));
 
   return (
-    <WorkspaceShell title={vendor.name} subtitle={assignment.role} basePath={`/vendor/${id}`} items={navItems}>
+    <WorkspaceShell title={vendor.name} basePath={`/vendor/${id}`} items={navItems}>
       {children}
     </WorkspaceShell>
   );
