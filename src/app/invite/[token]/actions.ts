@@ -6,6 +6,7 @@ import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { sendPhoneVerificationCode, verifyPhoneVerificationCode } from "@/lib/phone-verification";
+import { isValidIndianPhone } from "@/lib/phone";
 
 async function loadInvite(token: string) {
   return prisma.invite.findUnique({
@@ -127,6 +128,7 @@ export async function submitInviteProfile(
   const trimmedPhone = phone.trim();
   if (!trimmedName) return { error: "Name is required." };
   if (!trimmedPhone) return { error: "Phone number is required." };
+  if (!isValidIndianPhone(trimmedPhone)) return { error: "Enter a valid 10-digit mobile number." };
 
   await prisma.user.update({
     where: { id: invite.roleAssignment.userId },

@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { registerSociety } from "./actions";
 import { REGISTRANT_ROLES, INVITEE_ROLES, type SocietyRegistrationInput } from "./data";
 import { isValidEmail } from "@/lib/validation";
+import { isValidIndianPhone } from "@/lib/phone";
 import { isValidGstin } from "@/lib/gst";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -55,14 +56,14 @@ export function SocietyRegistrationWizard({ cities }: Props) {
     gstNumber: "",
     registrantRole: "",
     registrantName: "",
-    registrantPhone: "",
+    registrantPhone: "+91",
     registrantEmail: "",
     secretaryName: "",
-    secretaryPhone: "",
+    secretaryPhone: "+91",
     secretaryEmail: "",
     inviteeRole: "",
     inviteeName: "",
-    inviteePhone: "",
+    inviteePhone: "+91",
     inviteeEmail: "",
   });
 
@@ -86,11 +87,16 @@ export function SocietyRegistrationWizard({ cities }: Props) {
     registrant: !!(
       form.registrantRole &&
       form.registrantName &&
-      form.registrantPhone &&
+      isValidIndianPhone(form.registrantPhone) &&
       isValidEmail(form.registrantEmail)
     ),
-    invitee: !!(form.inviteeRole && form.inviteeName && form.inviteePhone && isValidEmail(form.inviteeEmail)),
-    secretary: !!(form.secretaryName && form.secretaryPhone && isValidEmail(form.secretaryEmail)),
+    invitee: !!(
+      form.inviteeRole &&
+      form.inviteeName &&
+      isValidIndianPhone(form.inviteePhone) &&
+      isValidEmail(form.inviteeEmail)
+    ),
+    secretary: !!(form.secretaryName && isValidIndianPhone(form.secretaryPhone) && isValidEmail(form.secretaryEmail)),
     review: true,
   };
 

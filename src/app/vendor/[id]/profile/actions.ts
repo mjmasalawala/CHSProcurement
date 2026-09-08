@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorActionPermission } from "@/lib/vendor-auth";
 import { syncVendorRequirementMatches } from "@/lib/matching";
+import { toE164India } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
 export interface VendorProfileInput {
@@ -36,7 +37,7 @@ export async function updateVendorProfile(
       name: input.name,
       businessType: input.businessType as Prisma.VendorCompanyUpdateInput["businessType"],
       ownerName: input.ownerName,
-      ownerPhone: input.ownerPhone,
+      ownerPhone: toE164India(input.ownerPhone),
       registeredAddress: input.registeredAddress,
       yearsInBusiness: input.yearsInBusiness ? Number(input.yearsInBusiness) : null,
       description: input.description || null,

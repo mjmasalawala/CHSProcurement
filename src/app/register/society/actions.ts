@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { RoleName } from "@/generated/prisma/enums";
 import { notifyNewRegistration, notifyRegistrationSubmitted } from "@/lib/notifications";
 import { getBaseUrl } from "@/lib/base-url";
+import { toE164India } from "@/lib/phone";
 import { REGISTRANT_ROLES, INVITEE_ROLES, type SocietyRegistrationInput } from "./data";
 
 /**
@@ -30,8 +31,16 @@ export async function registerSociety(
     return { error: "Select who should manage the account." };
   }
 
+  // Normalized once here so the same phone number is stored the same way
+  // regardless of whether it was typed as "9970852786" or
+  // "+919970852786" — these three fields are independent Prisma writes,
+  // not funneled through a shared helper like the OTP flows are.
+  const registrantPhone = toE164India(input.registrantPhone);
+  const secretaryPhoneInput = toE164India(input.secretaryPhone);
+  const inviteePhone = toE164India(input.inviteePhone);
+
   const secretaryName = isSecretary ? input.registrantName : input.secretaryName;
-  const secretaryPhone = isSecretary ? input.registrantPhone : input.secretaryPhone;
+  const secretaryPhone = isSecretary ? registrantPhone : secretaryPhoneInput;
   const secretaryEmail = isSecretary ? input.registrantEmail : input.secretaryEmail;
 
   const society = await prisma.society.create({
@@ -44,14 +53,14 @@ export async function registerSociety(
       gstNumber: input.gstNumber.trim().toUpperCase() || null,
       registrantName: input.registrantName,
       registrantRole: input.registrantRole as RoleName,
-      registrantPhone: input.registrantPhone,
+      registrantPhone,
       registrantEmail: input.registrantEmail,
       secretaryName,
       secretaryPhone,
       secretaryEmail,
       inviteeRole: isGbMember ? (input.inviteeRole as RoleName) : null,
       inviteeName: isGbMember ? input.inviteeName : null,
-      inviteePhone: isGbMember ? input.inviteePhone : null,
+      inviteePhone: isGbMember ? inviteePhone : null,
       inviteeEmail: isGbMember ? input.inviteeEmail : null,
     },
   });
@@ -73,7 +82,7 @@ export async function registerSociety(
         type: "Society",
         name: input.name,
         contactEmail: input.registrantEmail,
-        contactPhone: input.registrantPhone,
+        contactPhone: registrantPhone,
       }),
     ]);
   } catch (err) {

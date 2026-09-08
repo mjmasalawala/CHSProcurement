@@ -8,6 +8,7 @@ import { ROLE_DEFAULT_PERMISSIONS } from "@/lib/permissions";
 import { notifyNewRegistration, notifyRegistrationSubmitted } from "@/lib/notifications";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendPhoneVerificationCode, verifyPhoneVerificationCode } from "@/lib/phone-verification";
+import { toE164India } from "@/lib/phone";
 
 export interface VendorRegistrationInput {
   name: string;
@@ -50,6 +51,12 @@ export async function registerVendor(
     return { error: "You can select up to 5 service categories." };
   }
 
+  // Normalized once here so VendorCompany.ownerPhone is always stored the
+  // same way regardless of whether the vendor typed "9970852786" or
+  // "+919970852786" — the OTP flow (sendPhoneVerificationCode) normalizes
+  // separately for User.phone/PhoneVerification.phone.
+  const ownerPhone = toE164India(input.ownerPhone);
+
   let vendorCompanyId: string;
   let userId: string;
   try {
@@ -72,7 +79,7 @@ export async function registerVendor(
           businessType: input.businessType as Prisma.VendorCompanyCreateInput["businessType"],
           ownerName: input.ownerName,
           ownerEmail: input.ownerEmail,
-          ownerPhone: input.ownerPhone,
+          ownerPhone,
           registeredAddress: input.registeredAddress,
           gstNumber: input.gstNumber || null,
           panNumber: input.panNumber || null,
@@ -137,7 +144,7 @@ export async function registerVendor(
         type: "Vendor",
         name: input.name,
         contactEmail: input.ownerEmail,
-        contactPhone: input.ownerPhone,
+        contactPhone: ownerPhone,
       }),
     ]);
   } catch (err) {
@@ -152,7 +159,7 @@ export async function registerVendor(
   }
 
   try {
-    await sendPhoneVerificationCode(userId, input.ownerPhone);
+    await sendPhoneVerificationCode(userId, ownerPhone);
   } catch (err) {
     console.error("registerVendor: failed to send verification code", err);
     return { error: "Your account was created, but we couldn't send a verification code to that number. Contact support to finish setting up your login." };

@@ -58,7 +58,7 @@ export async function enqueueEmail(params: EnqueueEmailParams): Promise<string |
 export interface EnqueueWhatsappParams {
   templateKey: string;
   category?: MessageCategory;
-  // A single E.164 phone number (lib/whatsapp.ts's toE164India) — unlike
+  // A single E.164 phone number (lib/phone.ts's toE164India) — unlike
   // email there's no batch-recipient case for a WhatsApp send.
   to: string;
   // Used if the recipient's 24h session window happens to be open (rare for

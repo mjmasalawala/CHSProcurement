@@ -18,7 +18,7 @@ export function InviteOnboardingWizard({
   const [step, setStep] = useState(1);
   const [password, setPassword] = useState("");
   const [name, setName] = useState(defaultName);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+91");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

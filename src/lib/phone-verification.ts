@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 // 2026-07-19). See lib/whatsapp.ts for the send + its own console-log
 // fallback until a Meta Business Platform number/template is configured.
 import { sendWhatsappOtp } from "@/lib/whatsapp";
+import { toE164India } from "@/lib/phone";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -18,12 +19,18 @@ function generateCode(): string {
  * new code invalidates any earlier one instead of leaving it replayable.
  */
 export async function sendPhoneVerificationCode(userId: string, phone: string): Promise<void> {
+  // Normalized once here, at the single writer of PhoneVerification.phone
+  // (and, via verifyPhoneVerificationCode, User.phone) — so "9970852786"
+  // and "+919970852786" always end up stored the same way, regardless of
+  // which flow (vendor registration, invite acceptance) or format the user
+  // typed it in.
+  const normalizedPhone = toE164India(phone);
   const code = generateCode();
   await prisma.phoneVerification.create({
-    data: { userId, phone, code, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+    data: { userId, phone: normalizedPhone, code, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
   });
 
-  await sendWhatsappOtp({ to: phone, code });
+  await sendWhatsappOtp({ to: normalizedPhone, code });
 }
 
 /**

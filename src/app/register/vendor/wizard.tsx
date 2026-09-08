@@ -11,6 +11,7 @@ import { TagInput } from "@/components/ui/tag-input";
 import { Button } from "@/components/ui/button";
 import { registerVendor, resendVendorRegistrationCode, verifyVendorRegistrationPhone, type VendorRegistrationInput } from "./actions";
 import { isValidEmail } from "@/lib/validation";
+import { isValidIndianPhone } from "@/lib/phone";
 
 const BUSINESS_TYPES = [
   { value: "PROPRIETORSHIP", label: "Proprietorship" },
@@ -41,7 +42,7 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
     businessType: "",
     ownerName: "",
     ownerEmail: initial?.ownerEmail ?? "",
-    ownerPhone: initial?.ownerPhone ?? "",
+    ownerPhone: initial?.ownerPhone ?? "+91",
     registeredAddress: "",
     password: "",
     categoryIds: [],
@@ -60,7 +61,7 @@ export function VendorRegistrationWizard({ categories, cities, initial }: Props)
 
   const canProceed = {
     1: !!(form.name && form.businessType && form.ownerName),
-    2: !!(isValidEmail(form.ownerEmail) && form.ownerPhone && form.registeredAddress && form.password.length >= 8),
+    2: !!(isValidEmail(form.ownerEmail) && isValidIndianPhone(form.ownerPhone) && form.registeredAddress && form.password.length >= 8),
     3: form.categoryIds.length > 0,
     4: form.cityIds.length > 0,
     5: true,

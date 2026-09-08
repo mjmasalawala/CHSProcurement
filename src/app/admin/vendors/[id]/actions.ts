@@ -7,6 +7,7 @@ import { requireActionPermission } from "@/lib/admin-auth";
 import { notifyApproval, notifyRejection, notifyVendorStatusChanged } from "@/lib/notifications";
 import { syncVendorRequirementMatches } from "@/lib/matching";
 import { getBaseUrl } from "@/lib/base-url";
+import { toE164India } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import type { VendorProfileInput } from "@/app/vendor/[id]/profile/actions";
 
@@ -143,7 +144,7 @@ export async function updateVendorProfileAdmin(
       name: input.name,
       businessType: input.businessType as Prisma.VendorCompanyUpdateInput["businessType"],
       ownerName: input.ownerName,
-      ownerPhone: input.ownerPhone,
+      ownerPhone: toE164India(input.ownerPhone),
       registeredAddress: input.registeredAddress,
       yearsInBusiness: input.yearsInBusiness ? Number(input.yearsInBusiness) : null,
       description: input.description || null,

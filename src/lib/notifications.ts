@@ -1,7 +1,7 @@
 import { getBaseUrl } from "@/lib/base-url";
 import { enqueueEmail, enqueueWhatsapp } from "@/lib/messaging/outbox";
 import { sendOne } from "@/lib/messaging/dispatcher";
-import { toE164India } from "@/lib/whatsapp";
+import { toE164India } from "@/lib/phone";
 import { formatWhatsappDeadline } from "@/lib/date";
 import type { MessageCategory } from "@/generated/prisma/enums";
 // SMS notifications are disabled for now — MSG91 is wired up for phone-

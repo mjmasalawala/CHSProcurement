@@ -7,6 +7,7 @@ import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { notifyVendorSuggested } from "@/lib/notifications";
 import { resendVendorSuggestionMessage } from "@/lib/vendor-suggestion";
 import { getBaseUrl } from "@/lib/base-url";
+import { toE164India } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
 export interface VendorSuggestionInput {
@@ -31,7 +32,7 @@ export async function suggestVendor(
   if (!session) return { error: "Not authorized." };
 
   const vendorName = input.vendorName.trim();
-  const vendorPhone = input.vendorPhone.trim();
+  const vendorPhone = input.vendorPhone.trim() ? toE164India(input.vendorPhone) : "";
   const vendorEmail = input.vendorEmail.trim().toLowerCase();
   if (!vendorName || !vendorEmail) {
     return { error: "Vendor name and email are required." };

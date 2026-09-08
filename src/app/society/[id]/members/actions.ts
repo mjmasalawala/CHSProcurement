@@ -12,6 +12,7 @@ import {
 } from "@/lib/notifications";
 import { OB_ROLES } from "@/lib/society-ob";
 import { getBaseUrl } from "@/lib/base-url";
+import { toE164India, isValidIndianPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import type { RoleName } from "@/generated/prisma/enums";
 
@@ -53,6 +54,8 @@ export async function inviteMember(
   // all, since the invitee hasn't logged in yet to supply their own.
   const trimmedPhone = phone.trim();
   if (!trimmedPhone) return { error: "Phone number is required." };
+  if (!isValidIndianPhone(trimmedPhone)) return { error: "Enter a valid 10-digit mobile number." };
+  const normalizedPhone = toE164India(trimmedPhone);
 
   if (SINGLE_SEAT_ROLES.includes(role)) {
     const activeHolder = await prisma.roleAssignment.findFirst({
@@ -79,7 +82,7 @@ export async function inviteMember(
     entityType: "SOCIETY",
     entityId: societyId,
     role,
-    phone: trimmedPhone,
+    phone: normalizedPhone,
     invitedByName: session?.user.name ?? `The ${ROLE_LABELS[assignment.role] ?? assignment.role}`,
   });
 

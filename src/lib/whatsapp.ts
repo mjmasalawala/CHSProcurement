@@ -8,6 +8,7 @@
 // WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID are configured.
 
 import { isStagingEnvironment } from "@/lib/environment";
+import { toE164India } from "@/lib/phone";
 
 const GRAPH_API_VERSION = "v21.0";
 
@@ -73,19 +74,6 @@ class StagingWhatsappRedirectMissingError extends Error {
     super("Staging: STAGING_WHATSAPP_REDIRECT_TO isn't set — refusing to send a real WhatsApp message in staging.");
     this.name = "StagingWhatsappRedirectMissingError";
   }
-}
-
-// WhatsApp needs the full E.164 number (country code, no leading 0/+).
-// Every phone number in this app is entered as a bare Indian mobile number
-// (10 digits, e.g. seed data "9000000000") — normalize rather than assume
-// callers already did this. Exported since Conversation.phoneE164 (Phase 1)
-// is always produced by this function, so a conversation is found under one
-// consistent key regardless of how the number was typed elsewhere.
-export function toE164India(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 10) return `91${digits}`;
-  if (digits.length === 12 && digits.startsWith("91")) return digits;
-  return digits;
 }
 
 interface GraphCredentials {

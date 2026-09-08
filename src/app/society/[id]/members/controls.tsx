@@ -29,7 +29,7 @@ export function InviteMemberForm({
 }) {
   const firstAvailable = ROLE_OPTIONS.find((r) => !occupiedRoles.includes(r.value))?.value ?? "MANAGER";
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+91");
   const [role, setRole] = useState<RoleName>(firstAvailable);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -47,7 +47,7 @@ export function InviteMemberForm({
     if (result?.error) setError(result.error);
     else {
       setEmail("");
-      setPhone("");
+      setPhone("+91");
     }
   }
 
