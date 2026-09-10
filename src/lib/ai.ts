@@ -12,6 +12,13 @@ const UNITS = ["sqft", "sqm", "nos", "lump sum", "kg", "hour", "day", "month", "
 // slower/pricier model isn't buying much safety margin. Revisit if real-world
 // accuracy on messy vendor PDFs doesn't hold up.
 const EXTRACTION_MODEL = "claude-haiku-4-5-20251001";
+// Extended thinking measurably improved accuracy on messy/handwritten
+// quotes (misread rates, cramped table columns) in manual testing — worth
+// the extra latency since this still runs well under the review form
+// loading. Thinking is incompatible with a forced tool_choice, so the call
+// below uses "auto" instead and relies on EXTRACT_BID_PROMPT + there being
+// only one tool offered to get it called reliably.
+const EXTRACTION_THINKING_BUDGET_TOKENS = 3000;
 
 export interface SuggestedLineItem {
   description: string;
@@ -181,7 +188,11 @@ const EXTRACT_BID_TOOL: Anthropic.Tool = {
             description: { type: "string" },
             quantity: { type: "string" },
             unit: { type: "string", enum: [...UNITS] },
-            unitRate: { type: "string", description: "Numeric string, no currency symbol or thousands separators." },
+            unitRate: {
+              type: "string",
+              description:
+                "Numeric string, no currency symbol or thousands separators. Negative for a netted-in discount line (see instructions).",
+            },
             gstRate: {
               type: "string",
               description: "GST % for this line, as a plain number string. Empty string if not GST-compliant or not stated.",
@@ -213,7 +224,21 @@ ambiguous. Also pull out the quote validity date, payment terms, warranty/guaran
 completion time, any other notes/terms, the vendor's GSTIN if printed, and the grand total exactly as
 printed on the document (for a sanity cross-check — leave it null if there's no single stated total).
 Numeric fields are plain number strings: no ₹, no commas, no words. If a field genuinely isn't present
-in the document, return null (or "" for gstRate) rather than guessing.`;
+in the document, return null (or "" for gstRate) rather than guessing.
+
+This system's line items have no fields beyond description/quantity/unit/unitRate/gstRate, so anything
+in the totals section besides the main item rows MUST be netted into a line item rather than dropped —
+otherwise the line items won't add up to the document's own stated total:
+- A per-line discount (e.g. a "discount" or "less" column): return unitRate as the effective
+  post-discount rate for that line (quantity × unitRate = that line's discounted amount).
+- A single discount applied to the subtotal (not tied to one line): add one extra line item titled
+  "Discount", quantity "1", unit "nos", gstRate "", and unitRate as a NEGATIVE number string equal to
+  the discount amount (e.g. "-500").
+- An extra charge shown separately from the main rows (e.g. "Coolie Charges", loading, transport,
+  packing/forwarding): add it as its own line item with that name, quantity "1", unit "nos", gstRate
+  "", and unitRate equal to the charge amount (positive).
+Read every row of the totals section carefully, including handwritten additions below the main table —
+don't stop at the last printed/ruled row of the item grid.`;
 
 type ExtractBidInput =
   | { kind: "text"; text: string }
@@ -245,9 +270,10 @@ export async function extractBidFromDocument(input: ExtractBidInput): Promise<Ex
 
   const message = await anthropic.messages.create({
     model: EXTRACTION_MODEL,
-    max_tokens: 2048,
+    max_tokens: EXTRACTION_THINKING_BUDGET_TOKENS + 2048,
+    thinking: { type: "enabled", budget_tokens: EXTRACTION_THINKING_BUDGET_TOKENS },
     tools: [EXTRACT_BID_TOOL],
-    tool_choice: { type: "tool", name: "extract_bid_from_document" },
+    tool_choice: { type: "auto" },
     messages: [{ role: "user", content }],
   });
 

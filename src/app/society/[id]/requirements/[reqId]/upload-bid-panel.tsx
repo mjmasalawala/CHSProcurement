@@ -19,6 +19,15 @@ import type { BidLineItemInput } from "@/app/vendor/[id]/requirements/[reqId]/ac
 const UNITS = ["sqft", "sqm", "nos", "lump sum", "kg", "hour", "day", "month", "other"];
 const EMPTY_LINE_ITEM: BidLineItemInput = { description: "", quantity: "1", unit: "nos", unitRate: "", gstRate: "" };
 
+// Fixed-width columns (same pattern as vendor/[id]/requirements/[reqId]/bid-form.tsx)
+// so values fit without needing to shrink text, and a 28px trailing column for an
+// icon-only remove button instead of a "Remove" text link eating a full column.
+const LINE_ITEM_GRID =
+  "grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-[minmax(0,1fr)_72px_96px_96px_28px] sm:items-center sm:gap-2";
+const LINE_ITEM_GRID_GST =
+  "grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-[minmax(0,1fr)_72px_96px_96px_72px_28px] sm:items-center sm:gap-2";
+const FIELD_TEXT = "text-[13px]";
+
 type Stage = "closed" | "idle" | "uploading" | "extracting" | "review" | "submitting" | "done";
 
 interface Props {
@@ -263,24 +272,32 @@ export function UploadBidPanel({ societyId, requirementId, vendorCompanyId, vend
                 </div>
               )}
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
                 {lineItems.map((li, i) => (
-                  <div key={i} className="grid grid-cols-2 gap-2 border-b border-border-subtle pb-2 sm:grid-cols-6">
-                    <div className="col-span-2">
-                      <Label className="text-[11px]">Description</Label>
-                      <Input value={li.description} onChange={(e) => updateLineItem(i, { description: e.target.value })} />
+                  <div
+                    key={i}
+                    className={cn(gstCompliant ? LINE_ITEM_GRID_GST : LINE_ITEM_GRID, "border-b border-border-subtle pb-2")}
+                  >
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label className="text-[11px] sm:hidden">Description</Label>
+                      <Input
+                        className={FIELD_TEXT}
+                        value={li.description}
+                        onChange={(e) => updateLineItem(i, { description: e.target.value })}
+                      />
                     </div>
                     <div>
-                      <Label className="text-[11px]">Qty</Label>
+                      <Label className="text-[11px] sm:hidden">Qty</Label>
                       <Input
                         type="number"
+                        className={FIELD_TEXT}
                         value={li.quantity}
                         onChange={(e) => updateLineItem(i, { quantity: e.target.value })}
                       />
                     </div>
                     <div>
-                      <Label className="text-[11px]">Unit</Label>
-                      <Select value={li.unit} onChange={(e) => updateLineItem(i, { unit: e.target.value })}>
+                      <Label className="text-[11px] sm:hidden">Unit</Label>
+                      <Select className={FIELD_TEXT} value={li.unit} onChange={(e) => updateLineItem(i, { unit: e.target.value })}>
                         {UNITS.map((u) => (
                           <option key={u} value={u}>
                             {u}
@@ -289,31 +306,40 @@ export function UploadBidPanel({ societyId, requirementId, vendorCompanyId, vend
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-[11px]">Rate (₹)</Label>
+                      <Label className="text-[11px] sm:hidden">Rate (₹)</Label>
                       <Input
                         type="number"
+                        className={FIELD_TEXT}
                         value={li.unitRate}
                         onChange={(e) => updateLineItem(i, { unitRate: e.target.value })}
                       />
                     </div>
                     {gstCompliant && (
                       <div>
-                        <Label className="text-[11px]">GST %</Label>
+                        <Label className="text-[11px] sm:hidden">GST %</Label>
                         <Input
                           type="number"
+                          className={FIELD_TEXT}
                           value={li.gstRate}
                           onChange={(e) => updateLineItem(i, { gstRate: e.target.value })}
                         />
                       </div>
                     )}
-                    <div className="col-span-2 flex items-end justify-end sm:col-span-1">
+                    <div className="col-span-2 flex justify-end sm:col-span-1 sm:justify-center">
                       {lineItems.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeLineItem(i)}
-                          className="text-[12px] text-status-error underline"
+                          aria-label="Remove line item"
+                          className="rounded-md p-1 text-text-tertiary hover:bg-status-error/10 hover:text-status-error"
                         >
-                          Remove
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                            <path
+                              fillRule="evenodd"
+                              d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482 41.03 41.03 0 0 0-2.365-.298V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
                         </button>
                       )}
                     </div>
