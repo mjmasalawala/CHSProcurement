@@ -175,7 +175,12 @@ export function UploadBidPanel({ societyId, requirementId, vendorCompanyId, vend
 
   if (stage === "closed") {
     return (
-      <Button type="button" variant="secondary" className="text-[12px]" onClick={() => setStage("idle")}>
+      <Button
+        type="button"
+        variant="secondary"
+        className="border-accent-primary text-[12px] text-accent-primary hover:bg-accent-subtle"
+        onClick={() => setStage("idle")}
+      >
         {hasExistingBid ? "Replace quote" : "Upload quote"}
       </Button>
     );
@@ -229,7 +234,12 @@ export function UploadBidPanel({ societyId, requirementId, vendorCompanyId, vend
                 <p className="text-[14px] text-text-secondary">
                   Drag and drop the vendor&apos;s quotation (PDF, image, or Excel) here
                 </p>
-                <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
+                  onClick={() => inputRef.current?.click()}
+                >
                   Choose file
                 </Button>
               </>
@@ -309,7 +319,12 @@ export function UploadBidPanel({ societyId, requirementId, vendorCompanyId, vend
                     </div>
                   </div>
                 ))}
-                <Button type="button" variant="secondary" className="self-start" onClick={addLineItem}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="self-start border-accent-primary text-accent-primary hover:bg-accent-subtle"
+                  onClick={addLineItem}
+                >
                   + Add line item
                 </Button>
               </div>
