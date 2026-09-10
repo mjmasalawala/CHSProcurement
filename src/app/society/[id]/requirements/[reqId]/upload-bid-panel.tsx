@@ -22,11 +22,14 @@ const EMPTY_LINE_ITEM: BidLineItemInput = { description: "", quantity: "1", unit
 // Fixed-width columns (same pattern as vendor/[id]/requirements/[reqId]/bid-form.tsx)
 // so values fit without needing to shrink text, and a 28px trailing column for an
 // icon-only remove button instead of a "Remove" text link eating a full column.
+// Includes a per-row Subtotal column so editing qty/rate shows an immediate result,
+// not just the aggregate total at the bottom of the form.
 const LINE_ITEM_GRID =
-  "grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-[minmax(0,1fr)_72px_96px_96px_28px] sm:items-center sm:gap-2";
+  "grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-[minmax(0,1fr)_72px_96px_96px_88px_28px] sm:items-center sm:gap-2";
 const LINE_ITEM_GRID_GST =
-  "grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-[minmax(0,1fr)_72px_96px_96px_72px_28px] sm:items-center sm:gap-2";
+  "grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-[minmax(0,1fr)_72px_96px_96px_72px_88px_28px] sm:items-center sm:gap-2";
 const FIELD_TEXT = "text-[13px]";
+const COLUMN_HEADER = "text-[11px] font-semibold text-text-secondary";
 
 type Stage = "closed" | "idle" | "uploading" | "extracting" | "review" | "submitting" | "done";
 
@@ -273,7 +276,18 @@ export function UploadBidPanel({ societyId, requirementId, vendorCompanyId, vend
               )}
 
               <div className="flex flex-col gap-1">
-                {lineItems.map((li, i) => (
+                <div className={cn(gstCompliant ? LINE_ITEM_GRID_GST : LINE_ITEM_GRID, "hidden border-b border-border-subtle pb-2 sm:grid")}>
+                  <span className={COLUMN_HEADER}>Description</span>
+                  <span className={COLUMN_HEADER}>Qty</span>
+                  <span className={COLUMN_HEADER}>Unit</span>
+                  <span className={COLUMN_HEADER}>Rate (₹)</span>
+                  {gstCompliant && <span className={COLUMN_HEADER}>GST %</span>}
+                  <span className={cn(COLUMN_HEADER, "text-right")}>Subtotal (₹)</span>
+                  <span />
+                </div>
+                {lineItems.map((li, i) => {
+                  const lineSubtotal = (Number(li.quantity) || 0) * (Number(li.unitRate) || 0);
+                  return (
                   <div
                     key={i}
                     className={cn(gstCompliant ? LINE_ITEM_GRID_GST : LINE_ITEM_GRID, "border-b border-border-subtle pb-2")}
@@ -325,6 +339,12 @@ export function UploadBidPanel({ societyId, requirementId, vendorCompanyId, vend
                         />
                       </div>
                     )}
+                    <div className="flex items-center justify-between sm:justify-end">
+                      <span className="text-[13px] font-medium text-text-secondary sm:hidden">Subtotal</span>
+                      <span className="text-[13px] font-semibold tabular-nums text-text-primary">
+                        ₹{lineSubtotal.toFixed(2)}
+                      </span>
+                    </div>
                     <div className="col-span-2 flex justify-end sm:col-span-1 sm:justify-center">
                       {lineItems.length > 1 && (
                         <button
@@ -344,7 +364,8 @@ export function UploadBidPanel({ societyId, requirementId, vendorCompanyId, vend
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 <Button
                   type="button"
                   variant="secondary"
