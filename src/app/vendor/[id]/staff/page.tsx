@@ -23,8 +23,10 @@ export default async function VendorStaffPage({
       include: { user: true },
       orderBy: { createdAt: "asc" },
     }),
+    // MANAGER_UPLOAD bids have no submittedByUserId — excluded here since
+    // this log is specifically about staff activity, not every quote on file.
     prisma.bid.findMany({
-      where: { vendorCompanyId: id },
+      where: { vendorCompanyId: id, submittedByUserId: { not: null } },
       include: { submittedByUser: true, requirement: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 20,
@@ -76,7 +78,8 @@ export default async function VendorStaffPage({
             {bids.map((bid) => (
               <div key={bid.id} className="rounded-lg border border-border-subtle bg-background-primary p-3 shadow-xs">
                 <p className="text-[13px] text-text-primary">
-                  <span className="font-semibold">{bid.submittedByUser.name ?? bid.submittedByUser.email}</span>{" "}
+                  {/* Query above filters to submittedByUserId != null */}
+                  <span className="font-semibold">{bid.submittedByUser!.name ?? bid.submittedByUser!.email}</span>{" "}
                   submitted a quote on &ldquo;{bid.requirement.name}&rdquo;
                 </p>
                 <p className="text-[13px] text-text-tertiary">

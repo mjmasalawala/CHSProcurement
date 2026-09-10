@@ -113,7 +113,10 @@ export default async function VendorBidsPage({
                   {bid.requirement.categories.map((c) => c.name).join(", ")} — {societyLabel}
                 </p>
                 <p className="text-[13px] text-text-secondary">
-                  ₹{bid.totalAmount.toString()} · submitted by {bid.submittedByUser.name ?? bid.submittedByUser.email}
+                  ₹{bid.totalAmount.toString()} · submitted by{" "}
+                  {bid.submittedByUser
+                    ? (bid.submittedByUser.name ?? bid.submittedByUser.email)
+                    : "your society Manager"}
                 </p>
                 <p className="text-[13px] text-text-tertiary">{formatDateTime(bid.createdAt)}</p>
               </Link>

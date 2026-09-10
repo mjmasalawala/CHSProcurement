@@ -9,11 +9,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RequirementPhotoGallery } from "@/components/requirement-photo-gallery";
 import { statusTone, statusLabel } from "@/lib/status-badge";
-import { formatDate, formatDateTime, formatDuration } from "@/lib/date";
+import { formatDate, formatDateTime } from "@/lib/date";
 import { BidComparison } from "./bid-comparison";
 import { ApprovalPanel } from "./approval-panel";
 import { EditableProjectName } from "./editable-name";
 import { ExtendDeadlineButton } from "./extend-deadline";
+import { InvitedVendorsTable } from "./invited-vendors-table";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default async function SocietyRequirementDetailPage({
   // 0 quotes means nothing was priced against the old version. Mirrors the
   // guard in updateRequirement.
   const canEditRequirement = canEditName && requirement.status === "OPEN" && requirement.bids.length === 0;
+  const canUploadBid = assignment.permissions.includes(PERMISSIONS.UPLOAD_BID_ON_BEHALF);
   const bidByVendorId = new Map(requirement.bids.map((b) => [b.vendorCompanyId, b.createdAt]));
 
   const obAssignments =
@@ -138,39 +140,20 @@ export default async function SocietyRequirementDetailPage({
               <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </summary>
-          {requirement.invites.length === 0 ? (
-            <p className="mt-2 text-text-tertiary">No vendors matched yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="mt-2 w-full text-left">
-                <thead>
-                  <tr className="border-b border-border-subtle text-[11px] uppercase tracking-wide text-text-tertiary">
-                    <th className="py-1.5 pr-3 font-semibold">Vendor</th>
-                    <th className="py-1.5 pr-3 font-semibold">Matched</th>
-                    <th className="py-1.5 pr-3 font-semibold">Time given</th>
-                    <th className="py-1.5 font-semibold">Quoted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requirement.invites.map((inv) => {
-                    const windowEnd = closed ? requirement.bidDeadline : new Date();
-                    const givenMs = Math.max(0, windowEnd.getTime() - inv.createdAt.getTime());
-                    const bidAt = bidByVendorId.get(inv.vendorCompanyId);
-                    return (
-                      <tr key={inv.id} className="border-b border-border-subtle last:border-0">
-                        <td className="py-1.5 pr-3 font-medium text-text-primary whitespace-nowrap">
-                          {inv.vendorCompany.name}
-                        </td>
-                        <td className="whitespace-nowrap py-1.5 pr-3">{formatDate(inv.createdAt)}</td>
-                        <td className="whitespace-nowrap py-1.5 pr-3">{formatDuration(givenMs)}</td>
-                        <td className="whitespace-nowrap py-1.5">{bidAt ? formatDate(bidAt) : "—"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <InvitedVendorsTable
+            societyId={id}
+            requirementId={reqId}
+            closed={closed}
+            bidDeadline={requirement.bidDeadline}
+            canUploadBid={canUploadBid}
+            invites={requirement.invites.map((inv) => ({
+              id: inv.id,
+              vendorCompanyId: inv.vendorCompanyId,
+              vendorName: inv.vendorCompany.name,
+              createdAt: inv.createdAt,
+              bidAt: bidByVendorId.get(inv.vendorCompanyId) ?? null,
+            }))}
+          />
         </details>
       </Card>
 

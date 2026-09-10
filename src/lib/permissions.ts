@@ -19,6 +19,7 @@ export const PERMISSIONS = {
   CREATE_REQUIREMENT: "create_requirement",
   VIEW_BID_COMPARISON: "view_bid_comparison",
   RECOMMEND_BID: "recommend_bid",
+  UPLOAD_BID_ON_BEHALF: "upload_bid_on_behalf",
   FINALIZE_BELOW_THRESHOLD: "finalize_below_threshold",
   APPROVE_REJECT_QUOTATION: "approve_reject_quotation",
   MANAGE_USERS: "manage_users",
@@ -91,6 +92,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.FINALIZE_BELOW_THRESHOLD,
     PERMISSIONS.VIEW_ARCHIVE,
     PERMISSIONS.MANAGE_USERS,
+    PERMISSIONS.UPLOAD_BID_ON_BEHALF,
   ],
   [RoleName.CHAIRMAN]: [
     PERMISSIONS.APPROVE_REJECT_QUOTATION,

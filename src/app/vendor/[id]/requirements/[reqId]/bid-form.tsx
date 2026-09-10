@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { isValidGstin, calcLineItemAmounts, calcQuoteTotals } from "@/lib/gst";
-import { submitBid, suggestBidLineItems, saveBidDraft, previewBidPdf, type BidLineItemInput } from "./actions";
+import { MAX_BID_DOCUMENT_BYTES, BID_DOCUMENT_CONTENT_TYPES } from "@/lib/bid-documents";
+import {
+  submitBid,
+  suggestBidLineItems,
+  saveBidDraft,
+  previewBidPdf,
+  extractBidDocument,
+  type BidLineItemInput,
+} from "./actions";
 
 const UNITS = ["sqft", "sqm", "nos", "lump sum", "kg", "hour", "day", "month", "other"];
 
@@ -35,6 +44,9 @@ interface DraftQuote {
   gstCompliant: boolean;
   gstNumber: string;
   lineItems: BidLineItemInput[];
+  // Only ever set on a real submitted Bid (existingBid) — BidDraft has no
+  // such column, since a draft can be built from typed input alone.
+  sourceDocumentUrl?: string | null;
 }
 
 interface Props {
@@ -85,6 +97,11 @@ export function BidForm({
   const [draftSaved, setDraftSaved] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [uploadStage, setUploadStage] = useState<"idle" | "uploading" | "extracting">("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [sourceDocumentUrl, setSourceDocumentUrl] = useState<string | null>(initial?.sourceDocumentUrl ?? null);
+  const [documentStatedTotal, setDocumentStatedTotal] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { subtotal, totalGst, grandTotal } = useMemo(() => {
     const computed = lineItems.map((li) => {
@@ -150,10 +167,72 @@ export function BidForm({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const result = await submitBid(vendorCompanyId, requirementId, currentInput());
+    const result = await submitBid(vendorCompanyId, requirementId, currentInput(), sourceDocumentUrl ?? undefined);
     setSubmitting(false);
     if (result?.error) setError(result.error);
     else setSubmitted(true);
+  }
+
+  // "Upload a quote document instead" — same extraction pipeline as the
+  // Manager's upload-on-behalf flow (society/[id]/requirements/[reqId]/
+  // upload-bid-panel.tsx), just prefilling this form rather than submitting
+  // directly, so the vendor still reviews everything through the normal
+  // Submit quote button below.
+  async function handleDocumentUpload(file: File) {
+    setUploadError(null);
+    if (!(BID_DOCUMENT_CONTENT_TYPES as readonly string[]).includes(file.type)) {
+      setUploadError("Unsupported file type — upload a PDF, image, or Excel file.");
+      return;
+    }
+    if (file.size > MAX_BID_DOCUMENT_BYTES) {
+      setUploadError(`"${file.name}" is over ${(MAX_BID_DOCUMENT_BYTES / (1024 * 1024)).toFixed(0)}MB.`);
+      return;
+    }
+
+    setUploadStage("uploading");
+    try {
+      const dot = file.name.lastIndexOf(".");
+      const ext = dot >= 0 ? file.name.slice(dot) : "";
+      const blob = await upload(`bid-documents/${vendorCompanyId}/${requirementId}/${crypto.randomUUID()}${ext}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/bid-documents/upload",
+        clientPayload: JSON.stringify({ actor: "vendor", vendorCompanyId }),
+      });
+
+      setUploadStage("extracting");
+      const result = await extractBidDocument(vendorCompanyId, requirementId, blob.url, file.type);
+      if ("error" in result) {
+        setUploadError(result.error);
+        setUploadStage("idle");
+        return;
+      }
+
+      const extracted = result.extracted;
+      const anyGst = extracted.lineItems.some((li) => li.gstRate.trim());
+      setLineItems(
+        extracted.lineItems.length
+          ? extracted.lineItems.map((li) => ({ ...li, gstRate: anyGst ? li.gstRate : "" }))
+          : lineItems,
+      );
+      if (anyGst) setGstCompliant(true);
+      if (extracted.bidValidity) setBidValidity(extracted.bidValidity);
+      if (extracted.paymentTerms) setPaymentTerms(extracted.paymentTerms);
+      if (extracted.warrantyPeriod) setWarrantyPeriod(extracted.warrantyPeriod);
+      if (extracted.completionTime) setCompletionTime(extracted.completionTime);
+      if (extracted.notes) setNotes(extracted.notes);
+      if (extracted.gstNumber) setGstNumber(extracted.gstNumber);
+      setDocumentStatedTotal(extracted.documentStatedTotal);
+      setSourceDocumentUrl(blob.url);
+      setSubmitted(false);
+      setDraftSaved(false);
+      setUploadStage("idle");
+    } catch (err) {
+      console.error("Bid document upload/extract failed:", err);
+      setUploadError(err instanceof Error ? err.message : "Upload failed — please try again.");
+      setUploadStage("idle");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   async function handlePreview() {
@@ -173,9 +252,50 @@ export function BidForm({
   const grid = gstCompliant ? LINE_ITEM_GRID_GST : LINE_ITEM_GRID;
   const gstNumberValid = !gstCompliant || isValidGstin(gstNumber);
 
+  const statedTotalNumber = documentStatedTotal !== null ? Number(documentStatedTotal) : null;
+  const totalMismatch =
+    statedTotalNumber !== null &&
+    Number.isFinite(statedTotalNumber) &&
+    Math.abs(statedTotalNumber - grandTotal) > Math.max(1, statedTotalNumber * 0.01);
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <fieldset disabled={disabled} className="contents">
+      <Card className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[14px] text-text-secondary">Have a ready-made quote? Upload it and we&apos;ll fill this in.</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.xlsx,.xls,image/*,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleDocumentUpload(file);
+            }}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            className="border-accent-primary text-accent-primary hover:bg-accent-subtle"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadStage !== "idle"}
+          >
+            {uploadStage === "uploading" ? "Uploading…" : uploadStage === "extracting" ? "Reading document…" : "Upload a quote document"}
+          </Button>
+        </div>
+        {uploadError && <p className="text-[13px] text-status-error">{uploadError}</p>}
+      </Card>
+
+      {totalMismatch && (
+        <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3">
+          <p className="text-[13px] text-text-secondary">
+            Heads up — the document you uploaded states a total of ₹{statedTotalNumber?.toFixed(2)}, but these line
+            items add up to ₹{grandTotal.toFixed(2)}. Double-check before submitting.
+          </p>
+        </div>
+      )}
+
       <Card className="flex flex-col gap-3">
         <h2 className="text-[18px] font-semibold text-text-primary">
           {existingBid ? "Edit your quote" : "Submit a quote"}

@@ -7,11 +7,20 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireSocietyActionPermission } from "@/lib/society-auth";
 import { finalizeRequirement } from "@/lib/work-order";
 import { matchVendors } from "@/lib/matching";
-import { notifyApprovalRequested, notifyReturnedToManager, notifyRequirementMatched } from "@/lib/notifications";
+import {
+  notifyApprovalRequested,
+  notifyReturnedToManager,
+  notifyRequirementMatched,
+  notifyBidUploadedOnBehalf,
+} from "@/lib/notifications";
 import { OB_ROLES, MIN_ACTIVE_OFFICE_BEARERS, countActiveOfficeBearers } from "@/lib/society-ob";
 import { formatDate } from "@/lib/date";
 import { getBaseUrl } from "@/lib/base-url";
 import { revalidatePath } from "next/cache";
+import type { ExtractedBid } from "@/lib/ai";
+import { extractBidFromUploadedDocument } from "@/lib/bid-document-extraction";
+import { isValidGstin, calcLineItemAmounts } from "@/lib/gst";
+import type { BidLineItemInput } from "@/app/vendor/[id]/requirements/[reqId]/actions";
 
 export interface RequirementEditInput {
   categoryIds: string[];
@@ -425,4 +434,191 @@ export async function castQuotationVote(
   revalidatePath(`/society/${societyId}/requirements/${requirementId}`);
   revalidatePath(`/society/${societyId}/requirements`);
   revalidatePath(`/society/${societyId}`);
+}
+
+async function assertUploadEligible(societyId: string, requirementId: string, vendorCompanyId: string) {
+  await requireSocietyActionPermission(societyId, PERMISSIONS.UPLOAD_BID_ON_BEHALF);
+
+  const requirement = await prisma.requirement.findUnique({
+    where: { id: requirementId },
+    select: { societyId: true, bidDeadline: true, status: true },
+  });
+  if (!requirement || requirement.societyId !== societyId) throw new Error("Requirement not found.");
+  if (requirement.status !== "OPEN") throw new Error("This requirement is no longer accepting quotes.");
+  if (requirement.bidDeadline.getTime() <= Date.now()) throw new Error("Bidding has closed for this requirement.");
+
+  const invite = await prisma.requirementInvite.findUnique({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+  });
+  if (!invite) throw new Error("This vendor hasn't been matched/invited to this requirement.");
+}
+
+/**
+ * Downloads the just-uploaded document (see api/bid-documents/upload) and
+ * runs it through Claude (lib/ai.ts extractBidFromDocument) to draft line
+ * items + terms for the Manager to review — nothing is persisted as a Bid
+ * here. Excel files are converted to text first (lib/spreadsheet-text.ts);
+ * PDF/image go in as native document/image blocks.
+ */
+export async function extractBidDocument(
+  societyId: string,
+  requirementId: string,
+  vendorCompanyId: string,
+  documentUrl: string,
+  contentType: string,
+): Promise<{ extracted: ExtractedBid } | { error: string }> {
+  try {
+    await assertUploadEligible(societyId, requirementId, vendorCompanyId);
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
+
+  return extractBidFromUploadedDocument(documentUrl, contentType);
+}
+
+export interface ManagerBidInput {
+  lineItems: BidLineItemInput[];
+  bidValidity: string;
+  paymentTerms: string;
+  warrantyPeriod: string;
+  completionTime: string;
+  notes: string;
+  gstCompliant: boolean;
+  gstNumber: string;
+}
+
+/**
+ * Creates/updates the vendor's Bid from a Manager-reviewed, drag-and-dropped
+ * quote document — same validation as the vendor's own submitBid (vendor/
+ * [id]/requirements/[reqId]/actions.ts), but stamped MANAGER_UPLOAD with no
+ * vendor-side login involved (submittedByUserId stays null; uploadedByUserId
+ * is this Manager). Overwrites any existing Bid for this vendor/requirement
+ * pair the same way a vendor's own resubmission would — once uploaded, it's
+ * simply the vendor's quote of record until the deadline (product decision,
+ * 2026-09-10), viewable/editable by the vendor from their own portal.
+ */
+export async function submitManagerBid(
+  societyId: string,
+  requirementId: string,
+  vendorCompanyId: string,
+  input: ManagerBidInput,
+  sourceDocumentUrl: string,
+): Promise<{ error: string } | undefined> {
+  const session = await auth();
+  if (!session) return { error: "Not authorized." };
+
+  try {
+    await assertUploadEligible(societyId, requirementId, vendorCompanyId);
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
+
+  const requirement = await prisma.requirement.findUniqueOrThrow({
+    where: { id: requirementId },
+    select: { name: true, bidDeadline: true, society: { select: { name: true, gstNumber: true } } },
+  });
+
+  const gstNumber = input.gstNumber.trim().toUpperCase();
+  if (input.gstCompliant && !isValidGstin(gstNumber)) {
+    return { error: "Enter a valid 15-character GSTIN for a GST-compliant quote." };
+  }
+
+  const lineItems = input.lineItems
+    .filter((li) => li.description.trim())
+    .map((li) => {
+      const quantity = Number(li.quantity);
+      const unitRate = Number(li.unitRate);
+      const gstRate = input.gstCompliant ? Number(li.gstRate) : null;
+      const { amount, gstAmount } = calcLineItemAmounts({ quantity, unitRate, gstRate });
+      return {
+        description: li.description.trim(),
+        quantity,
+        unit: li.unit,
+        unitRate,
+        amount,
+        gstRate,
+        gstAmount,
+      };
+    });
+
+  if (lineItems.length === 0) return { error: "Add at least one line item." };
+  if (lineItems.some((li) => !Number.isFinite(li.quantity) || !Number.isFinite(li.unitRate))) {
+    return { error: "Quantity and rate must be numbers." };
+  }
+  if (
+    input.gstCompliant &&
+    lineItems.some((li) => li.gstRate === null || !Number.isFinite(li.gstRate) || li.gstRate < 0 || li.gstRate > 100)
+  ) {
+    return { error: "Enter a GST % between 0 and 100 for every line item." };
+  }
+  if (!input.bidValidity) return { error: "Bid validity date is required." };
+
+  const totalAmount = lineItems.reduce((sum, li) => sum + li.amount, 0);
+
+  if (input.gstCompliant) {
+    await prisma.vendorCompany.update({ where: { id: vendorCompanyId }, data: { gstNumber } });
+  }
+
+  await prisma.bid.upsert({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+    create: {
+      requirementId,
+      vendorCompanyId,
+      submittedVia: "MANAGER_UPLOAD",
+      uploadedByUserId: session.user.id,
+      sourceDocumentUrl,
+      totalAmount,
+      bidValidity: new Date(input.bidValidity),
+      paymentTerms: input.paymentTerms || null,
+      warrantyPeriod: input.warrantyPeriod || null,
+      completionTime: input.completionTime || null,
+      notes: input.notes || null,
+      gstCompliant: input.gstCompliant,
+      vendorGstNumberSnapshot: input.gstCompliant ? gstNumber : null,
+      societyGstNumberSnapshot: input.gstCompliant ? requirement.society.gstNumber : null,
+      lineItems: { create: lineItems },
+    },
+    update: {
+      submittedByUserId: null,
+      submittedVia: "MANAGER_UPLOAD",
+      uploadedByUserId: session.user.id,
+      sourceDocumentUrl,
+      totalAmount,
+      bidValidity: new Date(input.bidValidity),
+      paymentTerms: input.paymentTerms || null,
+      warrantyPeriod: input.warrantyPeriod || null,
+      completionTime: input.completionTime || null,
+      notes: input.notes || null,
+      gstCompliant: input.gstCompliant,
+      vendorGstNumberSnapshot: input.gstCompliant ? gstNumber : null,
+      societyGstNumberSnapshot: input.gstCompliant ? requirement.society.gstNumber : null,
+      lineItems: { deleteMany: {}, create: lineItems },
+    },
+  });
+
+  const vendor = await prisma.vendorCompany.findUniqueOrThrow({
+    where: { id: vendorCompanyId },
+    select: { name: true, ownerEmail: true },
+  });
+  const base = getBaseUrl();
+  const totalGst = lineItems.reduce((sum, li) => sum + (li.gstAmount ?? 0), 0);
+  try {
+    await notifyBidUploadedOnBehalf({
+      vendorEmail: vendor.ownerEmail,
+      vendorName: vendor.name,
+      requirementName: requirement.name,
+      societyName: requirement.society.name,
+      totalAmount: totalAmount.toFixed(2),
+      gst: input.gstCompliant
+        ? { subtotal: totalAmount.toFixed(2), totalGst: totalGst.toFixed(2), grandTotal: (totalAmount + totalGst).toFixed(2) }
+        : undefined,
+      managerName: session.user.name ?? session.user.email ?? "Your society's Manager",
+      bidDeadline: requirement.bidDeadline,
+      reviewUrl: `${base}/vendor/${vendorCompanyId}/requirements/${requirementId}`,
+    });
+  } catch (err) {
+    console.error(`Failed to notify vendor ${vendorCompanyId} of manager-uploaded bid:`, err);
+  }
+
+  revalidatePath(`/society/${societyId}/requirements/${requirementId}`);
 }

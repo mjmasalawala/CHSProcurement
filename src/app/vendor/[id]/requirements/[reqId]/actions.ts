@@ -4,7 +4,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { requireVendorActionPermission } from "@/lib/vendor-auth";
-import { suggestLineItems } from "@/lib/ai";
+import { suggestLineItems, type ExtractedBid } from "@/lib/ai";
+import { extractBidFromUploadedDocument } from "@/lib/bid-document-extraction";
 import { isValidGstin, calcLineItemAmounts } from "@/lib/gst";
 import { renderBidPdfPreview } from "@/lib/bid-pdf";
 import { revalidatePath } from "next/cache";
@@ -135,6 +136,31 @@ export async function suggestBidLineItems(
 }
 
 /**
+ * "Upload a quote document instead" — a vendor drags in their own PDF/image/
+ * Excel quotation (already prepared for another client, or just easier than
+ * re-typing) and Claude drafts the same fields the manual form asks for.
+ * Same extraction pipeline as the Manager's upload-on-behalf flow (society/
+ * [id]/requirements/[reqId]/actions.ts extractBidDocument) — this is just
+ * the vendor-permission-gated twin of it. Purely a form-prefill: nothing is
+ * written here, the vendor still reviews and clicks Submit quote themselves.
+ */
+export async function extractBidDocument(
+  vendorCompanyId: string,
+  requirementId: string,
+  documentUrl: string,
+  contentType: string,
+): Promise<{ extracted: ExtractedBid } | { error: string }> {
+  await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID, { requireActiveVendor: true });
+
+  const invited = await prisma.requirementInvite.findUnique({
+    where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
+  });
+  if (!invited) return { error: "You were not invited to bid on this requirement." };
+
+  return extractBidFromUploadedDocument(documentUrl, contentType);
+}
+
+/**
  * Explicit "Save Draft Quote" — persists the vendor's in-progress quote
  * (line items, validity, notes) to BidDraft so it survives navigating away
  * before the real Submit. Kept separate from Bid entirely (see
@@ -191,6 +217,11 @@ export async function submitBid(
   vendorCompanyId: string,
   requirementId: string,
   input: SubmitBidInput,
+  // Set when this quote was filled in from "Upload a quote document instead"
+  // (extractBidDocument below) — kept on file the same way the Manager's
+  // upload-on-behalf path does, so there's always a source document behind a
+  // quote that didn't come purely from typed input.
+  sourceDocumentUrl?: string,
 ): Promise<{ error: string } | undefined> {
   await requireVendorActionPermission(vendorCompanyId, PERMISSIONS.SUBMIT_BID, { requireActiveVendor: true });
   const session = await auth();
@@ -256,6 +287,8 @@ export async function submitBid(
       requirementId,
       vendorCompanyId,
       submittedByUserId: session.user.id,
+      submittedVia: "VENDOR_PORTAL",
+      sourceDocumentUrl: sourceDocumentUrl ?? null,
       totalAmount,
       bidValidity: new Date(input.bidValidity),
       paymentTerms: input.paymentTerms || null,
@@ -269,6 +302,14 @@ export async function submitBid(
     },
     update: {
       submittedByUserId: session.user.id,
+      // Reclaims full VENDOR_PORTAL ownership even if this bid previously
+      // came from a Manager's document upload — the vendor editing it here
+      // means it's now exactly what they typed, so the uploaded-doc
+      // provenance no longer applies (society/[id]/requirements/[reqId]/
+      // actions.ts submitManagerBid is the only writer of MANAGER_UPLOAD).
+      submittedVia: "VENDOR_PORTAL",
+      uploadedByUserId: null,
+      sourceDocumentUrl: sourceDocumentUrl ?? null,
       totalAmount,
       bidValidity: new Date(input.bidValidity),
       paymentTerms: input.paymentTerms || null,

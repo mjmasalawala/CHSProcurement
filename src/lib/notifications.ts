@@ -2,7 +2,7 @@ import { getBaseUrl } from "@/lib/base-url";
 import { enqueueEmail, enqueueWhatsapp } from "@/lib/messaging/outbox";
 import { sendOne } from "@/lib/messaging/dispatcher";
 import { toE164India } from "@/lib/phone";
-import { formatWhatsappDeadline } from "@/lib/date";
+import { formatWhatsappDeadline, formatDateTime } from "@/lib/date";
 import type { MessageCategory } from "@/generated/prisma/enums";
 // SMS notifications are disabled for now — MSG91 is wired up for phone-
 // verification OTPs only (lib/phone-verification.ts), since sending
@@ -950,4 +950,40 @@ export async function notifyBidDeadlineReminder(params: {
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
   // await sendSms({ to: params.vendorPhone, body: `Wisesoc: The quote deadline for "${params.requirementName}" closes within 24 hours. Submit your quote: ${params.reviewUrl}` });
+}
+
+// Manager-upload-a-vendor-quote feature (society-portal-spec.md — drag a
+// vendor's own PDF/image/Excel quote onto an invited-vendor row, parsed and
+// entered on their behalf). Sent every time, so the vendor always has a
+// record even though there's no sign-off step before the Bid is created —
+// a vendor who disagrees with the eventual Work Order can dispute it then,
+// same as any other quote (product decision, 2026-09-10).
+export async function notifyBidUploadedOnBehalf(params: {
+  vendorEmail: string;
+  vendorName: string;
+  requirementName: string;
+  societyName: string;
+  totalAmount: string;
+  // Present only for a GST-compliant quote — shown as a Subtotal/GST/Grand
+  // Total breakdown instead of the flat totalAmount line.
+  gst?: { subtotal: string; totalGst: string; grandTotal: string };
+  managerName: string;
+  bidDeadline: Date;
+  reviewUrl: string;
+}) {
+  const totalLine = params.gst
+    ? `${params.managerName} at ${params.societyName} uploaded your quotation document for "${params.requirementName}" and it's now on file as your submitted quote — subtotal ₹${params.gst.subtotal}, GST ₹${params.gst.totalGst}, grand total ₹${params.gst.grandTotal}.`
+    : `${params.managerName} at ${params.societyName} uploaded your quotation document for "${params.requirementName}" and it's now on file as your submitted quote — total ₹${params.totalAmount}.`;
+
+  await sendEmail({
+    templateKey: "vendor.bid_uploaded_on_behalf",
+    to: params.vendorEmail,
+    subject: `Your quote for "${params.requirementName}" was logged on your behalf`,
+    heading: "Quote logged on your behalf",
+    paragraphs: [
+      totalLine,
+      `Please check that this matches what you sent. You can view or edit it from your dashboard any time before the quote deadline closes on ${formatDateTime(params.bidDeadline)}.`,
+    ],
+    cta: { label: "View your quote", url: params.reviewUrl },
+  });
 }

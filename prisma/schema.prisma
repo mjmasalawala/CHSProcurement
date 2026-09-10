@@ -40,6 +40,7 @@ model User {
 
   roleAssignments         RoleAssignment[]
   bids                    Bid[]
+  uploadedBids            Bid[]                @relation("BidUploadedBy")
   recommendedRequirements Requirement[]
   passwordResetTokens     PasswordResetToken[]
   quotationApprovals      QuotationApproval[]
@@ -560,6 +561,14 @@ enum BidStatus {
   NOT_SELECTED
 }
 
+// How a Bid entered the system — vendor-registration-portal-spec.md Section
+// 8 (VENDOR_PORTAL, the vendor's own structured form) vs. the Manager
+// drag-and-drop-a-PDF path (society-portal-spec.md manager-upload feature).
+enum BidSubmissionMethod {
+  VENDOR_PORTAL
+  MANAGER_UPLOAD
+}
+
 // vendor-registration-portal-spec.md Section 8. One Bid per vendor company
 // per Requirement (editable up to the deadline); line items are the
 // machine-comparable structure the Society side compares post-deadline.
@@ -569,8 +578,11 @@ model Bid {
   requirement       Requirement   @relation(fields: [requirementId], references: [id], onDelete: Cascade)
   vendorCompanyId   String
   vendorCompany     VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
-  submittedByUserId String
-  submittedByUser   User          @relation(fields: [submittedByUserId], references: [id])
+  // Null only for a MANAGER_UPLOAD bid — there's no vendor-side login
+  // involved, so this stays empty and uploadedByUserId/uploadedByUser carry
+  // provenance instead. Every VENDOR_PORTAL bid still requires this.
+  submittedByUserId String?
+  submittedByUser   User?         @relation(fields: [submittedByUserId], references: [id])
   totalAmount       Decimal       @db.Decimal(12, 2)
   bidValidity       DateTime
   paymentTerms      String?
@@ -597,6 +609,20 @@ model Bid {
   gstCompliant             Boolean @default(false)
   vendorGstNumberSnapshot  String?
   societyGstNumberSnapshot String?
+
+  // Manager-upload path (drag-and-drop a vendor's own PDF/image/Excel quote
+  // into the requirement, parsed via Claude — see lib/ai.ts
+  // extractBidFromDocument). Default covers every pre-existing row and every
+  // ordinary vendor-portal submission.
+  submittedVia     BidSubmissionMethod @default(VENDOR_PORTAL)
+  // The Manager who did the upload, for MANAGER_UPLOAD bids only.
+  uploadedByUserId String?
+  uploadedByUser   User?               @relation("BidUploadedBy", fields: [uploadedByUserId], references: [id])
+  // The vendor's original file (Vercel Blob URL) — kept as the source of
+  // truth a vendor can point to if the parsed line items don't match what
+  // they actually sent, same audit-trail rationale as WorkOrder's snapshot
+  // fields. Never shown to other vendors.
+  sourceDocumentUrl String?
 
   lineItems      BidLineItem[]
   recommendedFor Requirement?  @relation("RequirementRecommendedBid")

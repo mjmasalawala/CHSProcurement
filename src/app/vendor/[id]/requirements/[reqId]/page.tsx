@@ -41,7 +41,10 @@ export default async function RequirementDetailPage({
               city: { select: { name: true } },
             },
           },
-          bids: { where: { vendorCompanyId: id }, include: { lineItems: true, workOrder: { select: { id: true } } } },
+          bids: {
+            where: { vendorCompanyId: id },
+            include: { lineItems: true, workOrder: { select: { id: true } } },
+          },
         },
       },
     },
@@ -111,6 +114,12 @@ export default async function RequirementDetailPage({
               </p>
               <Badge tone={statusTone(myBid.status)}>{statusLabel(myBid.status)}</Badge>
             </div>
+            {myBid.submittedVia === "MANAGER_UPLOAD" && (
+              <p className="text-[13px] text-text-secondary">
+                Logged on your behalf by the society Manager from your quotation document — let them know if
+                anything here doesn&apos;t match what you sent.
+              </p>
+            )}
 
             <div className="overflow-x-auto border-t border-border-subtle pt-3">
               <table className="w-full text-left text-[13px]">
@@ -214,6 +223,14 @@ export default async function RequirementDetailPage({
               </p>
             </Card>
           )}
+          {myBid?.submittedVia === "MANAGER_UPLOAD" && (
+            <Card className="border-status-warning-border bg-status-warning-bg">
+              <p className="text-[13px] text-text-secondary">
+                The society Manager logged this quote on your behalf from your quotation document. Review it below
+                and edit anything that doesn&apos;t match before the deadline.
+              </p>
+            </Card>
+          )}
           <BidForm
             vendorCompanyId={id}
             requirementId={reqId}
@@ -229,6 +246,7 @@ export default async function RequirementDetailPage({
                     notes: myBid.notes ?? "",
                     gstCompliant: myBid.gstCompliant,
                     gstNumber: myBid.vendorGstNumberSnapshot ?? "",
+                    sourceDocumentUrl: myBid.sourceDocumentUrl,
                     lineItems: myBid.lineItems.map((li) => ({
                       description: li.description,
                       quantity: li.quantity.toString(),

@@ -55,6 +55,7 @@ Email and WhatsApp are sent independently here — one failing doesn't block the
 | 21 | Category request approved/rejected | `notifyCategoryRequestDecided` | E | Transactional | The vendor | `app/admin/category-requests/actions.ts` |
 | 22 | Bid outcome (selected / not selected) | `notifyBidOutcome` | E | Transactional | The bidding vendor | `lib/work-order.ts` |
 | 23 | Vendor account suspended/reactivated | `notifyVendorStatusChanged` | E | Transactional | The vendor | `app/admin/vendors/[id]/actions.ts` |
+| 28 | Manager uploads a vendor's quote document on their behalf | `notifyBidUploadedOnBehalf` | E | Transactional | The vendor whose quote was logged | `app/society/[id]/requirements/[reqId]/actions.ts` |
 
 ## Time-based reminders (cron, not a user action)
 
