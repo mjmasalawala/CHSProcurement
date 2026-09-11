@@ -336,6 +336,21 @@ export async function notifyVendorSuggested(params: {
 // Note: while RESEND_API_KEY is sandboxed, this — like notifyRejection —
 // won't actually reach a real invitee's inbox until a sending domain is
 // verified (Resend only delivers to the account owner's own address).
+// Human-readable phrasing for the raw RoleName sendInvite's callers pass in
+// (e.g. "VENDOR_STAFF") — used only in the email subject/body below, not the
+// WhatsApp send (that stays on the raw role value, which is what the
+// already-approved Meta template's {{1}} placeholder was reviewed against —
+// changing it risks a delivery failure for no email-side benefit). Falls
+// back to the raw role for anything not in this map, though every
+// createInvite call site today only ever passes one of these five.
+const INVITE_ROLE_LABELS: Record<string, string> = {
+  MANAGER: "Manager",
+  CHAIRMAN: "Chairman",
+  SECRETARY: "Secretary",
+  TREASURER: "Treasurer",
+  VENDOR_STAFF: "a staff member",
+};
+
 export async function sendInvite(params: {
   email: string;
   role: string;
@@ -363,6 +378,7 @@ export async function sendInvite(params: {
   registrationPitch?: { proposerName: string; proposerRoleLabel: string; societyName: string };
 }) {
   const forWhat = params.entityName ? ` for ${params.entityName}` : "";
+  const roleLabel = INVITE_ROLE_LABELS[params.role] ?? params.role;
   const base = getBaseUrl();
 
   const paragraphs = params.registrationPitch
@@ -373,8 +389,8 @@ export async function sendInvite(params: {
     : [
         `Hi,`,
         params.invitedByName
-          ? `${params.invitedByName} has invited you to join Wisesoc as ${params.role}${forWhat}.`
-          : `You've been invited to join Wisesoc as ${params.role}${forWhat}.`,
+          ? `${params.invitedByName} has invited you to join Wisesoc as ${roleLabel}${forWhat}.`
+          : `You've been invited to join Wisesoc as ${roleLabel}${forWhat}.`,
       ];
 
   // Decoupled from the WhatsApp send below, same reasoning as
@@ -389,7 +405,7 @@ export async function sendInvite(params: {
       to: params.email,
       subject: params.registrationPitch
         ? `You're invited to set up ${params.registrationPitch.societyName} on Wisesoc`
-        : `You've been invited to Wisesoc as ${params.role}`,
+        : `You've been invited to Wisesoc as ${roleLabel}${params.entityName ? ` of ${params.entityName}` : ""}`,
       heading: params.registrationPitch ? "Set up your society on Wisesoc" : "You've been invited to Wisesoc",
       paragraphs,
       cta: { label: "Create your password", url: params.url },
@@ -634,12 +650,13 @@ export async function notifyAddedToExistingAccount(params: {
   loginUrl: string;
 }) {
   const forWhat = params.entityName ? ` for ${params.entityName}` : "";
+  const roleLabel = INVITE_ROLE_LABELS[params.role] ?? params.role;
   await sendEmail({
     templateKey: "invite.added_to_existing_account",
     to: params.email,
-    subject: `You've been added to Wisesoc as ${params.role}`,
+    subject: `You've been added to Wisesoc as ${roleLabel}${params.entityName ? ` of ${params.entityName}` : ""}`,
     heading: "You've been added to Wisesoc",
-    paragraphs: [`You've been added as ${params.role}${forWhat} on Wisesoc, using your existing account (${params.email}).`],
+    paragraphs: [`You've been added as ${roleLabel}${forWhat} on Wisesoc, using your existing account (${params.email}).`],
     cta: { label: "Log in", url: params.loginUrl },
   });
 }
