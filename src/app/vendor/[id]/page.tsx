@@ -129,36 +129,38 @@ export default async function VendorDashboardPage({
         </Card>
       )}
 
-      <Card>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-border-subtle">
-          {submittedBids !== null && (
-            <DashboardStat label="Quotes submitted (12 months)" value={String(submittedBids)} href={`/vendor/${id}/bids`} />
-          )}
-          {totalValueWon !== null && (
-            <DashboardStat
-              label="Total value won"
-              value={`₹${(totalValueWon._sum.totalAmount ?? 0).toString()}`}
-              href={`/vendor/${id}/bids?status=WON`}
-            />
-          )}
-          {avgResponseMs !== null && (
-            <DashboardStat
-              label="Avg. response time"
-              value={formatDuration(avgResponseMs)}
-              hint="Matched to quoted"
-            />
-          )}
-          {missedInvitesCount !== null && (
-            <DashboardStat
-              label="Missed invites"
-              value={String(missedInvitesCount)}
-              href={`/vendor/${id}/requirements?filter=missed`}
-              valueClassName={missedInvitesCount > 0 ? "text-status-error" : undefined}
-              hint="Deadline passed, no quote"
-            />
-          )}
-        </div>
-      </Card>
+      {vendor.status === "ACTIVE" && (
+        <Card>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-border-subtle">
+            {submittedBids !== null && (
+              <DashboardStat label="Quotes submitted (12 months)" value={String(submittedBids)} href={`/vendor/${id}/bids`} />
+            )}
+            {totalValueWon !== null && (
+              <DashboardStat
+                label="Total value won"
+                value={`₹${(totalValueWon._sum.totalAmount ?? 0).toString()}`}
+                href={`/vendor/${id}/bids?status=WON`}
+              />
+            )}
+            {avgResponseMs !== null && (
+              <DashboardStat
+                label="Avg. response time"
+                value={formatDuration(avgResponseMs)}
+                hint="Matched to quoted"
+              />
+            )}
+            {missedInvitesCount !== null && (
+              <DashboardStat
+                label="Missed invites"
+                value={String(missedInvitesCount)}
+                href={`/vendor/${id}/requirements?filter=missed`}
+                valueClassName={missedInvitesCount > 0 ? "text-status-error" : undefined}
+                hint="Deadline passed, no quote"
+              />
+            )}
+          </div>
+        </Card>
+      )}
 
       {openInviteCount !== null && (
         <Card className="flex flex-col gap-3">
