@@ -960,7 +960,9 @@ export async function notifyBidDeadlineReminder(params: {
 // same as any other quote (product decision, 2026-09-10).
 export async function notifyBidUploadedOnBehalf(params: {
   vendorEmail: string;
+  vendorPhone?: string | null;
   vendorName: string;
+  bidId: string;
   requirementName: string;
   societyName: string;
   totalAmount: string;
@@ -971,6 +973,7 @@ export async function notifyBidUploadedOnBehalf(params: {
   bidDeadline: Date;
   reviewUrl: string;
 }) {
+  const grandTotal = params.gst?.grandTotal ?? params.totalAmount;
   const totalLine = params.gst
     ? `${params.managerName} at ${params.societyName} uploaded your quotation document for "${params.requirementName}" and it's now on file as your submitted quote — subtotal ₹${params.gst.subtotal}, GST ₹${params.gst.totalGst}, grand total ₹${params.gst.grandTotal}.`
     : `${params.managerName} at ${params.societyName} uploaded your quotation document for "${params.requirementName}" and it's now on file as your submitted quote — total ₹${params.totalAmount}.`;
@@ -986,4 +989,21 @@ export async function notifyBidUploadedOnBehalf(params: {
     ],
     cta: { label: "View your quote", url: params.reviewUrl },
   });
+
+  if (params.vendorPhone) {
+    await sendWhatsapp({
+      templateKey: "bid.uploaded_on_behalf",
+      // Submitted as UTILITY (2026-09-11, pending Test WABA approval) — same
+      // plain account/quote-status framing as vendor.approved, the only
+      // template so far to hold UTILITY rather than get reclassified
+      // MARKETING. Update this once the actual Meta decision is known if it
+      // ever gets reclassified (see whatsapp-templates.ts's history comments
+      // for the pattern of tagging categories to match reality, not intent).
+      category: "TRANSACTIONAL",
+      to: params.vendorPhone,
+      text: `Your quote for "${params.requirementName}" was logged on Wisesoc by ${params.societyName} — total ₹${grandTotal}. Please check it matches what you sent before the deadline on ${formatWhatsappDeadline(params.bidDeadline)} (IST).`,
+      templateParams: [params.requirementName, params.societyName, grandTotal, formatWhatsappDeadline(params.bidDeadline)],
+      buttonParam: params.bidId,
+    });
+  }
 }

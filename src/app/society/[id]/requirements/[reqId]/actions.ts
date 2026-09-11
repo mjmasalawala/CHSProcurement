@@ -559,7 +559,7 @@ export async function submitManagerBid(
     await prisma.vendorCompany.update({ where: { id: vendorCompanyId }, data: { gstNumber } });
   }
 
-  await prisma.bid.upsert({
+  const bid = await prisma.bid.upsert({
     where: { requirementId_vendorCompanyId: { requirementId, vendorCompanyId } },
     create: {
       requirementId,
@@ -598,14 +598,16 @@ export async function submitManagerBid(
 
   const vendor = await prisma.vendorCompany.findUniqueOrThrow({
     where: { id: vendorCompanyId },
-    select: { name: true, ownerEmail: true },
+    select: { name: true, ownerEmail: true, ownerPhone: true },
   });
   const base = getBaseUrl();
   const totalGst = lineItems.reduce((sum, li) => sum + (li.gstAmount ?? 0), 0);
   try {
     await notifyBidUploadedOnBehalf({
       vendorEmail: vendor.ownerEmail,
+      vendorPhone: vendor.ownerPhone,
       vendorName: vendor.name,
+      bidId: bid.id,
       requirementName: requirement.name,
       societyName: requirement.society.name,
       totalAmount: totalAmount.toFixed(2),

@@ -151,6 +151,32 @@ const WHATSAPP_TEMPLATES: Record<string, TemplateByEnvironment> = {
     test: { name: "wisesoc_requirement_matched_v2", language: "en" },
     production: { name: "wisesoc_requirement_matched_v2", language: "en" },
   },
+
+  // Manager uploads a vendor's own quotation document on their behalf
+  // (lib/notifications.ts's notifyBidUploadedOnBehalf, society/[id]/
+  // requirements/[reqId]/actions.ts's submitManagerBid). Body: "Your quote
+  // for "{{1}}" was logged on Wisesoc by {{2}} — total ₹{{3}}. Please check
+  // it matches what you sent before the deadline on {{4}} (IST)."
+  // ({{1}}=requirement name, {{2}}=society name, {{3}}=total amount,
+  // {{4}}=deadline via lib/date.ts's formatWhatsappDeadline). Deliberately
+  // worded as a plain account/quote-status update, not a new-opportunity
+  // pitch — see vendor.approved above, the only template so far to land
+  // UTILITY rather than get reclassified MARKETING, and the body is
+  // deliberately NOT led with a variable (Meta is stricter on
+  // approving/keeping templates whose body opens with {{1}} — reads as
+  // spam-shaped). One dynamic URL button, "View your quote" →
+  // https://www.wisesoc.in/bid/{{1}}, {{1}}=Bid.id — routed through
+  // app/bid/[id]/page.tsx since the real destination
+  // (/vendor/{vendorCompanyId}/requirements/{requirementId}) has two
+  // varying segments and Meta only allows the variable as a bare trailing
+  // suffix (same reasoning as vendor.approved's /vendor-profile/[id]).
+  //
+  // Submitted to the Test WABA 2026-09-11 as UTILITY — pending approval.
+  // Add the production entry only once approval on test confirms UTILITY
+  // held and the exact wording is final (see the file-header rule).
+  "bid.uploaded_on_behalf": {
+    test: { name: "wisesoc_bid_uploaded_v1", language: "en" },
+  },
 };
 
 /**
