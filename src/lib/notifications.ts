@@ -26,6 +26,13 @@ interface EmailLink {
   url: string;
 }
 
+interface EmailStep {
+  label: string;
+  description: string;
+  url: string;
+  linkLabel: string;
+}
+
 interface EmailContent {
   to: string | string[];
   subject: string;
@@ -36,6 +43,11 @@ interface EmailContent {
   list?: string[];
   // The one prominent, button-styled action for this email.
   cta?: EmailLink;
+  // A shaded "Next steps" checklist rendered after the CTA — for an email
+  // with more than one follow-up action to offer (e.g. vendor approval:
+  // complete your profile, invite your team), where a single CTA button
+  // isn't enough and stacking multiple buttons would look like button soup.
+  steps?: EmailStep[];
   // Smaller "Click here for…" links below the CTA — e.g. an FAQ page.
   secondaryLinks?: EmailLink[];
   // Small print at the very bottom (expiry notes, etc).
@@ -85,6 +97,25 @@ function renderEmailHtml(content: EmailContent): string {
       </table>`
     : "";
 
+  const stepsHtml = content.steps?.length
+    ? `<div style="margin:0 0 20px;padding:18px 20px;background-color:#f9f6f3;border:1px solid #f0e6dd;border-radius:10px;">
+        <p style="margin:0 0 14px;font-size:12px;font-weight:700;color:#0a1a30;text-transform:uppercase;letter-spacing:0.05em;">Next steps</p>
+        ${content.steps
+          .map(
+            (s, i) => `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="${
+              i < content.steps!.length - 1 ? "margin:0 0 14px;" : "margin:0;"
+            }">
+          <tr><td style="vertical-align:top;">
+            <p style="margin:0;font-size:14px;font-weight:600;color:#1f1f1f;">${i + 1}. ${escapeHtml(s.label)}</p>
+            <p style="margin:2px 0 6px;font-size:13px;line-height:1.5;color:#5a5a5a;">${escapeHtml(s.description)}</p>
+            <a href="${s.url}" style="font-size:13px;font-weight:600;color:#b73c01;text-decoration:none;">${escapeHtml(s.linkLabel)}</a>
+          </td></tr>
+        </table>`,
+          )
+          .join("")}
+      </div>`
+    : "";
+
   const secondaryLinksHtml = content.secondaryLinks?.length
     ? `<p style="margin:0 0 16px;font-size:13px;line-height:1.6;">${content.secondaryLinks
         .map((l) => `<a href="${l.url}" style="color:#b73c01;text-decoration:underline;">Click here for ${escapeHtml(l.label)}</a>`)
@@ -107,6 +138,7 @@ function renderEmailHtml(content: EmailContent): string {
         ${paragraphsHtml}
         ${listHtml}
         ${ctaHtml}
+        ${stepsHtml}
         ${secondaryLinksHtml}
         ${footerHtml}
       </td></tr>
@@ -122,6 +154,12 @@ function renderEmailText(content: EmailContent): string {
   }
   if (content.cta) {
     lines.push(`${content.cta.label}: ${content.cta.url}`, "");
+  }
+  if (content.steps?.length) {
+    lines.push(
+      "Next steps:",
+      ...content.steps.flatMap((s, i) => [`${i + 1}. ${s.label} — ${s.description}`, `${s.linkLabel}: ${s.url}`, ""]),
+    );
   }
   if (content.secondaryLinks?.length) {
     lines.push(...content.secondaryLinks.map((l) => `${l.label}: ${l.url}`), "");
@@ -664,21 +702,36 @@ export async function notifyApproval(params: {
   contactPhone?: string | null;
   // Vendor-only — Society approval already points the invitee at the
   // platform via the separate activation invite email (createInvite), so
-  // this is just for the Vendor Owner's "check requirements" nudge.
-  dashboardUrl?: string;
-  // Vendor-only — the raw VendorCompany id, needed separately from
-  // dashboardUrl because the WhatsApp button below links through
-  // /vendor-profile/{id} (see that route's own comment), not the
-  // requirements dashboard the email CTA points at.
+  // this is just for the Vendor Owner's "what do I do now" next steps
+  // (below) and the WhatsApp button, which links through
+  // /vendor-profile/{id} (see that route's own comment).
   vendorCompanyId?: string;
 }) {
+  const base = getBaseUrl();
+
   await sendEmail({
     templateKey: "registration.approved",
     to: params.contactEmail,
     subject: `Your ${params.type} registration was approved`,
     heading: "Registration approved",
     paragraphs: [`Good news — your ${params.type} registration for "${params.name}" on Wisesoc has been approved and is now active.`],
-    cta: params.dashboardUrl ? { label: "Go to your dashboard", url: params.dashboardUrl } : undefined,
+    steps:
+      params.type === "Vendor" && params.vendorCompanyId
+        ? [
+            {
+              label: "Complete your profile",
+              description: "Add your GST/PAN, years in business, and a short description so societies can find and trust you faster.",
+              url: `${base}/vendor/${params.vendorCompanyId}/profile`,
+              linkLabel: "Complete your profile",
+            },
+            {
+              label: "Invite your team",
+              description: "Add staff members who can also submit quotes on requirements on your behalf.",
+              url: `${base}/vendor/${params.vendorCompanyId}/staff`,
+              linkLabel: "Invite your team",
+            },
+          ]
+        : undefined,
   });
   // SMS intentionally not sent — see notifyVendorSuggested above.
   // await sendSms({ to: params.contactPhone, body: `Wisesoc: Good news — your ${params.type} registration for "${params.name}" on Wisesoc has been approved and is now active.` });

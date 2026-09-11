@@ -6,7 +6,6 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { requireActionPermission } from "@/lib/admin-auth";
 import { notifyApproval, notifyRejection, notifyVendorStatusChanged } from "@/lib/notifications";
 import { syncVendorRequirementMatches } from "@/lib/matching";
-import { getBaseUrl } from "@/lib/base-url";
 import { toE164India } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import type { VendorProfileInput } from "@/app/vendor/[id]/profile/actions";
@@ -23,14 +22,12 @@ export async function approveVendor(vendorCompanyId: string): Promise<void> {
     data: { status: "ACTIVE", approvedAt: new Date() },
   });
 
-  const base = getBaseUrl();
   try {
     await notifyApproval({
       type: "Vendor",
       name: vendor.name,
       contactEmail: vendor.ownerEmail,
       contactPhone: vendor.ownerPhone,
-      dashboardUrl: `${base}/vendor/${vendorCompanyId}/requirements`,
       vendorCompanyId,
     });
   } catch (err) {
