@@ -171,11 +171,15 @@ const WHATSAPP_TEMPLATES: Record<string, TemplateByEnvironment> = {
   // varying segments and Meta only allows the variable as a bare trailing
   // suffix (same reasoning as vendor.approved's /vendor-profile/[id]).
   //
-  // Submitted to the Test WABA 2026-09-11 as UTILITY — pending approval.
-  // Add the production entry only once approval on test confirms UTILITY
-  // held and the exact wording is final (see the file-header rule).
+  // Submitted directly to the production WABA and approved there as
+  // UTILITY — an exception to the usual test-first sequence in the
+  // file-header rule (this one skipped straight to production). Mirrored to
+  // the Test WABA 2026-09-11, identical content, via Graph API
+  // (POST /{waba-id}/message_templates) rather than the WhatsApp Manager
+  // UI — pending approval there as of this writing.
   "bid.uploaded_on_behalf": {
     test: { name: "wisesoc_bid_uploaded_v1", language: "en" },
+    production: { name: "wisesoc_bid_uploaded_v1", language: "en" },
   },
 };
 
