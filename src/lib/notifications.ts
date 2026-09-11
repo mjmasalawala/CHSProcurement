@@ -77,7 +77,7 @@ function renderEmailHtml(content: EmailContent): string {
 
   const ctaHtml = content.cta
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px;">
-        <tr><td style="border-radius:8px;background-color:#2f6f4f;">
+        <tr><td style="border-radius:8px;background-color:#b73c01;">
           <a href="${content.cta.url}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">${escapeHtml(
             content.cta.label,
           )}</a>
@@ -87,7 +87,7 @@ function renderEmailHtml(content: EmailContent): string {
 
   const secondaryLinksHtml = content.secondaryLinks?.length
     ? `<p style="margin:0 0 16px;font-size:13px;line-height:1.6;">${content.secondaryLinks
-        .map((l) => `<a href="${l.url}" style="color:#2f6f4f;text-decoration:underline;">Click here for ${escapeHtml(l.label)}</a>`)
+        .map((l) => `<a href="${l.url}" style="color:#b73c01;text-decoration:underline;">Click here for ${escapeHtml(l.label)}</a>`)
         .join(" &nbsp;·&nbsp; ")}</p>`
     : "";
 
@@ -99,8 +99,8 @@ function renderEmailHtml(content: EmailContent): string {
 <html>
   <body style="margin:0;padding:24px;background-color:#f4f4f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:520px;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e8e6e1;">
-      <tr><td style="padding:20px 32px;background-color:#1f3d2c;">
-        <span style="font-size:16px;font-weight:700;color:#ffffff;letter-spacing:0.02em;">Wisesoc</span>
+      <tr><td style="padding:24px 32px;text-align:center;background-color:#ffffff;border-bottom:1px solid #e8e6e1;">
+        <img src="${getBaseUrl()}/logo-full.png" alt="Wisesoc" height="35" style="height:35px;width:auto;display:inline-block;border:0;" />
       </td></tr>
       <tr><td style="padding:28px 32px 32px;">
         <h1 style="margin:0 0 16px;font-size:19px;font-weight:700;color:#1f1f1f;">${escapeHtml(content.heading)}</h1>
